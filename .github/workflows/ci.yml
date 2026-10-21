@@ -4,7 +4,7 @@ name: CI
 on:
   push:
     branches: [main, "feat/**", "fix/**"]
-    tags: ["v*"]   # v0.2.0 etiketi: can-gen ve şablon NuGet'e yayınlanır
+    tags: ["v*"]   # v0.2.0 etiketi: canfxgen ve şablon NuGet'e yayınlanır
   pull_request:
   workflow_dispatch:
 
@@ -41,7 +41,7 @@ jobs:
       - run: ./build/ci.sh build
       - run: ./build/ci.sh test
       - run: ./build/ci.sh pack
-      # Şablondan üç çözüm üretilir, can-gen ile CRUD eklenir ve derlenir (CanFx paketleri nuget.org'dan)
+      # Şablondan üç çözüm üretilir, canfxgen ile CRUD eklenir ve derlenir (CanFx paketleri nuget.org'dan)
       - run: ./build/ci.sh templates
 
       # Yayın yalnızca v* etiketinde. Anahtar: nuget.org Trusted Publishing politikası (oguzhan-c / Generator / ci.yml).
@@ -65,4 +65,47 @@ jobs:
           path: |
             artifacts/packages
             templates.log
+          if-no-files-found: ignore
+
+  rider-plugin:
+    name: Rider eklentisi
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: rider-plugin
+    env:
+      # secrets doğrudan "if" içinde kullanılamaz: token tanımlı mı bilgisi ortam değişkeniyle taşınır
+      HAS_MARKETPLACE_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4   # Gradle ve Rider SDK önbelleği
+
+      - name: Sürüm (Generator ile aynı)
+        id: version
+        working-directory: .
+        run: echo "value=$(./build/ci.sh version)" >> "$GITHUB_OUTPUT"
+
+      - run: ./gradlew buildPlugin -PpluginVersion=${{ steps.version.outputs.value }}
+
+      # Yalnızca v* etiketinde ve token varsa. İlk sürüm plugins.jetbrains.com'dan elle yüklenir (token o zamana kadar yok).
+      - name: JetBrains Marketplace'e yayın
+        if: startsWith(github.ref, 'refs/tags/v') && env.HAS_MARKETPLACE_TOKEN == 'true'
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+          CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew publishPlugin -PpluginVersion=${{ steps.version.outputs.value }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rider-plugin
+          path: rider-plugin/build/distributions/*.zip
           if-no-files-found: ignore

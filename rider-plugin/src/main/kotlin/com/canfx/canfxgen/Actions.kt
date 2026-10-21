@@ -1,4 +1,4 @@
-package com.canfx.cangen
+package com.canfx.canfxgen
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -12,7 +12,7 @@ import java.io.File
 
 /**
  * Entity dosyasına sağ tıklayınca görünür ve o entity için CRUD üretir. Yalnızca Domain projesindeki, doğrudan
- * Entity&lt;TId&gt; / AggregateRoot&lt;TId&gt; ya da Audited türevlerinden türeyen sınıflarda etkindir (can-gen ile aynı kural);
+ * Entity&lt;TId&gt; / AggregateRoot&lt;TId&gt; ya da Audited türevlerinden türeyen sınıflarda etkindir (canfxgen ile aynı kural);
  * diğer .cs dosyalarında menüde görünmez.
  */
 class GenerateCrudAction : AnAction() {
@@ -34,7 +34,7 @@ class GenerateCrudAction : AnAction() {
     private fun directoryOf(file: VirtualFile): String = file.parent?.path ?: File(file.path).parent
 }
 
-/** Dosyanın can-gen'in kabul edeceği bir entity olup olmadığını hızlıca (metinden) anlar. */
+/** Dosyanın canfxgen'in kabul edeceği bir entity olup olmadığını hızlıca (metinden) anlar. */
 internal object EntityDetector {
     private const val MAX_SIZE = 512 * 1024
 
@@ -72,7 +72,7 @@ internal object CanGenActions {
         val options = GenerateCrudOptions()
         if (!GenerateCrudDialog(project, entity, options).showAndGet()) return
 
-        // Entity dosyasındaki son değişiklikler diskte olsun (can-gen dosyadan okur).
+        // Entity dosyasındaki son değişiklikler diskte olsun (canfxgen dosyadan okur).
         ApplicationManager.getApplication().runWriteAction { FileDocumentManager.getInstance().saveAllDocuments() }
 
         CanGen.generateCrud(project, entity, entityPath, workingDirectory, options)

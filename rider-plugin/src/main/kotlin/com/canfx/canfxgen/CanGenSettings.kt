@@ -1,4 +1,4 @@
-package com.canfx.cangen
+package com.canfx.canfxgen
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.PersistentStateComponent
@@ -11,13 +11,13 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 
-/** Eklenti ayarları (Settings → Tools → CanFx Generator). */
-@State(name = "CanGenSettings", storages = [Storage("can-gen.xml")])
+/** Eklenti ayarları (Settings → Tools → CanFxGen). */
+@State(name = "CanGenSettings", storages = [Storage("canfxgen.xml")])
 class CanGenSettings : PersistentStateComponent<CanGenSettings.State> {
     class State {
         /**
-         * can-gen komutu. Boşsa PATH'te ve ~/.dotnet/tools altında aranır. Geliştirirken kaynak koddan da çalıştırılabilir:
-         * dotnet run --project /yol/Generator/src/CanFx.Generator.Cli --
+         * canfxgen komutu. Boşsa PATH'te ve ~/.dotnet/tools altında aranır. Geliştirirken kaynak koddan da çalıştırılabilir:
+         * dotnet run --project /yol/Generator/src/CanFxGen --
          */
         var command: String = ""
 
@@ -38,22 +38,22 @@ class CanGenSettings : PersistentStateComponent<CanGenSettings.State> {
     }
 }
 
-class CanGenConfigurable : BoundConfigurable("CanFx Generator") {
+class CanGenConfigurable : BoundConfigurable("CanFxGen") {
     override fun createPanel(): DialogPanel {
         val state = CanGenSettings.getInstance().state
         return panel {
-            row("can-gen komutu:") {
+            row("canfxgen command:") {
                 textField()
                     .bindText(state::command)
                     .align(AlignX.FILL)
                     .comment(
-                        "Boş bırakılırsa PATH'te ve ~/.dotnet/tools altında aranır. Kurulum: " +
-                            "dotnet tool install -g CanFx.Generator.Cli --add-source &lt;klasör&gt; --prerelease<br/>" +
-                            "Kaynak koddan çalıştırmak için: dotnet run --project /yol/Generator/src/CanFx.Generator.Cli --"
+                        "If empty, canfxgen is looked up in PATH and ~/.dotnet/tools. Install: " +
+                            "dotnet tool install -g CanFxGen<br/>" +
+                            "To run from source: dotnet run --project /path/to/Generator/src/CanFxGen --"
                     )
             }
             row {
-                checkBox("Üretimden sonra dosyaları aç").bindSelected(state::openGeneratedFiles)
+                checkBox("Open generated files after generation").bindSelected(state::openGeneratedFiles)
             }
         }
     }

@@ -6,7 +6,7 @@
 name: canapptemplate
 
 services:
-  # TODO(can-gen): Seçtiğin veritabanının servisini aç (başındaki "# " işaretlerini kaldır) ve aşağıdaki volumes'ta db-data'yı aç.
+  # TODO(canfxgen): Seçtiğin veritabanının servisini aç (başındaki "# " işaretlerini kaldır) ve aşağıdaki volumes'ta db-data'yı aç.
   # postgres:
   #   image: postgres:18-alpine
   #   ports: ["5432:5432"]

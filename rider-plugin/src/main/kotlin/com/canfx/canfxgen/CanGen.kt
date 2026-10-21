@@ -1,4 +1,4 @@
-package com.canfx.cangen
+package com.canfx.canfxgen
 
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
@@ -16,7 +16,7 @@ import java.io.File
 object CanGen {
     /**
      * @param entity Bildirimlerde gösterilen entity adı.
-     * @param target can-gen'e verilen entity adı ya da dosya yolu.
+     * @param target canfxgen'e verilen entity adı ya da dosya yolu.
      */
     fun generateCrud(project: Project, entity: String, target: String, workingDirectory: String, options: GenerateCrudOptions) {
         val arguments = buildList {
@@ -31,23 +31,21 @@ object CanGen {
             if (options.transaction) add("--transaction")
             if (options.secured) add("--secured")
             if (options.dynamicQuery) add("--dynamic-query")
-            // Hiçbiri seçilmezse can-gen "hepsi açık" sayar: en az birini gönder.
+            // Hiçbiri seçilmezse canfxgen "hepsi açık" sayar: en az birini gönder.
             if (!options.caching && !options.logging && !options.transaction && !options.secured && !options.dynamicQuery) add("--no-mechanisms")
-            if (options.force) add("--force")
-            if (options.dryRun) add("--dry-run")
         }
 
-        object : Task.Backgroundable(project, "can-gen: $entity için CRUD üretiliyor", true) {
+        object : Task.Backgroundable(project, "canfxgen: generating CRUD for $entity", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
                 val result = CanGenRunner.run(workingDirectory, *arguments.toTypedArray())
                 val changes = CanGenRunner.changes(result)
 
-                if (!options.dryRun) refresh(changes)
+                refresh(changes)
 
                 ApplicationManager.getApplication().invokeLater {
                     if (project.isDisposed) return@invokeLater
-                    report(project, entity, result, changes, options.dryRun)
+                    report(project, entity, result, changes)
                 }
             }
         }.queue()
@@ -59,11 +57,11 @@ object CanGen {
         files.mapNotNull { it.parentFile }.distinct().forEach { VfsUtil.markDirtyAndRefresh(false, true, true, it) }
     }
 
-    private fun report(project: Project, entity: String, result: CanGenResult, changes: List<CanGenChange>, dryRun: Boolean) {
-        val group = NotificationGroupManager.getInstance().getNotificationGroup("can-gen")
+    private fun report(project: Project, entity: String, result: CanGenResult, changes: List<CanGenChange>) {
+        val group = NotificationGroupManager.getInstance().getNotificationGroup("canfxgen")
 
         if (!result.ok && changes.isEmpty()) {
-            group.createNotification("can-gen: $entity", (result.error ?: "Bilinmeyen hata").toHtml(), NotificationType.ERROR).notify(project)
+            group.createNotification("canfxgen: $entity", (result.error ?: "Unknown error").toHtml(), NotificationType.ERROR).notify(project)
             return
         }
 
@@ -77,12 +75,11 @@ object CanGen {
 
         val entityJson = result.json["entity"].obj()
         val lines = buildList {
-            if (dryRun) add("<i>Önizleme: diske yazılmadı.</i>")
-            add("${created.size} dosya üretildi, ${updated.size} dosyaya ekleme yapıldı" + if (skipped.isNotEmpty()) ", ${skipped.size} dosya zaten vardı (--force ile üzerine yazılır)." else ".")
-            failed.forEach { add("⚠ ${relative(it.path)}: ${it.note ?: "başarısız"}") }
-            if (!entityJson.bool("hasFactory")) add("⚠ $entity'de Create(...) fabrika metodu ya da public constructor yok: oluşturma handler'ında TODO var.")
-            if (!entityJson.bool("hasUpdate")) add("⚠ $entity'de Update(...) metodu ya da public setter'lar yok: güncelleme handler'ında TODO var.")
-            add("Tamamlanacak yerler: <b>TODO(can-gen)</b> (View → Tool Windows → TODO).")
+            add("${created.size} file(s) created, ${updated.size} file(s) updated" + if (skipped.isNotEmpty()) ", ${skipped.size} file(s) already existed and were left unchanged." else ".")
+            failed.forEach { add("⚠ ${relative(it.path)}: ${it.note ?: "failed"}") }
+            if (!entityJson.bool("hasFactory")) add("⚠ $entity has no Create(...) factory method or public constructor: the create handler contains a TODO.")
+            if (!entityJson.bool("hasUpdate")) add("⚠ $entity has no Update(...) method or public setters: the update handler contains a TODO.")
+            add("Places to complete are marked <b>TODO(canfxgen)</b> (View → Tool Windows → TODO).")
         }
 
         val type = when {
@@ -90,14 +87,14 @@ object CanGen {
             else -> NotificationType.INFORMATION
         }
 
-        val notification = group.createNotification("can-gen: $entity", lines.joinToString("<br/>"), type)
+        val notification = group.createNotification("canfxgen: $entity", lines.joinToString("<br/>"), type)
         val files = (created + updated).map { it.path }
-        if (files.isNotEmpty() && !dryRun) {
-            notification.addAction(NotificationAction.createSimple("Dosyaları aç") { open(project, files) })
+        if (files.isNotEmpty()) {
+            notification.addAction(NotificationAction.createSimple("Open files") { open(project, files) })
         }
         notification.notify(project)
 
-        if (!dryRun && CanGenSettings.getInstance().state.openGeneratedFiles) {
+        if (CanGenSettings.getInstance().state.openGeneratedFiles) {
             created.firstOrNull { it.path.endsWith("Create${entity}Command.cs") }?.let { open(project, listOf(it.path)) }
         }
     }

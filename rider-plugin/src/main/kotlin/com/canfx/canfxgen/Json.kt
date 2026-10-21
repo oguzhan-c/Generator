@@ -1,7 +1,7 @@
-package com.canfx.cangen
+package com.canfx.canfxgen
 
 /**
- * can-gen'in --json çıktısını okumak için küçük bir JSON ayrıştırıcı (dış kütüphane kullanılmaz).
+ * canfxgen'in --json çıktısını okumak için küçük bir JSON ayrıştırıcı (dış kütüphane kullanılmaz).
  * Sonuç: Map<String, Any?>, List<Any?>, String, Double, Boolean ya da null.
  */
 internal object Json {

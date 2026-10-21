@@ -39,7 +39,7 @@ public sealed class BaseDbContext : CanDbContext
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Role<IdentityKey>> Roles => Set<Role<IdentityKey>>();
     public DbSet<OperationClaim<IdentityKey>> OperationClaims => Set<OperationClaim<IdentityKey>>();
-    // can-gen:dbsets
+    // canfxgen:dbsets
 
     protected override void ConfigureModel(ModelBuilder modelBuilder)
     {
@@ -80,7 +80,7 @@ public sealed class BaseDbContext : CanDbContext
         modelBuilder.ApplyCanSettingsModel(schema: Schemas.Infrastructure);
 #endif
 
-        // TODO(can-gen): Eşzamanlı güncellemeye açık entity'lere (stok, bakiye ...) satır sürümü ekle, ör. PostgreSQL:
+        // TODO(canfxgen): Eşzamanlı güncellemeye açık entity'lere (stok, bakiye ...) satır sürümü ekle, ör. PostgreSQL:
         //     modelBuilder.Entity<Product>().Property<uint>("xmin").HasColumnType("xid").ValueGeneratedOnAddOrUpdate().IsConcurrencyToken();
         // SQL Server: entity'ye [Timestamp] byte[] RowVersion.
     }
@@ -91,6 +91,6 @@ internal static class Schemas
     public const string Identity = "identity";
     public const string Infrastructure = "infra";
 
-    /// <summary>Uygulama tabloları. TODO(can-gen): Modül başına ayrı şema istiyorsan buraya ekle.</summary>
+    /// <summary>Uygulama tabloları. TODO(canfxgen): Modül başına ayrı şema istiyorsan buraya ekle.</summary>
     public const string App = "app";
 }

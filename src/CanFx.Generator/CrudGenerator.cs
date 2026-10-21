@@ -38,8 +38,8 @@ public sealed record CrudOptions
 /// Persistence/EntityConfigurations/  {Entity}Configuration
 /// WebAPI/Controllers/                {Çoğul}Controller (/api/v1/{çoğul})
 /// </code>
-/// ve <c>// can-gen:...</c> işaretli yerlere DbSet, yetki, repository kaydı ve çeviri ekler. Geliştiricinin tamamlaması
-/// gereken yerlere <c>TODO(can-gen)</c> yorumu bırakır.
+/// ve <c>// canfxgen:...</c> işaretli yerlere DbSet, yetki, repository kaydı ve çeviri ekler. Geliştiricinin tamamlaması
+/// gereken yerlere <c>TODO(canfxgen)</c> yorumu bırakır.
 /// </summary>
 public static class CrudGenerator
 {
@@ -85,27 +85,27 @@ public static class CrudGenerator
         plan.AddFile(Path.Combine(layout.WebApi, "Controllers", $"{n.Plural}Controller.cs"), CrudTemplates.Controller(n));
 
         plan.Inject(
-            MarkerFile(layout.Persistence, "can-gen:dbsets", Path.Combine("Contexts", "BaseDbContext.cs")),
-            "can-gen:dbsets",
+            MarkerFile(layout.Persistence, "canfxgen:dbsets", Path.Combine("Contexts", "BaseDbContext.cs")),
+            "canfxgen:dbsets",
             $"public DbSet<{E}> {n.Plural} => Set<{E}>();",
             entity.Namespace);
 
         plan.Inject(
-            MarkerFile(layout.Persistence, "can-gen:repositories", "PersistenceServiceRegistration.cs"),
-            "can-gen:repositories",
+            MarkerFile(layout.Persistence, "canfxgen:repositories", "PersistenceServiceRegistration.cs"),
+            "canfxgen:repositories",
             $"services.AddScoped<I{E}Repository, {E}Repository>();",
             $"{n.Root}.Application.Services.Repositories",
             $"{n.Root}.Persistence.Repositories");
 
         plan.Inject(
-            MarkerFile(layout.Application, "can-gen:services", "ApplicationServiceRegistration.cs"),
-            "can-gen:services",
+            MarkerFile(layout.Application, "canfxgen:services", "ApplicationServiceRegistration.cs"),
+            "canfxgen:services",
             $"services.AddScoped<I{E}Service, {E}Manager>();",
             $"{n.Root}.Application.Services.{n.Plural}");
 
-        string claims = MarkerFile(layout.Application, "can-gen:permissions", Path.Combine("Services", "OperationClaims", "AppOperationClaims.cs"));
-        plan.Inject(claims, "can-gen:permissions", $"..{n.Plural}OperationClaims.All,", n.ConstantsNamespace);
-        plan.Inject(claims, "can-gen:user-grants", $"// {n.Plural}OperationClaims.Read, // TODO(can-gen): User rolü {n.Words} kayıtlarını görebilsin mi?");
+        string claims = MarkerFile(layout.Application, "canfxgen:permissions", Path.Combine("Services", "OperationClaims", "AppOperationClaims.cs"));
+        plan.Inject(claims, "canfxgen:permissions", $"..{n.Plural}OperationClaims.All,", n.ConstantsNamespace);
+        plan.Inject(claims, "canfxgen:user-grants", $"// {n.Plural}OperationClaims.Read, // TODO(canfxgen): User rolü {n.Words} kayıtlarını görebilsin mi?");
 
         string localization = Path.Combine(layout.WebApi, "Localization");
         if (Directory.Exists(localization))
@@ -135,17 +135,17 @@ public static class CrudGenerator
         var plan = new GenerationPlan();
         string feature = Path.Combine(layout.Application, "Features", n.Plural);
         if (!Directory.Exists(feature))
-            throw new GeneratorException($"'{n.Plural}' özelliği yok ({feature}). Önce CRUD üret: can-gen generate crud {entity.Name}");
+            throw new GeneratorException($"'{n.Plural}' özelliği yok ({feature}). Önce CRUD üret: canfxgen generate crud {entity.Name}");
 
         AddDynamicQueryFiles(plan, n, feature);
         plan.Inject(
             Path.Combine(feature, "Profiles", "MappingProfiles.cs"),
-            "can-gen:mappings",
+            "canfxgen:mappings",
             $"CreateMap<{entity.Name}, GetListByDynamic{entity.Name}ListItemDto>();",
             $"{n.FeatureNamespace}.Queries.GetListByDynamic");
         plan.Inject(
             Path.Combine(layout.WebApi, "Controllers", $"{n.Plural}Controller.cs"),
-            "can-gen:endpoints",
+            "canfxgen:endpoints",
             CrudTemplates.DynamicQueryEndpoint(n),
             $"{n.FeatureNamespace}.Queries.GetListByDynamic",
             "CanFx.Persistence.Dynamic",
@@ -168,7 +168,8 @@ public static class CrudGenerator
     internal static string MarkerFile(string directory, string marker, string expected)
     {
         string text = "// " + marker;
-        return SolutionLayout.SourceFiles(directory).FirstOrDefault(f => File.ReadLines(f).Any(l => l.Trim() == text))
+        string legacy = "// " + Markers.Legacy(marker);
+        return SolutionLayout.SourceFiles(directory).FirstOrDefault(f => File.ReadLines(f).Any(l => l.Trim() == text || l.Trim() == legacy))
             ?? Path.Combine(directory, expected);
     }
 }

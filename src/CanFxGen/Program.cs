@@ -3,10 +3,10 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CanFx.Generator;
-using CanFx.Generator.Cli;
-using static CanFx.Generator.Cli.Prompts;
+using CanFxGen;
+using static CanFxGen.Prompts;
 
-// can-gen: CanFx çözümleri için kod üretici (nArchitecture'daki nArchGen'in karşılığı). Ayrıntı: can-gen --help
+// canfxgen: CanFx çözümleri için kod üretici (nArchitecture'daki nArchGen'in karşılığı). Ayrıntı: canfxgen --help
 
 var json = new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true, Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } };
 Arguments arguments;
@@ -47,7 +47,7 @@ int New(Arguments a)
     Banner();
     string name = a.Positional(1) ?? Text($"Proje {G("adı")}");
     if (string.IsNullOrWhiteSpace(name))
-        throw new GeneratorException("Proje adı gerekli: can-gen new MyShop");
+        throw new GeneratorException("Proje adı gerekli: canfxgen new MyShop");
     if (char.IsLower(name[0]))
     {
         // Namespace'ler C# geleneğine uysun: "test3" → "Test3" (proje ve klasör adı da buna göre).
@@ -103,7 +103,7 @@ int New(Arguments a)
     Console.WriteLine($"\n✅ {B(name)} oluşturuldu. Sıradaki adımlar:");
     Console.WriteLine($"   cd {a.Option("output") ?? name}");
     Console.WriteLine("   # entity'yi src/*.Domain/Entities altına yaz, sonra:");
-    Console.WriteLine("   can-gen generate crud <Entity>");
+    Console.WriteLine("   canfxgen generate crud <Entity>");
     return 0;
 }
 
@@ -141,7 +141,7 @@ int Crud(Arguments a, int entityIndex)
         DynamicQuery = dynamic,
     };
 
-    IReadOnlyList<ChangeResult> results = CrudGenerator.Plan(layout, entity, options).Apply(a.Flag("force"), a.Flag("dry-run"));
+    IReadOnlyList<ChangeResult> results = CrudGenerator.Plan(layout, entity, options).Apply();
     bool createTodo = entity.Factory is null && !entity.HasPublicConstructor;
     bool updateTodo = entity.Update is null && !entity.ScalarProperties.Where(p => p.Name != "Id").All(p => p.HasPublicSetter);
 
@@ -170,7 +170,7 @@ int DynamicQuery(Arguments a)
     (SolutionLayout layout, EntityModel entity) = SelectEntity(a, 2);
     IReadOnlyList<ChangeResult> results = CrudGenerator
         .PlanDynamicQuery(layout, entity, new CrudOptions { Plural = a.Option("plural"), Secured = !a.Flag("no-secured") })
-        .Apply(a.Flag("force"), a.Flag("dry-run"));
+        .Apply();
     return Report(a, layout, results, $"{entity.Name}: GetListByDynamic", [], new { entity.Name });
 }
 
@@ -182,7 +182,7 @@ int Request(Arguments a, bool isCommand)
 
     string name = a.Positional(2) ?? Text($"Yeni {G(kind)} adı");
     if (string.IsNullOrWhiteSpace(name))
-        throw new GeneratorException($"{kind} adı gerekli: can-gen generate {(isCommand ? "command SyncUser Users" : "query GetUserByEmail Users")}");
+        throw new GeneratorException($"{kind} adı gerekli: canfxgen generate {(isCommand ? "command SyncUser Users" : "query GetUserByEmail Users")}");
 
     string feature = a.Positional(3) ?? Select($"{Names.Pascal(kind)} hangi {G("özellikte")}?", FeatureGenerator.ListFeatures(layout));
 
@@ -199,7 +199,7 @@ int Request(Arguments a, bool isCommand)
     GenerationPlan plan = isCommand
         ? FeatureGenerator.PlanCommand(layout, feature, name, options)
         : FeatureGenerator.PlanQuery(layout, feature, name, options);
-    IReadOnlyList<ChangeResult> results = plan.Apply(a.Flag("force"), a.Flag("dry-run"));
+    IReadOnlyList<ChangeResult> results = plan.Apply();
     return Report(a, layout, results, $"{feature}: {Names.Pascal(name)} ({kind})", [], new { Feature = feature, Name = name });
 }
 
@@ -239,7 +239,7 @@ int Features(Arguments a)
 
 SolutionLayout Layout(Arguments a, string? hint = null)
 {
-    SolutionLayout layout = SolutionLayout.Find(a.Option("project") ?? hint ?? Directory.GetCurrentDirectory());
+    SolutionLayout layout = SolutionLayout.Find(hint ?? Directory.GetCurrentDirectory());
     if (Interactive && !a.Json)
         Console.WriteLine($"Seçili {G("çözüm")}: {B(Path.GetFileName(layout.Root))}.");
     return layout;
@@ -289,11 +289,11 @@ int Report(Arguments a, SolutionLayout layout, IReadOnlyList<ChangeResult> resul
     bool failed = results.Any(r => r.Kind == ChangeKind.Failed);
     if (a.Json)
     {
-        Console.WriteLine(JsonSerializer.Serialize(new { ok = !failed, solution = layout.Root, entity = details, dryRun = a.Flag("dry-run"), warnings, changes = results }, json));
+        Console.WriteLine(JsonSerializer.Serialize(new { ok = !failed, solution = layout.Root, entity = details, warnings, changes = results }, json));
         return failed ? 1 : 0;
     }
 
-    Console.WriteLine($"{title}{(a.Flag("dry-run") ? Warn(" — deneme, diske yazılmadı") : string.Empty)}");
+    Console.WriteLine(title);
 
     void Section(string header, Func<ChangeResult, bool> filter, string mark)
     {
@@ -307,13 +307,13 @@ int Report(Arguments a, SolutionLayout layout, IReadOnlyList<ChangeResult> resul
 
     Section("Üretilen dosyalar:", r => r.Kind is ChangeKind.Created or ChangeKind.Overwritten, "🆕");
     Section("Güncellenen dosyalar:", r => r.Kind == ChangeKind.Updated, "🔼");
-    Section("Atlanan dosyalar (zaten var, --force ile üzerine yazılır):", r => r.Kind == ChangeKind.Skipped, "⏭ ");
+    Section("Atlanan dosyalar (zaten var, değiştirilmedi):", r => r.Kind == ChangeKind.Skipped, "⏭ ");
     Section("Başarısız:", r => r.Kind == ChangeKind.Failed, "❌");
 
     foreach (string warning in warnings)
         Console.WriteLine(Warn("⚠ " + warning));
 
-    Console.WriteLine(Dim("Tamamlanacak yerler 'TODO(can-gen)' ile işaretli (Rider: View → Tool Windows → TODO)."));
+    Console.WriteLine(Dim("Tamamlanacak yerler 'TODO(canfxgen)' ile işaretli (Rider: View → Tool Windows → TODO)."));
     return failed ? 1 : 0;
 }
 
@@ -336,41 +336,38 @@ static string Version() =>
     typeof(CrudGenerator).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "?";
 
 static string Help() => """
-    can-gen — CanFx kod üretici (nArchitecture düzeni)
+    canfxgen — CanFx kod üretici (nArchitecture düzeni)
 
     ÖRNEKLER:
-        can-gen new MyShop
-        can-gen generate crud Brand
-        can-gen generate command SyncBrand Brands
-        can-gen generate query GetBrandByName Brands
-        can-gen generate dynamic-query Brand
+        canfxgen new MyShop
+        canfxgen generate crud Brand
+        canfxgen generate command SyncBrand Brands
+        canfxgen generate query GetBrandByName Brands
+        canfxgen generate dynamic-query Brand
 
     KOMUTLAR:
         new [Ad]                  CanFx şablonuyla yeni çözüm (veritabanı ve özellikler sorulur)
-        generate (g)              Kod üret: crud, command, query, dynamic-query (can-gen generate --help)
+        generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
         entities                  Domain'deki entity'leri listeler
         features                  Application/Features altındaki özellikleri listeler
         version                   Sürümü yazar
 
     SEÇENEKLER:
-        -p, --project <klasör>    Çözüm klasörü (varsayılan: bulunulan klasör)
-        -f, --force               Var olan dosyaların üzerine yaz
-            --dry-run             Yalnızca ne yapılacağını göster
             --json                Makine okunur çıktı, soru sorulmaz (IDE eklentileri için)
         -h, --help                Yardım
         -v, --version             Sürüm
     """;
 
 static string GenerateHelp() => """
-    can-gen generate — kod üret
+    canfxgen generate — kod üret
 
     ÖRNEKLER:
-        can-gen generate crud                         (entity ve mekanizmalar sorulur)
-        can-gen generate crud Brand -c -l -t -s -d
-        can-gen generate crud src/Shop.Domain/Entities/Brand.cs --plural Brands
-        can-gen generate command SyncBrand Brands -e Put
-        can-gen generate query GetBrandByName Brands -c -s
-        can-gen generate dynamic-query Brand
+        canfxgen generate crud                         (entity ve mekanizmalar sorulur)
+        canfxgen generate crud Brand -c -l -t -s -d
+        canfxgen generate crud src/Shop.Domain/Entities/Brand.cs --plural Brands
+        canfxgen generate command SyncBrand Brands -e Put
+        canfxgen generate query GetBrandByName Brands -c -s
+        canfxgen generate dynamic-query Brand
 
     ÜRETİMLER:
         crud [Entity]                     Create/Update/Delete komutları, GetById/GetList(+ByDynamic) sorguları, yanıtlar,
@@ -390,5 +387,5 @@ static string GenerateHelp() => """
     DİĞER:
         -e, --endpoint-method <Metot>     Controller ucu: Get, Post, Put, Delete (komut: Post, sorgu: Get)
             --plural <Çoğul>              Çoğul ad (varsayılan: İngilizce kurallar)
-        -p, --project <klasör>  -f, --force  --dry-run  --json
+            --json                        Makine okunur çıktı (IDE eklentileri için)
     """;

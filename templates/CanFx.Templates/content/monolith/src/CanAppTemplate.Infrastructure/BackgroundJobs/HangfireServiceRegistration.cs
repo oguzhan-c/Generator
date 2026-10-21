@@ -14,7 +14,7 @@ public static class HangfireServiceRegistration
         if (!config.GetValue("Hangfire:Enabled", false))
             return false;
 
-        // TODO(can-gen): Hangfire deposu bellek içi (yeniden başlatınca işler kaybolur). Kalıcı depo için veritabanına uygun
+        // TODO(canfxgen): Hangfire deposu bellek içi (yeniden başlatınca işler kaybolur). Kalıcı depo için veritabanına uygun
         // paketi ekle ve aşağıdakini değiştir (bağlantı: config.GetConnectionString("CanAppTemplate")):
         //   PostgreSQL (Hangfire.PostgreSql): c => c.UsePostgreSqlStorage(o => o.UseNpgsqlConnection(connectionString))
         //   SQL Server (Hangfire.SqlServer) : c => c.UseSqlServerStorage(connectionString)
@@ -31,7 +31,7 @@ public static class HangfireServiceRegistration
     /// </summary>
     public static IServiceCollection AddRecurringJobs(this IServiceCollection services, bool hangfire)
     {
-        // TODO(can-gen): Tekrarlayan işlerini kaydet. Örnek:
+        // TODO(canfxgen): Tekrarlayan işlerini kaydet. Örnek:
         //   if (hangfire) services.AddCanHangfireRecurringJob<CleanupJob>("30 3 * * *", o => o.JobId = "cleanup");
         //   else services.AddCanRecurringJob<CleanupJob>(o => o.Interval = TimeSpan.FromHours(6));
         _ = hangfire;

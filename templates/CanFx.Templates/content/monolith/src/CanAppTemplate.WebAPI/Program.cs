@@ -73,12 +73,12 @@ if (config.GetValue("OpenTelemetry:Enabled", false))
         o.ServiceVersion = typeof(Program).Assembly.GetName().Version?.ToString();
         if (config["OpenTelemetry:Endpoint"] is { Length: > 0 } endpoint)
             o.OtlpEndpoint = new Uri(endpoint);
-        // TODO(can-gen): PostgreSQL kullanıyorsan veritabanı izlerini de topla: o.AdditionalSources.Add("Npgsql"); o.AdditionalMeters.Add("Npgsql");
+        // TODO(canfxgen): PostgreSQL kullanıyorsan veritabanı izlerini de topla: o.AdditionalSources.Add("Npgsql"); o.AdditionalMeters.Add("Npgsql");
     });
 }
 #endif
 
-// TODO(can-gen): Desteklenen dilleri ve varsayılan dili ayarla (çeviriler: Localization/*.json).
+// TODO(canfxgen): Desteklenen dilleri ve varsayılan dili ayarla (çeviriler: Localization/*.json).
 builder.Services.AddCanLocalization(o =>
 {
     o.DefaultCulture = "tr";
@@ -135,7 +135,7 @@ builder.Services.AddCanSettings(s => s.UseDataProtection());
 
 // Dış servisler (Infrastructure): ayarı boş olan yerel karşılığıyla çalışır.
 InfrastructureStatus infrastructure = builder.Services.AddInfrastructureServices(config);
-// can-gen:webapi-services
+// canfxgen:webapi-services
 
 // HTTP: hız sınırı, idempotency, çıktı önbelleği + ETag + sıkıştırma, API sürümleri, OpenAPI.
 builder.Services.AddCanRateLimiting(o => config.GetSection("RateLimiting").Bind(o));
@@ -152,7 +152,7 @@ builder.Services.AddCanApiVersioning(o =>
 builder.Services.AddCanOpenApi(o =>
 {
     o.Title = "CanAppTemplate API";
-    // TODO(can-gen): API açıklamasını yaz.
+    // TODO(canfxgen): API açıklamasını yaz.
     o.Description = "CanAppTemplate API (CanFx).";
 });
 builder.Services.AddCanFeatureFlags(config.GetSection("Features"));

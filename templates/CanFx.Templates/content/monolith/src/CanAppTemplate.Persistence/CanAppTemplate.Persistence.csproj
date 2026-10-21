@@ -13,7 +13,7 @@
 <!--#if (Settings)-->
     <PackageReference Include="CanFx.Settings.EntityFrameworkCore" />
 <!--#endif-->
-    <!-- TODO(can-gen): Veritabanı sağlayıcı paketini ekle, ör. <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" /> -->
+    <!-- TODO(canfxgen): Veritabanı sağlayıcı paketini ekle, ör. <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" /> -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 

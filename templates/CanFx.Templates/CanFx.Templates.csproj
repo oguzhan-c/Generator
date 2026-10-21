@@ -2,7 +2,7 @@
 
   <!--
     CanFx proje şablonları (dotnet new / Visual Studio / Rider "New Solution"):
-      build/pack-local.sh: Core, can-gen ve şablonu aynı yerel sürümle paketler (install argümanıyla kurar da).
+      build/pack-local.sh: Core, canfxgen ve şablonu aynı yerel sürümle paketler (install argümanıyla kurar da).
   -->
   <PropertyGroup>
     <PackageType>Template</PackageType>

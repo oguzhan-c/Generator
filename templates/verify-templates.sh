@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Şablonları doğrular: can-gen ve şablonu yeni bir yerel sürümle paketleyip kurar, farklı seçeneklerle üç çözüm üretir,
-# kurulu can-gen ile CRUD üretip her birini derler. Çıktı: <repo>/templates.log
+# Şablonları doğrular: canfxgen ve şablonu yeni bir yerel sürümle paketleyip kurar, farklı seçeneklerle üç çözüm üretir,
+# kurulu canfxgen ile CRUD üretip her birini derler. Çıktı: <repo>/templates.log
 #
 # CanFx paketleri nuget.org'dan gelir (Directory.Build.props → CanFxVersion). Yayınlanmamış Core paketleriyle denemek
 # için: Core'da build/pack-local.sh, sonra
@@ -14,7 +14,7 @@ LOG="$ROOT/templates.log"
 : > "$LOG"
 step() { echo "=== $*" | tee -a "$LOG"; }
 
-# can-gen ve şablon aynı yeni yerel sürümle paketlenir ve kurulur (build/pack-local.sh).
+# canfxgen ve şablon aynı yeni yerel sürümle paketlenir ve kurulur (build/pack-local.sh).
 step "Paketleme ve kurulum (build/pack-local.sh --install)"
 "$ROOT/build/pack-local.sh" --install >>"$LOG" 2>&1 || { step "HATA: paketleme/kurulum"; exit 1; }
 VERSION="$(cat "$ROOT/artifacts/local-version.txt")"
@@ -55,7 +55,7 @@ variant() {
     step "HATA: $name derlenemedi"; failed=1
   fi
   # Kalan TODO sayısı (bilgi)
-  echo "    TODO(can-gen): $(grep -r --include=*.cs --include=*.json --include=*.config 'TODO(can-gen)' "$OUT/$name" | wc -l | tr -d ' ')" | tee -a "$LOG"
+  echo "    TODO(canfxgen): $(grep -r --include=*.cs --include=*.json --include=*.config 'TODO(canfxgen)' "$OUT/$name" | wc -l | tr -d ' ')" | tee -a "$LOG"
 }
 
 variant Minimal --IdKeyType int --Otp false --EmailTwoFactor false --Passkey false --AuditTrail false
@@ -63,21 +63,21 @@ variant Full --MultiTenancy true --ExternalLogin true --Redis true --EventBus tr
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
 variant Tenant --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true
 
-# ---------------------------------------------------------------- can-gen
+# ---------------------------------------------------------------- canfxgen
 # Üretilen çözümlere iki entity eklenir (biri fabrika/Update metotlu, biri metotsuz: TODO yolları) ve CRUD üretilip
 # yeniden derlenir.
-step "can-gen testleri"
-if dotnet run --project "$ROOT/tests/CanFx.Generator.Tests" >>"$LOG" 2>&1; then step "TAMAM: can-gen testleri"; else step "HATA: can-gen testleri"; failed=1; fi
+step "canfxgen testleri"
+if dotnet run --project "$ROOT/tests/CanFx.Generator.Tests" >>"$LOG" 2>&1; then step "TAMAM: canfxgen testleri"; else step "HATA: canfxgen testleri"; failed=1; fi
 
-# Kurulu (paketlenmiş) can-gen kullanılır: paketin kendisi de denenmiş olur.
-CANGEN=("$HOME/.dotnet/tools/can-gen")
-step "can-gen sürümü: $("${CANGEN[@]}" version 2>&1)"
+# Kurulu (paketlenmiş) canfxgen kullanılır: paketin kendisi de denenmiş olur.
+CANGEN=("$HOME/.dotnet/tools/canfxgen")
+step "canfxgen sürümü: $("${CANGEN[@]}" version 2>&1)"
 
 generate() {
   local name="$1"
   local domain="$OUT/$name/src/$name.Domain"
   [[ -d "$domain" ]] || return
-  step "can-gen: $name (Brand, Tag)"
+  step "canfxgen: $name (Brand, Tag)"
   mkdir -p "$domain/Catalog" "$domain/Tags"
   cat > "$domain/Catalog/Brand.cs" <<CS
 using CanFx.Domain.Auditing;
@@ -129,16 +129,16 @@ public sealed class Tag : Entity<int>
     public int UsageCount { get; set; }
 }
 CS
-  run_cangen() { "${CANGEN[@]}" "$@" --project "$OUT/$name" >>"$LOG" 2>&1 || { step "HATA: can-gen $* ($name)"; failed=1; }; }
+  run_cangen() { (cd "$OUT/$name" && "${CANGEN[@]}" "$@") >>"$LOG" 2>&1 || { step "HATA: canfxgen $* ($name)"; failed=1; }; }
   run_cangen generate crud Brand                              # tüm mekanizmalar
   run_cangen generate crud Tag -s                             # yalnızca yetki: transaction yok, önbellek yok, dinamik sorgu yok
   run_cangen generate dynamic-query Tag                       # dinamik sorgu sonradan
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands
   if dotnet build "$OUT/$name/$name.slnx" -c Debug >>"$LOG" 2>&1; then
-    step "TAMAM: $name + can-gen derlendi"
+    step "TAMAM: $name + canfxgen derlendi"
   else
-    step "HATA: $name + can-gen derlenemedi"; failed=1
+    step "HATA: $name + canfxgen derlenemedi"; failed=1
   fi
 }
 
@@ -146,7 +146,7 @@ generate Minimal
 generate Full
 
 # ---------------------------------------------------------------- standart
-# Şablonla gelen (Auth, Account, Roles ...) ve can-gen'in ürettiği (Brands ...) özellikler aynı kurala uyar:
+# Şablonla gelen (Auth, Account, Roles ...) ve canfxgen'in ürettiği (Brands ...) özellikler aynı kurala uyar:
 #   Features/{Özellik}/Constants/ + Rules/  (mesajlar, yetkiler, iş kuralları)
 #   Commands|Queries/{İstek}/  {İstek}.cs (istek + handler), {İstek}Validator.cs, {...}Response.cs / {...}Dto.cs
 #   hatalar exception (Rules) ile; istekler Result<T> dönmez.

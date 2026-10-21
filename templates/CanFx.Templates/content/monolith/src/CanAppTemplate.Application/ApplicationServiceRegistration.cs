@@ -41,7 +41,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<TwoFactorCodeVerifier>();
         services.AddScoped<RecoveryCodeIssuer>();
 
-        // can-gen:services
+        // canfxgen:services
         return services;
     }
 }

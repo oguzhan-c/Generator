@@ -8,7 +8,7 @@ namespace CanAppTemplate.Persistence.Seeding;
 /// </summary>
 public sealed class SeedOptions
 {
-    /// <summary>TODO(can-gen): Yönetici e-postasını kendi alan adınla değiştir.</summary>
+    /// <summary>TODO(canfxgen): Yönetici e-postasını kendi alan adınla değiştir.</summary>
     public string AdminEmail { get; set; } = "admin@canapptemplate.local";
 
     /// <summary>

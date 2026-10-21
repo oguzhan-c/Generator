@@ -18,6 +18,6 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.HasIndex(u => u.TenantId);
 #endif
 
-        // TODO(can-gen): AppUser'a eklediğin alanların sütun ayarlarını (uzunluk, zorunluluk, index) buraya yaz.
+        // TODO(canfxgen): AppUser'a eklediğin alanların sütun ayarlarını (uzunluk, zorunluluk, index) buraya yaz.
     }
 }

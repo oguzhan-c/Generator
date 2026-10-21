@@ -2,7 +2,7 @@
 # CI betiği (GitHub Actions bunu çağırır; yerelde de aynı şekilde çalışır):
 #   ./build/ci.sh            restore + build + test + pack
 #   ./build/ci.sh restore | build | test | pack | templates | publish | version
-#     templates  şablonu doğrular (templates/verify-templates.sh: üç çözüm + can-gen, nuget.org'daki CanFx ile)
+#     templates  şablonu doğrular (templates/verify-templates.sh: üç çözüm + canfxgen, nuget.org'daki CanFx ile)
 #     publish    etiketli derlemede (v0.2.0) paketleri yayınlar; etiket yoksa hiçbir şey yapmaz
 # Ortam değişkenleri: CONFIGURATION (Release), ARTIFACTS (artifacts), NUGET_API_KEY (yalnızca publish),
 #   NUGET_SOURCE (varsayılan nuget.org)

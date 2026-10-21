@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CanFx.Generator/CanFx.Generator.csproj" />
-    <Project Path="src/CanFx.Generator.Cli/CanFx.Generator.Cli.csproj" />
+    <Project Path="src/CanFxGen/CanFxGen.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CanFx.Generator.Tests/CanFx.Generator.Tests.csproj" />

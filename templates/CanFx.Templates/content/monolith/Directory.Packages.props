@@ -66,7 +66,7 @@
 
     <!-- Veritabanı -->
     <!--
-      TODO(can-gen): Veritabanı sağlayıcısının sürümünü buraya ekle (Persistence projesine de PackageReference ekle):
+      TODO(canfxgen): Veritabanı sağlayıcısının sürümünü buraya ekle (Persistence projesine de PackageReference ekle):
         PostgreSQL : Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3
         SQL Server : Microsoft.EntityFrameworkCore.SqlServer 10.0.13 (+ System.Security.Cryptography.Pkcs 10.0.13, güvenlik yaması)
         SQLite     : Microsoft.EntityFrameworkCore.Sqlite 10.0.13

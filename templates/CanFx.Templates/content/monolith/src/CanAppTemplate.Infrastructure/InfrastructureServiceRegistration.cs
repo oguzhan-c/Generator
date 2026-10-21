@@ -71,7 +71,7 @@ public static class InfrastructureServiceRegistration
 #if (Realtime)
         services.AddRealtime(redis);
 #endif
-        // can-gen:infrastructure-services
+        // canfxgen:infrastructure-services
 
         return new InfrastructureStatus(redis, brokerEnabled, hangfireEnabled);
     }

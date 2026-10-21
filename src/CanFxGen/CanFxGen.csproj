@@ -1,17 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    can-gen komut satırı aracı (dotnet tool). Kurulum komutları kökteki README'de.
+    canfxgen komut satırı aracı (dotnet tool). Kurulum komutları kökteki README'de.
     Rider / Visual Studio eklentileri de bunu JSON çıktısıyla çağırır.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>can-gen</ToolCommandName>
-    <PackageId>CanFx.Generator.Cli</PackageId>
-    <AssemblyName>can-gen</AssemblyName>
-    <RootNamespace>CanFx.Generator.Cli</RootNamespace>
-    <Description>can-gen: CanFx çözümlerinde entity'den CRUD (CQRS) kodu üreten komut satırı aracı.</Description>
+    <ToolCommandName>canfxgen</ToolCommandName>
+    <PackageId>CanFxGen</PackageId>
+    <AssemblyName>canfxgen</AssemblyName>
+    <RootNamespace>CanFxGen</RootNamespace>
+    <Description>canfxgen: CanFx çözümlerinde entity'den CRUD (CQRS) kodu üreten komut satırı aracı.</Description>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 

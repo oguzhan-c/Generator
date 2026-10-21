@@ -38,7 +38,7 @@ public sealed class GenerationPlan
             bool exists = File.Exists(file.Path);
             if (exists && !force)
             {
-                results.Add(new ChangeResult(file.Path, ChangeKind.Skipped, "dosya var (üzerine yazmak için --force)"));
+                results.Add(new ChangeResult(file.Path, ChangeKind.Skipped, "dosya var, değiştirilmedi"));
                 continue;
             }
 
@@ -100,7 +100,20 @@ public sealed record ChangeResult(string Path, ChangeKind Kind, string? Note);
 
 internal sealed record InjectResult(string Text, string? Note);
 
-/// <summary>İşaretli satırlara (<c>// can-gen:...</c>) ekleme ve using ekleme.</summary>
+/// <summary>
+/// İşaret adları. 0.1.0 şablonuyla oluşturulmuş çözümlerde işaretler eski adla (<c>// can-gen:...</c>) durur; ikisi de tanınır.
+/// </summary>
+internal static class Markers
+{
+    private const string Current = "canfxgen:";
+    private const string Old = "can-gen:";
+
+    /// <summary><c>canfxgen:dbsets</c> → <c>can-gen:dbsets</c>.</summary>
+    public static string Legacy(string marker) =>
+        marker.StartsWith(Current, StringComparison.Ordinal) ? Old + marker[Current.Length..] : marker;
+}
+
+/// <summary>İşaretli satırlara (<c>// canfxgen:...</c>) ekleme ve using ekleme.</summary>
 internal static class SourceEditor
 {
     /// <summary>
@@ -131,7 +144,8 @@ internal static class SourceEditor
         List<string> lines = text.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
 
         string markerText = "// " + marker;
-        int index = lines.FindIndex(l => l.Trim() == markerText || l.TrimEnd().EndsWith(markerText, StringComparison.Ordinal) && !l.TrimStart().StartsWith("///", StringComparison.Ordinal) && l.Trim().StartsWith("//", StringComparison.Ordinal));
+        string[] markerTexts = [markerText, "// " + Markers.Legacy(marker)];
+        int index = lines.FindIndex(l => markerTexts.Any(m => l.Trim() == m || l.TrimEnd().EndsWith(m, StringComparison.Ordinal) && !l.TrimStart().StartsWith("///", StringComparison.Ordinal) && l.Trim().StartsWith("//", StringComparison.Ordinal)));
         if (index < 0)
             return new InjectResult(text, $"'{markerText}' işareti bulunamadı; şu satırı elle ekle: {line.Trim()}");
 

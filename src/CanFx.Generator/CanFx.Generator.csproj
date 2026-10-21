@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    can-gen'in motoru: çözümü bulur, entity'yi Roslyn ile okur, CRUD dosyalarını üretir ve işaretli yerlere
-    (// can-gen:...) ekleme yapar. CLI (can-gen) ve IDE eklentileri (Rider, Visual Studio) bunu kullanır.
+    canfxgen'in motoru: çözümü bulur, entity'yi Roslyn ile okur, CRUD dosyalarını üretir ve işaretli yerlere
+    (// canfxgen:...) ekleme yapar. CLI (canfxgen) ve IDE eklentileri (Rider, Visual Studio) bunu kullanır.
   -->
   <PropertyGroup>
-    <!-- Ayrı paket olarak yayınlanmaz: can-gen aracının (CanFx.Generator.Cli) içinde gelir; IDE eklentileri araçla çalışır. -->
+    <!-- Ayrı paket olarak yayınlanmaz: canfxgen aracının (CanFxGen) içinde gelir; IDE eklentileri araçla çalışır. -->
     <IsPackable>false</IsPackable>
     <Description>CanFx çözümleri için kod üretici (entity → CQRS komut/sorgu, DTO, kurallar, yetkiler, EF yapılandırması, uç noktalar).</Description>
   </PropertyGroup>

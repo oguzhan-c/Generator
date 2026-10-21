@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Yerel paketleme: can-gen (CanFx.Generator.Cli) ve proje şablonu (CanFx.Templates) AYNI yerel sürümle paketlenir.
+# Yerel paketleme: canfxgen (CanFxGen) ve proje şablonu (CanFx.Templates) AYNI yerel sürümle paketlenir.
 #
-#   build/pack-local.sh             → artifacts/packages (can-gen), artifacts/templates (şablon)
-#   build/pack-local.sh --install   → ayrıca şablonu (dotnet new) ve can-gen'i (dotnet tool) bu sürümle kurar
+#   build/pack-local.sh             → artifacts/packages (canfxgen), artifacts/templates (şablon)
+#   build/pack-local.sh --install   → ayrıca şablonu (dotnet new) ve canfxgen'i (dotnet tool) bu sürümle kurar
 #
 # Sürüm: <VersionPrefix>-local.<yyyyMMddHHmm>. Şablonun kullandığı CanFx paketleri nuget.org'dan gelir
 # (Directory.Build.props → CanFxVersion). Yayınlanmamış Core paketleriyle denemek için Core'da build/pack-local.sh
@@ -19,7 +19,7 @@ INSTALL=false
 
 echo "==> Sürüm: $VERSION"
 
-echo "==> can-gen"
+echo "==> canfxgen"
 dotnet pack "$ROOT/CanFx.Generator.slnx" -c Release -o "$PACKAGES" -p:Version="$VERSION"
 
 echo "==> Şablon paketi"
@@ -47,13 +47,15 @@ if $INSTALL; then
       dotnet new uninstall "$id" >/dev/null 2>&1 || break
     done
   done
-  dotnet tool uninstall -g Can.Core.Generator.Cli >/dev/null 2>&1 || true   # eski ad
+  for id in CanFx.Generator.Cli Can.Core.Generator.Cli; do   # eski adlar (komutları can-gen)
+    dotnet tool uninstall -g "$id" >/dev/null 2>&1 || true
+  done
   dotnet new install "$TEMPLATES/CanFx.Templates.$VERSION.nupkg"
-  dotnet tool update -g CanFx.Generator.Cli --add-source "$PACKAGES" --version "$VERSION" \
-    || dotnet tool install -g CanFx.Generator.Cli --add-source "$PACKAGES" --version "$VERSION"
+  dotnet tool update -g CanFxGen --add-source "$PACKAGES" --version "$VERSION" \
+    || dotnet tool install -g CanFxGen --add-source "$PACKAGES" --version "$VERSION"
 fi
 
 echo "==> Tamam: $VERSION"
 $INSTALL && echo "    Rider açıksa yeni şablonu görmesi için kapatıp aç (⌘Q)."
-echo "    can-gen: $PACKAGES"
+echo "    canfxgen: $PACKAGES"
 echo "    Şablon:  $TEMPLATES/CanFx.Templates.$VERSION.nupkg"

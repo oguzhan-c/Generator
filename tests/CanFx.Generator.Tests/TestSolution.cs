@@ -5,7 +5,7 @@ internal sealed class TestSolution : IDisposable
 {
     public TestSolution()
     {
-        Root = Path.Combine(Path.GetTempPath(), "can-gen-tests", Guid.NewGuid().ToString("N"));
+        Root = Path.Combine(Path.GetTempPath(), "canfxgen-tests", Guid.NewGuid().ToString("N"));
         Write("Shop.slnx", "<Solution />");
         Write("src/Shop.Domain/Shop.Domain.csproj", "<Project />");
         Write("src/Shop.Application/Shop.Application.csproj", "<Project />");
@@ -21,7 +21,7 @@ internal sealed class TestSolution : IDisposable
             public sealed class BaseDbContext
             {
                 public DbSet<AppUser> Users => Set<AppUser>();
-                // can-gen:dbsets
+                // canfxgen:dbsets
             }
             """);
 
@@ -34,14 +34,14 @@ internal sealed class TestSolution : IDisposable
             {
                 public static IReadOnlyList<(string Name, string Description)> All { get; } =
                 [
-                    // can-gen:permissions
+                    // canfxgen:permissions
                 ];
 
                 public static IReadOnlyDictionary<string, string[]> RoleGrants { get; } = new Dictionary<string, string[]>
                 {
                     [Roles.User] =
                     [
-                        // can-gen:user-grants
+                        // canfxgen:user-grants
                     ],
                 };
             }
@@ -56,7 +56,7 @@ internal sealed class TestSolution : IDisposable
             {
                 public static IServiceCollection AddApplicationServices(this IServiceCollection services)
                 {
-                    // can-gen:services
+                    // canfxgen:services
                     return services;
                 }
             }
@@ -71,7 +71,7 @@ internal sealed class TestSolution : IDisposable
             {
                 public static IServiceCollection AddPersistenceServices(this IServiceCollection services)
                 {
-                    // can-gen:repositories
+                    // canfxgen:repositories
                     return services;
                 }
             }

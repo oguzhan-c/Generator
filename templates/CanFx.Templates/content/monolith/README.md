@@ -23,7 +23,7 @@ ve ProblemDetails yanıtına çevrilir.
 ## İlk çalıştırma
 
 1. CanFx paketleri nuget.org'dan gelir; ek ayar gerekmez (yerel / özel kaynak için `nuget.config`'teki nota bak).
-2. Veritabanı (şablon sağlayıcı seçmez; `TODO(can-gen)` işaretli yerleri doldur):
+2. Veritabanı (şablon sağlayıcı seçmez; `TODO(canfxgen)` işaretli yerleri doldur):
    - `Directory.Packages.props` + `Persistence` projesine sağlayıcı paketi (Npgsql / SqlServer / Sqlite),
    - `Persistence/PersistenceServiceRegistration.cs` → `options.UseNpgsql(...)` (ya da diğeri), `throw` satırını sil,
    - bağlantı dizesi: `appsettings.Development.json` ya da user-secrets (`ConnectionStrings:CanAppTemplate`),
@@ -41,10 +41,10 @@ ve ProblemDetails yanıtına çevrilir.
    zsh'te `!` içeren değerleri tek tırnakla yaz.
 4. `dotnet run --project src/CanAppTemplate.WebAPI` → http://localhost:5280/docs
 
-## Entity ekleme (can-gen)
+## Entity ekleme (canfxgen)
 
 Entity'yi `CanAppTemplate.Domain/Entities` içinde yaz, ardından Rider'da entity dosyasına sağ tıkla → **CanFx → Generate
-CRUD** (ya da terminalde `can-gen generate crud Brand`; komut/sorgu eklemek için `can-gen generate command|query`). Üretilen dosyalar:
+CRUD** (ya da terminalde `canfxgen generate crud Brand`; komut/sorgu eklemek için `canfxgen generate command|query`). Üretilen dosyalar:
 
 - `Application/Features/Brands/Commands/{Create,Update,Delete}/` — komut + handler, validator, `Created/Updated/DeletedBrandResponse`
 - `Application/Features/Brands/Queries/{GetById,GetList,GetListByDynamic}/` — sorgu + handler, `GetByIdBrandResponse`, `GetListBrandListItemDto`
@@ -53,8 +53,8 @@ CRUD** (ya da terminalde `can-gen generate crud Brand`; komut/sorgu eklemek içi
 - `Persistence/EntityConfigurations/BrandConfiguration.cs`
 - `WebAPI/Controllers/BrandsController.cs` (`/api/v1/Brands`)
 
-Generator `// can-gen:...` işaretlerinin olduğu yerlere ekleme yapar; bu satırları silme. Senin doldurman gereken yerler
-`TODO(can-gen)` ile işaretlidir (Rider: View → Tool Windows → TODO).
+Generator `// canfxgen:...` işaretlerinin olduğu yerlere ekleme yapar; bu satırları silme. Senin doldurman gereken yerler
+`TODO(canfxgen)` ile işaretlidir (Rider: View → Tool Windows → TODO).
 
 ## Kimlik anahtar tipi
 

@@ -1,4 +1,4 @@
-package com.canfx.cangen
+package com.canfx.canfxgen
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
@@ -8,13 +8,13 @@ import com.intellij.util.execution.ParametersListUtil
 import java.io.File
 import java.nio.charset.StandardCharsets
 
-/** can-gen'in tek bir çalıştırma sonucu. */
+/** canfxgen'in tek bir çalıştırma sonucu. */
 data class CanGenResult(val ok: Boolean, val json: Map<String, Any?>, val error: String?)
 
-/** Bir dosya değişikliği (can-gen --json çıktısındaki "changes" öğesi). */
+/** Bir dosya değişikliği (canfxgen --json çıktısındaki "changes" öğesi). */
 data class CanGenChange(val path: String, val kind: String, val note: String?)
 
-/** can-gen komut satırı aracını çalıştırır. Uzun sürebilir: arka plan iş parçacığında çağır. */
+/** canfxgen komut satırı aracını çalıştırır. Uzun sürebilir: arka plan iş parçacığında çağır. */
 object CanGenRunner {
     private const val TIMEOUT_MS = 120_000
 
@@ -23,23 +23,22 @@ object CanGenRunner {
             ?: return CanGenResult(
                 false,
                 emptyMap(),
-                "can-gen bulunamadı. Kur: dotnet tool install -g CanFx.Generator.Cli ... " +
-                    "ya da Settings → Tools → CanFx Generator'da komutu belirt."
+                "canfxgen was not found. Install it: dotnet tool install -g CanFxGen " +
+                    "or set the command in Settings → Tools → CanFxGen."
             )
 
         val commandLine = GeneralCommandLine(command + arguments.toList() + "--json")
             .withWorkDirectory(workingDirectory)
             .withCharset(StandardCharsets.UTF_8)
-            .withEnvironment("DOTNET_CLI_UI_LANGUAGE", "tr")
             .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
 
         val output = try {
             ExecUtil.execAndGetOutput(commandLine, TIMEOUT_MS)
         } catch (e: Exception) {
-            return CanGenResult(false, emptyMap(), "can-gen çalıştırılamadı: ${e.message}")
+            return CanGenResult(false, emptyMap(), "canfxgen could not be started: ${e.message}")
         }
 
-        if (output.isTimeout) return CanGenResult(false, emptyMap(), "can-gen ${TIMEOUT_MS / 1000} saniyede bitmedi.")
+        if (output.isTimeout) return CanGenResult(false, emptyMap(), "canfxgen did not finish within ${TIMEOUT_MS / 1000} seconds.")
 
         // 'dotnet run' önce derleme satırları yazabilir: JSON, satır başındaki ilk '{' ile başlar.
         val stdout = output.stdout
@@ -48,7 +47,7 @@ object CanGenRunner {
 
         if (json == null) {
             val details = (output.stderr.ifBlank { stdout }).trim().take(2000)
-            return CanGenResult(false, emptyMap(), "can-gen beklenmeyen çıktı verdi (çıkış kodu ${output.exitCode}):\n$details")
+            return CanGenResult(false, emptyMap(), "canfxgen returned unexpected output (exit code ${output.exitCode}):\n$details")
         }
 
         return CanGenResult(json.bool("ok"), json, json.str("error"))
@@ -59,12 +58,12 @@ object CanGenRunner {
             CanGenChange(it.str("path") ?: "", it.str("kind") ?: "", it.str("note"))
         }
 
-    /** Ayardaki komut; boşsa PATH ya da ~/.dotnet/tools/can-gen. Dock'tan açılan IDE'nin PATH'i kısa olabilir. */
+    /** Ayardaki komut; boşsa PATH ya da ~/.dotnet/tools/canfxgen. Dock'tan açılan IDE'nin PATH'i kısa olabilir. */
     private fun resolveCommand(): List<String>? {
         val configured = CanGenSettings.getInstance().state.command.trim()
         if (configured.isNotEmpty()) return ParametersListUtil.parse(configured)
 
-        val executable = if (SystemInfo.isWindows) "can-gen.exe" else "can-gen"
+        val executable = if (SystemInfo.isWindows) "canfxgen.exe" else "canfxgen"
         PathEnvironmentVariableUtil.findInPath(executable)?.let { return listOf(it.absolutePath) }
 
         val home = System.getProperty("user.home")

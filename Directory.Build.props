@@ -8,10 +8,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
     <!--
-      Sürüm: can-gen (CanFx.Generator.Cli) ve proje şablonu (CanFx.Templates) bu sürümle yayınlanır. CanFx paketlerinden
+      Sürüm: canfxgen (CanFxGen) ve proje şablonu (CanFx.Templates) bu sürümle yayınlanır. CanFx paketlerinden
       bağımsızdır (CanFx: github.com/oguzhan-c/Core). CI etiketli derlemede sürümü etiketten alır (v0.2.0 → 0.2.0).
     -->
-    <VersionPrefix>0.1.1</VersionPrefix>
+    <VersionPrefix>0.2.0</VersionPrefix>
 
     <!--
       Şablonla oluşturulan projelerin kullandığı CanFx paket sürümü (nuget.org). Yeni CanFx sürümü çıkınca burası
@@ -26,7 +26,7 @@
     <Copyright>Copyright © Oğuzhan Can</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/oguzhan-c/Generator</PackageProjectUrl>
-    <PackageTags>canfx;can-gen;code-generator;dotnet;ddd;clean-architecture;cqrs</PackageTags>
+    <PackageTags>canfx;canfxgen;code-generator;dotnet;ddd;clean-architecture;cqrs</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>

@@ -6,7 +6,7 @@ namespace CanAppTemplate.Application.Services.OperationClaims;
 /// <summary>
 /// Uygulamanın tüm yetkileri (operation claim) ve rollere dağılımı. Her özellik kendi sabitlerini
 /// <c>Features/{Çoğul}/Constants/{Çoğul}OperationClaims.cs</c> içinde tanımlar; seed'in veritabanına yazması için buraya da
-/// eklenir. can-gen yeni özellik üretirken satırları işaretli yerlere kendisi ekler.
+/// eklenir. canfxgen yeni özellik üretirken satırları işaretli yerlere kendisi ekler.
 /// </summary>
 /// <remarks>
 /// Yetkiler KODLA tanımlanır: her açılışta veritabanı bu listeye eşitlenir (eksikler eklenir, listeden çıkarılanlar
@@ -20,19 +20,19 @@ public static class AppOperationClaims
     [
         // Rol / yetki yönetimi ("yetki verme yetkisi"): Admin bunları başka rollere verebilir.
         ..IdentityPermissions.All,
-        // can-gen:permissions
+        // canfxgen:permissions
     ];
 
     /// <summary>
     /// Seed'de rollere verilen BAŞLANGIÇ yetkileri (Admin her şeyi geçer, listeye gerek yok). Yalnızca rol ilk oluşturulurken
     /// ya da yetki kataloğa ilk eklendiğinde verilir; sonrasında yönetim uçlarından yapılan değişikliklere dokunulmaz.
     /// </summary>
-    /// <remarks>TODO(can-gen): Yeni özelliklerin yetkilerini ilgili rollere ver (ör. okuma yetkisini User rolüne).</remarks>
+    /// <remarks>TODO(canfxgen): Yeni özelliklerin yetkilerini ilgili rollere ver (ör. okuma yetkisini User rolüne).</remarks>
     public static IReadOnlyDictionary<string, string[]> RoleGrants { get; } = new Dictionary<string, string[]>
     {
         [Roles.User] =
         [
-            // can-gen:user-grants
+            // canfxgen:user-grants
         ],
     };
 }

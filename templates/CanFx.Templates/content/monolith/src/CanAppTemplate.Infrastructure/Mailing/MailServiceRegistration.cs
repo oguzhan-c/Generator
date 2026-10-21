@@ -11,7 +11,7 @@ public static class MailServiceRegistration
     public static IServiceCollection AddMail(this IServiceCollection services, IConfiguration config)
     {
         string provider = config["Mail:Provider"] is { Length: > 0 } value ? value : "Pickup";
-        // TODO(can-gen): Gönderen adresini kendi alan adınla değiştir.
+        // TODO(canfxgen): Gönderen adresini kendi alan adınla değiştir.
         string from = config["Mail:From"] ?? "no-reply@canapptemplate.local";
 
         switch (provider.ToUpperInvariant())

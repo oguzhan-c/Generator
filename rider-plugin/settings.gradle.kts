@@ -1,1 +1,1 @@
-rootProject.name = "can-gen-rider"
+rootProject.name = "canfxgen-rider"

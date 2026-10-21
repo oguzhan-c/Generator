@@ -6,7 +6,7 @@ namespace CanAppTemplate.Infrastructure.Sms;
 
 /// <summary>SMS: geliştirmede her mesaj <c>sms</c> klasörüne JSON olarak yazılır.</summary>
 /// <remarks>
-/// TODO(can-gen): Gerçek SMS sağlayıcısını bağla: bu klasöre <c>ISmsSender</c>'ı uygulayan bir istemci yaz
+/// TODO(canfxgen): Gerçek SMS sağlayıcısını bağla: bu klasöre <c>ISmsSender</c>'ı uygulayan bir istemci yaz
 /// (ör. <c>NetgsmSmsSender</c>) ve <c>Sms:Provider</c>'a göre burada seç; anahtarlar user-secrets'ta.
 /// </remarks>
 public static class SmsServiceRegistration

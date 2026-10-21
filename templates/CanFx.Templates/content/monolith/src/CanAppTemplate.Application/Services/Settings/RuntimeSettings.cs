@@ -11,7 +11,7 @@ namespace CanAppTemplate.Application.Services.Settings;
 /// <c>appsettings.json</c> ile karıştırma: orası açılışta bir kez okunan, değişince yeniden başlatma gereken yapılandırmadır
 /// (bağlantı dizesi, JWT, Redis adresi ...); gizli değerler user-secrets'ta. Burada ise yönetici ekranından yeniden
 /// başlatmadan değişen, global ya da tenant bazında farklı olabilen iş ayarları durur.
-/// <para>TODO(can-gen): Uygulamanın ayarlarını buraya ekle ve <see cref="All"/> listesine yaz. Örnek ayarı silebilirsin.</para>
+/// <para>TODO(canfxgen): Uygulamanın ayarlarını buraya ekle ve <see cref="All"/> listesine yaz. Örnek ayarı silebilirsin.</para>
 /// </remarks>
 public static class RuntimeSettings
 {
@@ -24,5 +24,5 @@ public static class RuntimeSettings
         IsVisibleToClients = true,
     };
 
-    public static SettingDefinition[] All => [SupportEmail /* can-gen:settings */];
+    public static SettingDefinition[] All => [SupportEmail /* canfxgen:settings */];
 }

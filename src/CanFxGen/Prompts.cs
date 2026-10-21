@@ -1,6 +1,6 @@
 using CanFx.Generator;
 
-namespace CanFx.Generator.Cli;
+namespace CanFxGen;
 
 /// <summary>
 /// Etkileşimli sorular (dış paket kullanılmaz): ok tuşlarıyla seçim, boşlukla çoklu seçim, metin. Girdi yönlendirilmişse
@@ -169,6 +169,6 @@ internal static class Prompts
     private static void EnsureInteractive(string question)
     {
         if (!Interactive)
-            throw new GeneratorException($"Eksik bilgi: \"{question.Trim()}\" (etkileşimsiz çalışmada argüman olarak ver; can-gen --help).");
+            throw new GeneratorException($"Eksik bilgi: \"{question.Trim()}\" (etkileşimsiz çalışmada argüman olarak ver; canfxgen --help).");
     }
 }

@@ -1,16 +1,15 @@
 using CanFx.Generator;
 
-namespace CanFx.Generator.Cli;
+namespace CanFxGen;
 
 /// <summary>
-/// Basit argüman ayrıştırıcı (dış paket kullanılmaz). Konumsal argümanlar, değerli seçenekler (<c>--project x</c>,
-/// <c>-p x</c>), bayraklar (<c>--force</c>, <c>-c</c>) ve <c>--</c> sonrası aynen aktarılan argümanlar.
+/// Basit argüman ayrıştırıcı (dış paket kullanılmaz). Konumsal argümanlar, değerli seçenekler (<c>--plural x</c>,
+/// <c>-e x</c>), bayraklar (<c>--caching</c>, <c>-c</c>) ve <c>--</c> sonrası aynen aktarılan argümanlar.
 /// </summary>
 internal sealed class Arguments
 {
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal)
     {
-        ["-p"] = "project",
         ["-c"] = "caching",
         ["-l"] = "logging",
         ["-t"] = "transaction",
@@ -18,21 +17,20 @@ internal sealed class Arguments
         ["-d"] = "dynamic-query",
         ["-e"] = "endpoint-method",
         ["-o"] = "output",
-        ["-f"] = "force",
         ["-h"] = "help",
         ["-v"] = "version",
     };
 
     private static readonly HashSet<string> ValueOptions = new(StringComparer.Ordinal)
     {
-        "project", "plural", "endpoint-method", "output", "feed", "database",
+        "plural", "endpoint-method", "output", "feed", "database",
     };
 
     private readonly Dictionary<string, string?> _options = new(StringComparer.OrdinalIgnoreCase);
 
     public List<string> Positionals { get; } = [];
 
-    /// <summary><c>--</c> sonrası (ör. <c>can-gen new Shop -- --MultiTenancy true</c>).</summary>
+    /// <summary><c>--</c> sonrası (ör. <c>canfxgen new Shop -- --MultiTenancy true</c>).</summary>
     public List<string> PassThrough { get; } = [];
 
     public bool Json => Flag("json");

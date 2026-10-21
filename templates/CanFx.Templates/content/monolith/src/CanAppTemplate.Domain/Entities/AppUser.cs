@@ -7,7 +7,7 @@ using CanAppTemplate.Domain.Identity;
 namespace CanAppTemplate.Domain.Entities;
 
 /// <summary>Uygulamanın kullanıcısı (CanFx.Security <see cref="User{TId}"/> üzerine ad, soyad, telefon).</summary>
-/// <remarks>TODO(can-gen): Uygulamaya özel kullanıcı alanlarını (ör. avatar, dil tercihi) buraya ekle.</remarks>
+/// <remarks>TODO(canfxgen): Uygulamaya özel kullanıcı alanlarını (ör. avatar, dil tercihi) buraya ekle.</remarks>
 [Audited]
 public sealed class AppUser : User<IdentityKey>
 {

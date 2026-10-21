@@ -106,6 +106,30 @@ public sealed class CrudGeneratorTests
     private const string Feature = "src/Shop.Application/Features/Brands/";
 
     [Fact]
+    public void Recognizes_legacy_can_gen_markers_of_solutions_created_with_0_1_0()
+    {
+        using var solution = new TestSolution();
+        foreach (string file in Directory.GetFiles(solution.Root, "*.cs", SearchOption.AllDirectories))
+            File.WriteAllText(file, File.ReadAllText(file).Replace("// canfxgen:", "// can-gen:", StringComparison.Ordinal));
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", """
+            namespace Shop.Domain.Entities;
+
+            public sealed class Brand : FullAuditedAggregateRoot<Guid>
+            {
+                public string Name { get; set; } = "";
+            }
+            """);
+
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        IReadOnlyList<ChangeResult> results = CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand")).Apply();
+
+        Assert.DoesNotContain(results, r => r.Kind == ChangeKind.Failed);
+        string context = solution.Read("src/Shop.Persistence/Contexts/BaseDbContext.cs").ReplaceLineEndings("\n");
+        Assert.Contains("    public DbSet<Brand> Brands => Set<Brand>();\n    // can-gen:dbsets", context);
+        Assert.Contains("services.AddScoped<IBrandRepository, BrandRepository>();", solution.Read("src/Shop.Persistence/PersistenceServiceRegistration.cs"));
+    }
+
+    [Fact]
     public void Generates_narchitecture_layout_and_injects_registrations_once()
     {
         using var solution = new TestSolution();
@@ -152,7 +176,7 @@ public sealed class CrudGeneratorTests
         Assert.Contains("services.AddScoped<IBrandService, BrandManager>();", solution.Read("src/Shop.Application/ApplicationServiceRegistration.cs"));
         Assert.Contains("ISecuredRequest, ILoggableRequest, ITransactionalRequest", solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs"));
         Assert.Contains("ICachableRequest", solution.Read(Feature + "Queries/GetList/GetListBrandQuery.cs"));
-        Assert.Contains("// can-gen:endpoints", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
+        Assert.Contains("// canfxgen:endpoints", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
 
         string create = solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs");
         Assert.Contains("Brand brand = Brand.Create(request.Name).OrThrow();", create);
@@ -168,7 +192,7 @@ public sealed class CrudGeneratorTests
         Assert.Contains("builder.Property(x => x.Name).HasColumnName(\"Name\").HasMaxLength(Brand.NameMaxLength).IsRequired();", solution.Read("src/Shop.Persistence/EntityConfigurations/BrandConfiguration.cs"));
 
         string context = solution.Read("src/Shop.Persistence/Contexts/BaseDbContext.cs");
-        Assert.Contains("    public DbSet<Brand> Brands => Set<Brand>();\n    // can-gen:dbsets", context.ReplaceLineEndings("\n"));
+        Assert.Contains("    public DbSet<Brand> Brands => Set<Brand>();\n    // canfxgen:dbsets", context.ReplaceLineEndings("\n"));
         Assert.Contains("using Shop.Domain.Entities;", context);
 
         string registration = solution.Read("src/Shop.Persistence/PersistenceServiceRegistration.cs");
@@ -238,9 +262,9 @@ public sealed class CrudGeneratorTests
         CrudGenerator.Plan(layout, EntityReader.Read(layout, "Tag")).Apply();
 
         string create = solution.Read("src/Shop.Application/Features/Tags/Commands/Create/CreateTagCommand.cs");
-        Assert.Contains("TODO(can-gen): Tag'de fabrika metodu", create);
+        Assert.Contains("TODO(canfxgen): Tag'de fabrika metodu", create);
         Assert.Contains("Tag tag = NewTag(request);", create);
-        Assert.Contains("TODO(can-gen): Tag'de 'Update(...)' metodu ya da public setter'lar bulunamadı", solution.Read("src/Shop.Application/Features/Tags/Commands/Update/UpdateTagCommand.cs"));
+        Assert.Contains("TODO(canfxgen): Tag'de 'Update(...)' metodu ya da public setter'lar bulunamadı", solution.Read("src/Shop.Application/Features/Tags/Commands/Update/UpdateTagCommand.cs"));
         Assert.Contains(".OrderBy(x => x.Id)", solution.Read("src/Shop.Application/Features/Tags/Queries/GetList/GetListTagQuery.cs"));
     }
 

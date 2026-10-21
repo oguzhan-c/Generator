@@ -50,7 +50,7 @@ internal sealed partial class IdentitySeeder : IDataSeeder
         else
             await EnsureUserAsync(_options.AdminEmail, "Platform", "Yöneticisi", _options.AdminPassword, roles[Roles.Admin], cancellationToken);
 
-        // TODO(can-gen): Geliştirme için demo kullanıcılar / başlangıç verisi gerekiyorsa burada ya da ayrı bir IDataSeeder'da ekle.
+        // TODO(canfxgen): Geliştirme için demo kullanıcılar / başlangıç verisi gerekiyorsa burada ya da ayrı bir IDataSeeder'da ekle.
 
         await _db.SaveChangesAsync(cancellationToken);
     }

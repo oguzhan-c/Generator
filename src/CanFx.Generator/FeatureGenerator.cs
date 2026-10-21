@@ -84,12 +84,12 @@ public static class FeatureGenerator
 
         if (options.Secured)
         {
-            plan.Inject(claimsFile, "can-gen:operation-claims", $"public const string {name} = \"{Names.Kebab(feature)}.{Names.Kebab(name)}\";");
-            plan.Inject(claimsFile, "can-gen:operation-claims-all", $"({name}, \"{Names.Words(name)}\"),");
+            plan.Inject(claimsFile, "canfxgen:operation-claims", $"public const string {name} = \"{Names.Kebab(feature)}.{Names.Kebab(name)}\";");
+            plan.Inject(claimsFile, "canfxgen:operation-claims-all", $"({name}, \"{Names.Words(name)}\"),");
         }
 
         string controller = Path.Combine(layout.WebApi, "Controllers", $"{feature}Controller.cs");
-        plan.Inject(controller, "can-gen:endpoints", FeatureTemplates.Endpoint(n, isCommand), n.Namespace);
+        plan.Inject(controller, "canfxgen:endpoints", FeatureTemplates.Endpoint(n, isCommand), n.Namespace);
         return plan;
     }
 }
@@ -107,7 +107,7 @@ internal sealed record RequestNames(string Root, string Feature, string Name, st
 
 internal static class FeatureTemplates
 {
-    private const string Header = "// can-gen ile üretildi; artık senin kodun, istediğin gibi değiştir.";
+    private const string Header = "// canfxgen ile üretildi; artık senin kodun, istediğin gibi değiştir.";
 
     public static string Request(RequestNames n, bool isCommand, RequestOptions options)
     {
@@ -138,11 +138,11 @@ internal static class FeatureTemplates
         }
         else if (cacheTag)
         {
-            members.Add($"    /// <summary>TODO(can-gen): Anahtara sorgunun parametrelerini ekle (ör. $\"{n.Name}({{Id}})\").</summary>\n    [JsonIgnore]\n    public string CacheKey => \"{n.Name}\";\n\n    [JsonIgnore]\n    public IReadOnlyCollection<string> CacheTags => [CanFx.Application.CacheTags.Entity<{n.Entity!.Name}>()];");
+            members.Add($"    /// <summary>TODO(canfxgen): Anahtara sorgunun parametrelerini ekle (ör. $\"{n.Name}({{Id}})\").</summary>\n    [JsonIgnore]\n    public string CacheKey => \"{n.Name}\";\n\n    [JsonIgnore]\n    public IReadOnlyCollection<string> CacheTags => [CanFx.Application.CacheTags.Entity<{n.Entity!.Name}>()];");
         }
         else if (options.Caching)
         {
-            members.Add($"    // TODO(can-gen): Önbellek için {Names.Singular(n.Feature)} entity'si bulunamadı; gerekirse {(isCommand ? "ICacheRemoverRequest" : "ICachableRequest")} ekle.");
+            members.Add($"    // TODO(canfxgen): Önbellek için {Names.Singular(n.Feature)} entity'si bulunamadı; gerekirse {(isCommand ? "ICacheRemoverRequest" : "ICachableRequest")} ekle.");
         }
 
         string body = members.Count == 0 ? string.Empty : "\n\n" + string.Join("\n\n", members);
@@ -162,19 +162,19 @@ internal static class FeatureTemplates
 
             namespace {{n.Namespace}};
 
-            /// <summary>TODO(can-gen): {{Names.Pascal(what)}} ne yaptığını yaz.</summary>
+            /// <summary>TODO(canfxgen): {{Names.Pascal(what)}} ne yaptığını yaz.</summary>
             public sealed class {{n.Type}} : {{string.Join(", ", interfaces)}}
             {
-                // TODO(can-gen): {{Names.Pascal(what)}} alanlarını ekle (ör. public Guid Id { get; set; }).{{body}}
+                // TODO(canfxgen): {{Names.Pascal(what)}} alanlarını ekle (ör. public Guid Id { get; set; }).{{body}}
             }
 
             public sealed class {{n.Type}}Handler : IRequestHandler<{{n.Type}}, {{n.Response}}>
             {
-                // TODO(can-gen): Gerekenleri (repository, IMapper, iş kuralları ...) constructor'dan al.
+                // TODO(canfxgen): Gerekenleri (repository, IMapper, iş kuralları ...) constructor'dan al.
 
                 public Task<{{n.Response}}> Handle({{n.Type}} request, CancellationToken cancellationToken)
                 {
-                    // TODO(can-gen): İşi yap ve yanıtı doldur.
+                    // TODO(canfxgen): İşi yap ve yanıtı doldur.
                     return Task.FromResult(new {{n.Response}}());
                 }
             }
@@ -192,7 +192,7 @@ internal static class FeatureTemplates
         {
             public {{n.Type}}Validator()
             {
-                // TODO(can-gen): Doğrulama kurallarını ekle, ör. RuleFor(x => x.Id).NotEmpty();
+                // TODO(canfxgen): Doğrulama kurallarını ekle, ör. RuleFor(x => x.Id).NotEmpty();
             }
         }
 
@@ -206,7 +206,7 @@ internal static class FeatureTemplates
 
         public sealed class {{n.Response}} : IResponse
         {
-            // TODO(can-gen): Yanıt alanlarını ekle.
+            // TODO(canfxgen): Yanıt alanlarını ekle.
         }
 
         """;

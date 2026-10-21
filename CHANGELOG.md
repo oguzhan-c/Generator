@@ -1,7 +1,7 @@
 # Değişiklik geçmişi
 
 Bu dosya [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) biçimindedir; sürümler
-[Semantic Versioning](https://semver.org/lang/tr/)'e uyar. can-gen (`CanFx.Generator.Cli`) ve proje şablonu
+[Semantic Versioning](https://semver.org/lang/tr/)'e uyar. canfxgen (`CanFxGen`) ve proje şablonu
 (`CanFx.Templates`) aynı sürümle yayınlanır; CanFx paketlerinin sürümünden bağımsızdır.
 
 Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına taşı, `Directory.Build.props`'taki
@@ -9,10 +9,25 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-21
+
+### Değişti (kırıcı)
+
+- Araç yeniden adlandırıldı: paket `CanFx.Generator.Cli` → **`CanFxGen`**, komut `can-gen` → **`canfxgen`**
+  (`dotnet tool install -g CanFxGen`). Koddaki işaretler `TODO(canfxgen)` ve `// canfxgen:...` oldu; 0.1.0 şablonuyla
+  oluşturulmuş çözümlerdeki eski `// can-gen:...` işaretleri de tanınır.
+- `--project`, `--force` ve `--dry-run` seçenekleri kaldırıldı: komutlar bulunulan çözüm klasöründe çalışır, var olan
+  dosyaların üzerine yazılmaz (Rider eklentisinden de kaldırıldı).
+
 ### Değişti
 
 - Geliştirici araçları CanFx (Core) reposundan bu repoya taşındı (geçmişiyle). Şablon CanFx paketlerini nuget.org'dan
   kullanır; sürümü `Directory.Build.props` → `CanFxVersion` (şablon kendi sürümüyle yayınlanır).
+
+### Eklendi
+
+- Rider eklentisi JetBrains Marketplace'te: İngilizce arayüz, ikon, açıklama; sürümü Generator ile aynı, `v*`
+  etiketinde CI ile yayınlanır (isteğe bağlı imza).
 
 ## [0.1.0] - 2026-10-21
 

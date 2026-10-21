@@ -54,7 +54,7 @@ public sealed class AuthTokenIssuer
     private Task<AuthResult> CreateAsync(AppUser user, RefreshTokenValue refreshToken, string sessionId, CancellationToken cancellationToken)
     {
 #if (MultiTenancy)
-        // TODO(can-gen): Tenant askıya alınabiliyorsa pasif tenant'ı token'a yazma (tenant deposundan durumunu kontrol et).
+        // TODO(canfxgen): Tenant askıya alınabiliyorsa pasif tenant'ı token'a yazma (tenant deposundan durumunu kontrol et).
         string? tenantId = user.TenantId?.ToString();
 #else
         string? tenantId = null;

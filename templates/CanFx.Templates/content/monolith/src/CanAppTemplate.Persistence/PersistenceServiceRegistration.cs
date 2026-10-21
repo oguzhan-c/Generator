@@ -47,7 +47,7 @@ public static class PersistenceServiceRegistration
     /// <remarks>appsettings: <c>ConnectionStrings:CanAppTemplate</c>, <c>Seed</c>, <c>QueryDiagnostics</c>, <c>DataRetention</c>.</remarks>
     public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // TODO(can-gen): Bağlantı dizesini user-secrets'a yaz (appsettings'e şifre koyma):
+        // TODO(canfxgen): Bağlantı dizesini user-secrets'a yaz (appsettings'e şifre koyma):
         //   dotnet user-secrets set "ConnectionStrings:CanAppTemplate" "<bağlantı dizesi>" --project src/CanAppTemplate.WebApi
         string connectionString =
             configuration.GetConnectionString("CanAppTemplate") ?? throw new InvalidOperationException("ConnectionStrings:CanAppTemplate ayarı eksik.");
@@ -55,7 +55,7 @@ public static class PersistenceServiceRegistration
 
         // Tenant'lar appsettings'teki "MultiTenancy:Tenants" listesinden okunur. Kendi veritabanı (ConnectionString) olan
         // tenant ona, olmayan ortak veritabanına bağlanır ve verisi TenantId filtresiyle ayrılır.
-        // TODO(can-gen): Tenant'lar veritabanında tutulacaksa listeyi boş bırak ve kendi ITenantStore'unu kaydet.
+        // TODO(canfxgen): Tenant'lar veritabanında tutulacaksa listeyi boş bırak ve kendi ITenantStore'unu kaydet.
         services.AddCanMultiTenancy(o =>
         {
             o.DefaultConnectionString = connectionString;
@@ -76,7 +76,7 @@ public static class PersistenceServiceRegistration
                 // Aggregate'ler arası ilişkiler navigation'sız olabilir; filtreli zorunlu ilişki uyarısı burada geçersiz.
                 options.ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
 
-                // TODO(can-gen): Veritabanı sağlayıcını seç. Paketi Directory.Packages.props'a ve bu projeye ekle, aşağıdaki
+                // TODO(canfxgen): Veritabanı sağlayıcını seç. Paketi Directory.Packages.props'a ve bu projeye ekle, aşağıdaki
                 // satırlardan birini aç ve throw satırını sil. Bağlantı dizesi: ConnectionStrings:CanAppTemplate (user-secrets).
                 //   PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL):
                 //     options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());
@@ -86,7 +86,7 @@ public static class PersistenceServiceRegistration
                 //     options.UseSqlite(tenantConnectionString);
                 throw new InvalidOperationException(
                     $"Veritabanı ayarlanmadı (bağlantı dizesi uzunluğu: {tenantConnectionString.Length}). " +
-                    "CanAppTemplate.Persistence/PersistenceServiceRegistration.cs içindeki TODO(can-gen)'e bak.");
+                    "CanAppTemplate.Persistence/PersistenceServiceRegistration.cs içindeki TODO(canfxgen)'e bak.");
             }
         );
 
@@ -118,15 +118,15 @@ public static class PersistenceServiceRegistration
 #if (Reporting)
 
         // Raporlar: veri kaynakları ve kayıtlı raporlar (uçlar WebApi'de: /api/reporting).
-        // TODO(can-gen): Rapor veri kaynaklarını ekle: .AddSource("orders", sp => sp.GetRequiredService<BaseDbContext>().Orders.Select(...), o => o.Field(...))
+        // TODO(canfxgen): Rapor veri kaynaklarını ekle: .AddSource("orders", sp => sp.GetRequiredService<BaseDbContext>().Orders.Select(...), o => o.Field(...))
         services.AddCanReporting().UseEntityFrameworkStore<BaseDbContext>();
 #endif
 #if (MultiTenancy)
 
         services.AddScoped<ICrossTenantReader, CrossTenantReader>();
 #endif
-        // Entity repository'leri (can-gen her entity için bir satır ekler).
-        // can-gen:repositories
+        // Entity repository'leri (canfxgen her entity için bir satır ekler).
+        // canfxgen:repositories
 
         AddDataRetention(services, configuration.GetSection("DataRetention"));
         return services;
@@ -158,7 +158,7 @@ public static class PersistenceServiceRegistration
             o.Keep<RequestActivityRecord>(TimeSpan.FromDays(Days("RequestActivities", 90)), a => a.Timestamp);
             o.Keep<RefreshToken<IdentityKey>>(TimeSpan.FromDays(Days("ExpiredRefreshTokens", 30)), t => t.ExpiresAt);
             o.Keep<TrustedDevice<IdentityKey>>(TimeSpan.FromDays(Days("RevokedDevices", 90)), d => d.RevokedAt);
-            // TODO(can-gen): Zamanla birikip silinebilecek uygulama kayıtlarını (bildirim, log ...) buraya ekle.
+            // TODO(canfxgen): Zamanla birikip silinebilecek uygulama kayıtlarını (bildirim, log ...) buraya ekle.
         });
     }
 
