@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    can-gen komut satırı aracı (dotnet tool). Kurulum komutları README'de (tools/README.md).
+    can-gen komut satırı aracı (dotnet tool). Kurulum komutları kökteki README'de.
     Rider / Visual Studio eklentileri de bunu JSON çıktısıyla çağırır.
   -->
   <PropertyGroup>

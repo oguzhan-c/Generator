@@ -1,0 +1,45 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!--
+      Sürüm: can-gen (CanFx.Generator.Cli) ve proje şablonu (CanFx.Templates) bu sürümle yayınlanır. CanFx paketlerinden
+      bağımsızdır (CanFx: github.com/oguzhan-c/Core). CI etiketli derlemede sürümü etiketten alır (v0.2.0 → 0.2.0).
+    -->
+    <VersionPrefix>0.1.1</VersionPrefix>
+
+    <!--
+      Şablonla oluşturulan projelerin kullandığı CanFx paket sürümü (nuget.org). Yeni CanFx sürümü çıkınca burası
+      güncellenir ve şablon yeniden yayınlanır. Yayınlanmamış Core paketleriyle denemek için: CANFX_VERSION ve
+      CANFX_FEED ortam değişkenleri (build/pack-local.sh, templates/verify-templates.sh).
+    -->
+    <CanFxVersion>0.1.0</CanFxVersion>
+
+    <!-- Paket bilgileri -->
+    <Authors>Oğuzhan Can</Authors>
+    <Product>CanFx Generator</Product>
+    <Copyright>Copyright © Oğuzhan Can</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/oguzhan-c/Generator</PackageProjectUrl>
+    <PackageTags>canfx;can-gen;code-generator;dotnet;ddd;clean-architecture;cqrs</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Source Link: paketten koda adım adım girilebilir; repo adresi git remote'tan okunur -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+</Project>

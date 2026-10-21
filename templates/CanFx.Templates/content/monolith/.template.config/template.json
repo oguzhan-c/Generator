@@ -166,7 +166,7 @@
       "displayName": "CanFx sürümü",
       "description": "Kullanılacak CanFx paket sürümü.",
       "datatype": "text",
-      "defaultValue": "TEMPLATE_PACKAGE_VERSION",
+      "defaultValue": "CANFX_PACKAGES_VERSION",
       "replaces": "CANFX_VERSION"
     },
     "CanFxFeed": {

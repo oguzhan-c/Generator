@@ -1,25 +1,33 @@
 #!/usr/bin/env bash
-# Şablonları yerelde doğrular: Core, can-gen ve şablonu yeni bir yerel sürümle paketleyip kurar, farklı seçeneklerle
-# üç çözüm üretir, kurulu can-gen ile CRUD üretip her birini derler. Çıktı: <repo>/templates.log
+# Şablonları doğrular: can-gen ve şablonu yeni bir yerel sürümle paketleyip kurar, farklı seçeneklerle üç çözüm üretir,
+# kurulu can-gen ile CRUD üretip her birini derler. Çıktı: <repo>/templates.log
+#
+# CanFx paketleri nuget.org'dan gelir (Directory.Build.props → CanFxVersion). Yayınlanmamış Core paketleriyle denemek
+# için: Core'da build/pack-local.sh, sonra
+#   CANFX_VERSION=$(cat ../Core/artifacts/local-version.txt) CANFX_FEED=$PWD/../Core/artifacts/packages templates/verify-templates.sh
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PACKAGES="$ROOT/artifacts/packages"
-TEMPLATES="$ROOT/artifacts/templates"
 OUT="$ROOT/artifacts/template-test"
 LOG="$ROOT/templates.log"
 
 : > "$LOG"
 step() { echo "=== $*" | tee -a "$LOG"; }
 
-# Core, can-gen ve şablon aynı yeni yerel sürümle paketlenir ve kurulur (build/pack-local.sh).
+# can-gen ve şablon aynı yeni yerel sürümle paketlenir ve kurulur (build/pack-local.sh).
 step "Paketleme ve kurulum (build/pack-local.sh --install)"
 "$ROOT/build/pack-local.sh" --install >>"$LOG" 2>&1 || { step "HATA: paketleme/kurulum"; exit 1; }
 VERSION="$(cat "$ROOT/artifacts/local-version.txt")"
 step "Sürüm: $VERSION"
 
-step "CanFx.Application testleri"
-dotnet run --project "$ROOT/tests/CanFx.Application.Tests" >>"$LOG" 2>&1 && step "TAMAM: CanFx.Application testleri" || { step "HATA: CanFx.Application testleri"; exit 1; }
+# Yerel CanFx paketleri verildiyse şablon onları kullanır (nuget.config'e kaynak olarak eklenir).
+FEED_ARGS=()
+if [[ -n "${CANFX_FEED:-}" ]]; then
+  FEED_ARGS=(--CanFxFeed "$CANFX_FEED")
+  step "CanFx: ${CANFX_VERSION:-?} ($CANFX_FEED)"
+else
+  step "CanFx: $(sed -n 's:.*<CanFxVersion>\(.*\)</CanFxVersion>.*:\1:p' "$ROOT/Directory.Build.props" | head -n 1) (nuget.org)"
+fi
 
 rm -rf "$OUT" && mkdir -p "$OUT"
 failed=0
@@ -38,7 +46,7 @@ fi
 variant() {
   local name="$1"; shift
   step "Çözüm: $name ($*)"
-  if ! dotnet new canfx-monolith -n "$name" -o "$OUT/$name" --CanFxFeed "$PACKAGES" "$@" >>"$LOG" 2>&1; then
+  if ! dotnet new canfx-monolith -n "$name" -o "$OUT/$name" ${FEED_ARGS[@]+"${FEED_ARGS[@]}"} "$@" >>"$LOG" 2>&1; then
     step "HATA: $name üretilemedi"; failed=1; return
   fi
   if dotnet build "$OUT/$name/$name.slnx" -c Debug >>"$LOG" 2>&1; then

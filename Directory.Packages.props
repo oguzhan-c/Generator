@@ -1,0 +1,9 @@
+<Project>
+  <ItemGroup>
+    <!-- can-gen: entity dosyalarını ayrıştırmak için (yalnızca sözdizimi ağacı; derleme yapılmaz) -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+
+    <!-- Test. xUnit v3: test projeleri kendi kendini çalıştıran exe'lerdir; Microsoft Testing Platform (global.json) ile çalışır -->
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+</Project>

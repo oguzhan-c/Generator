@@ -9,7 +9,7 @@ dotnet tool install -g CanFx.Generator.Cli      # nuget.org (yerel sürüm için
 ```
 
 Araç PATH'te ya da `~/.dotnet/tools` altında değilse Settings → Tools → CanFx Generator'da komutu yaz
-(kaynak koddan: `dotnet run --project /yol/Core/tools/CanFx.Generator.Cli --`).
+(kaynak koddan: `dotnet run --project /yol/Generator/src/CanFx.Generator.Cli --`).
 
 ## Derleme
 
@@ -19,7 +19,7 @@ Gerekenler: JDK 21 ve (yalnızca ilk sefer, wrapper oluşturmak için) Gradle 9.
 brew install openjdk@21 gradle
 export JAVA_HOME="$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home"
 
-cd tools/rider-plugin
+cd rider-plugin
 gradle wrapper --gradle-version 9.1.0     # bir kez; gradlew dosyaları commit'lenir
 ./gradlew buildPlugin                     # → build/distributions/can-gen-rider-<pluginVersion>.zip
 ```

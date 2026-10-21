@@ -17,7 +17,7 @@ class CanGenSettings : PersistentStateComponent<CanGenSettings.State> {
     class State {
         /**
          * can-gen komutu. Boşsa PATH'te ve ~/.dotnet/tools altında aranır. Geliştirirken kaynak koddan da çalıştırılabilir:
-         * dotnet run --project /yol/Core/tools/CanFx.Generator.Cli --
+         * dotnet run --project /yol/Generator/src/CanFx.Generator.Cli --
          */
         var command: String = ""
 
@@ -49,7 +49,7 @@ class CanGenConfigurable : BoundConfigurable("CanFx Generator") {
                     .comment(
                         "Boş bırakılırsa PATH'te ve ~/.dotnet/tools altında aranır. Kurulum: " +
                             "dotnet tool install -g CanFx.Generator.Cli --add-source &lt;klasör&gt; --prerelease<br/>" +
-                            "Kaynak koddan çalıştırmak için: dotnet run --project /yol/Core/tools/CanFx.Generator.Cli --"
+                            "Kaynak koddan çalıştırmak için: dotnet run --project /yol/Generator/src/CanFx.Generator.Cli --"
                     )
             }
             row {

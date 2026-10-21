@@ -14,8 +14,8 @@
     <Authors>Oğuzhan Can</Authors>
     <!-- Paketleme kopyadan yapılır (build/pack-templates.sh): kökün paket bilgileri burada da yazılı -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/oguzhan-c/Core</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/oguzhan-c/Core</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/oguzhan-c/Generator</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/oguzhan-c/Generator</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Description>CanFx paketlerini kullanan katmanlı monolith çözüm şablonu (dotnet new canfx-monolith): kimlik (JWT cookie, 2FA, passkey), rol / yetki yönetimi, isteğe bağlı multi-tenancy, Redis, event bus, Hangfire, SignalR ve daha fazlası.</Description>
     <PackageTags>dotnet-new;templates;canfx;clean-architecture;cqrs</PackageTags>

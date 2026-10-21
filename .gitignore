@@ -1,0 +1,14 @@
+bin/
+obj/
+.DS_Store
+.idea/
+.vs/
+*.user
+*.DotSettings.user
+*.log
+
+# Paketleme / doğrulama çıktıları
+artifacts/
+.dotnet/
+.nuget/
+
