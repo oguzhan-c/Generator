@@ -1,6 +1,6 @@
-using CanFx.Generator;
+using CanFx.Generator.Engine;
 
-namespace CanFxGen;
+namespace CanFx.Generator;
 
 /// <summary>
 /// Etkileşimli sorular (dış paket kullanılmaz): ok tuşlarıyla seçim, boşlukla çoklu seçim, metin. Girdi yönlendirilmişse

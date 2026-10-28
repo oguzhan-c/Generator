@@ -1,3 +1,5 @@
+using CanFx.Generator.Engine;
+
 namespace CanFx.Generator.Tests;
 
 /// <summary>Geçici klasörde şablonun işaretli dosyalarını taklit eden küçük bir çözüm.</summary>

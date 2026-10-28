@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>Üretilen dosyaların metinleri (nArchitecture düzeni). Lambda parametresi her yerde <c>x</c>'tir.</summary>
 internal static class CrudTemplates

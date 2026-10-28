@@ -1,4 +1,4 @@
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>Var olan bir özelliğe (Features/{Özellik}) eklenen komut/sorgu seçenekleri.</summary>
 public sealed record RequestOptions

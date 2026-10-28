@@ -1,4 +1,4 @@
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>Domain'deki bir entity'nin üretim için gereken özeti.</summary>
 public sealed record EntityModel

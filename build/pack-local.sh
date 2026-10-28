@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Yerel paketleme: canfxgen (CanFxGen) ve proje şablonu (CanFx.Templates) AYNI yerel sürümle paketlenir.
+# Yerel paketleme: canfxgen (CanFx.Generator) ve proje şablonu (CanFx.Templates) AYNI yerel sürümle paketlenir.
 #
 #   build/pack-local.sh             → artifacts/packages (canfxgen), artifacts/templates (şablon)
 #   build/pack-local.sh --install   → ayrıca şablonu (dotnet new) ve canfxgen'i (dotnet tool) bu sürümle kurar
@@ -47,12 +47,12 @@ if $INSTALL; then
       dotnet new uninstall "$id" >/dev/null 2>&1 || break
     done
   done
-  for id in CanFx.Generator.Cli Can.Core.Generator.Cli; do   # eski adlar (komutları can-gen)
+  for id in CanFxGen CanFx.Generator.Cli Can.Core.Generator.Cli; do   # eski adlar
     dotnet tool uninstall -g "$id" >/dev/null 2>&1 || true
   done
   dotnet new install "$TEMPLATES/CanFx.Templates.$VERSION.nupkg"
-  dotnet tool update -g CanFxGen --add-source "$PACKAGES" --version "$VERSION" \
-    || dotnet tool install -g CanFxGen --add-source "$PACKAGES" --version "$VERSION"
+  dotnet tool update -g CanFx.Generator --add-source "$PACKAGES" --version "$VERSION" \
+    || dotnet tool install -g CanFx.Generator --add-source "$PACKAGES" --version "$VERSION"
 fi
 
 echo "==> Tamam: $VERSION"

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>Üretimin sonucu: yazılacak dosyalar ve var olan dosyalara yapılacak eklemeler. <see cref="Apply"/> diske yazar.</summary>
 public sealed class GenerationPlan

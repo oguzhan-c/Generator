@@ -9,6 +9,14 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-28
+
+### Değişti (kırıcı)
+
+- Aracın NuGet paketi `CanFxGen` → **`CanFx.Generator`** (CanFx paket ailesinin parçası olarak görünsün):
+  `dotnet tool install -g CanFx.Generator`. Komut aynı: `canfxgen`. Kod üreten motor `CanFx.Generator.Engine`
+  (ayrı paket olarak yayınlanmaz). Rider eklentisinin adı "CanFx Generator".
+
 ## [0.2.0] - 2026-10-21
 
 ### Değişti (kırıcı)

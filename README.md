@@ -5,7 +5,7 @@
 | Parça | Paket / yer | Ne yapar |
 |---|---|---|
 | Proje şablonu | `CanFx.Templates` (`dotnet new canfx-monolith`) | CanFx paketleriyle katmanlı (DDD / Clean Architecture) .NET 10 çözümü |
-| canfxgen | `CanFxGen` (dotnet tool) | Entity'den CRUD (CQRS) kodu, özelliğe komut / sorgu |
+| canfxgen | `CanFx.Generator` (dotnet tool) | Entity'den CRUD (CQRS) kodu, özelliğe komut / sorgu |
 | Rider eklentisi | `rider-plugin/` | Entity'ye sağ tık → CanFx: Generate CRUD (canfxgen'i çağırır) |
 
 CanFx paketleri bu repoda değil; şablonla oluşturulan projeler onları nuget.org'dan alır.
@@ -14,7 +14,7 @@ CanFx paketleri bu repoda değil; şablonla oluşturulan projeler onları nuget.
 
 ```bash
 dotnet new install CanFx.Templates
-dotnet tool install -g CanFxGen
+dotnet tool install -g CanFx.Generator
 
 canfxgen new MyShop                                   # ya da: dotnet new canfx-monolith -n MyShop
 cd MyShop && canfxgen generate crud Brand
@@ -41,8 +41,8 @@ Diğer: `--plural <Çoğul>`, `-e/--endpoint-method`, `--json` (IDE eklentileri)
 ## Repo düzeni
 
 ```
-src/CanFx.Generator          canfxgen'in motoru (Roslyn ile entity okuma, dosya üretimi, işaretli yerlere ekleme)
-src/CanFxGen      canfxgen komut satırı aracı (dotnet tool)
+src/CanFx.Generator.Engine   canfxgen'in motoru (Roslyn ile entity okuma, dosya üretimi, işaretli yerlere ekleme)
+src/CanFx.Generator          canfxgen komut satırı aracı (dotnet tool, paket CanFx.Generator)
 tests/CanFx.Generator.Tests  üretici testleri
 templates/CanFx.Templates    proje şablonu (content/monolith)
 templates/verify-templates.sh  şablondan üç çözüm üretir, canfxgen ile CRUD ekler, derler, standart denetimi yapar

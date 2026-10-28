@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\CanFx.Generator\CanFx.Generator.csproj" />
+    <ProjectReference Include="..\..\src\CanFx.Generator.Engine\CanFx.Generator.Engine.csproj" />
   </ItemGroup>
 
 </Project>

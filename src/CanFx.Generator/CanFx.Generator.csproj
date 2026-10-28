@@ -1,22 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    canfxgen'in motoru: çözümü bulur, entity'yi Roslyn ile okur, CRUD dosyalarını üretir ve işaretli yerlere
-    (// canfxgen:...) ekleme yapar. CLI (canfxgen) ve IDE eklentileri (Rider, Visual Studio) bunu kullanır.
+    canfxgen komut satırı aracı (dotnet tool). Kurulum komutları kökteki README'de.
+    Rider / Visual Studio eklentileri de bunu JSON çıktısıyla çağırır.
   -->
   <PropertyGroup>
-    <!-- Ayrı paket olarak yayınlanmaz: canfxgen aracının (CanFxGen) içinde gelir; IDE eklentileri araçla çalışır. -->
-    <IsPackable>false</IsPackable>
-    <Description>CanFx çözümleri için kod üretici (entity → CQRS komut/sorgu, DTO, kurallar, yetkiler, EF yapılandırması, uç noktalar).</Description>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>canfxgen</ToolCommandName>
+    <PackageId>CanFx.Generator</PackageId>
+    <AssemblyName>canfxgen</AssemblyName>
+    <RootNamespace>CanFx.Generator</RootNamespace>
+    <Description>canfxgen: CanFx çözümlerinde entity'den CRUD (CQRS) kodu üreten komut satırı aracı.</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Entity dosyasını sözdizimi ağacıyla okumak için (yalnızca ayrıştırma; derleme yapılmaz). -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="CanFx.Generator.Tests" />
+    <ProjectReference Include="..\CanFx.Generator.Engine\CanFx.Generator.Engine.csproj" />
   </ItemGroup>
 
 </Project>

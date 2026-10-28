@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>
 /// Domain projesindeki entity'leri sözdizimi ağacından okur (derleme yapılmaz, bu yüzden çözüm derlenmese de çalışır).

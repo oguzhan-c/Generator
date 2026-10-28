@@ -1,4 +1,4 @@
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>
 /// CanFx şablonuyla oluşturulmuş çözümün katmanları: <c>{Kök}.Domain</c>, <c>{Kök}.Application</c>,

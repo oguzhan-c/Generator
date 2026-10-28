@@ -1,4 +1,4 @@
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>Üretim seçenekleri.</summary>
 public sealed record CrudOptions

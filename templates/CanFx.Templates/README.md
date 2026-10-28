@@ -15,4 +15,4 @@ outbox, Hangfire, dosya depolama, arama, SignalR, SMS, ayarlar, raporlama ve Ope
 Kimlik anahtar tipi seçilebilir: `--IdKeyType guid|int|long`. Veritabanı sağlayıcısı seçilmez: oluşturulan projedeki
 `TODO(canfxgen)` işaretli yerlerde ayarlanır (ayrıntı: projenin README'si).
 
-Entity'den CRUD üretmek için: `dotnet tool install -g CanFxGen` → `canfxgen generate crud <Entity>`.
+Entity'den CRUD üretmek için: `dotnet tool install -g CanFx.Generator` → `canfxgen generate crud <Entity>`.

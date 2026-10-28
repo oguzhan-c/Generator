@@ -1,3 +1,5 @@
+using CanFx.Generator.Engine;
+
 namespace CanFx.Generator.Tests;
 
 public sealed class NamesTests

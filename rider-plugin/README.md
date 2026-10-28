@@ -5,11 +5,11 @@ Rider'da entity dosyasına sağ tık (Solution Explorer ya da editör) → **Can
 Eklenti yalnızca arayüzdür: kodu `canfxgen` komut satırı aracı üretir (`--json` ile çağrılır). Önce aracı kur:
 
 ```bash
-dotnet tool install -g CanFxGen      # nuget.org (yerel sürüm için: build/pack-local.sh --install)
+dotnet tool install -g CanFx.Generator      # nuget.org (yerel sürüm için: build/pack-local.sh --install)
 ```
 
-Araç PATH'te ya da `~/.dotnet/tools` altında değilse Settings → Tools → CanFxGen'de komutu yaz
-(kaynak koddan: `dotnet run --project /yol/Generator/src/CanFxGen --`).
+Araç PATH'te ya da `~/.dotnet/tools` altında değilse Settings → Tools → CanFx Generator'da komutu yaz
+(kaynak koddan: `dotnet run --project /yol/Generator/src/CanFx.Generator --`).
 
 ## Derleme
 

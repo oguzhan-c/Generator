@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using CanFx.Generator.Engine;
 using CanFx.Generator;
-using CanFxGen;
-using static CanFxGen.Prompts;
+using static CanFx.Generator.Prompts;
 
 // canfxgen: CanFx çözümleri için kod üretici (nArchitecture'daki nArchGen'in karşılığı). Ayrıntı: canfxgen --help
 

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace CanFx.Generator;
+namespace CanFx.Generator.Engine;
 
 /// <summary>Adlandırma yardımcıları: çoğul, camelCase, kebab-case, snake_case.</summary>
 public static class Names

@@ -1,6 +1,6 @@
-using CanFx.Generator;
+using CanFx.Generator.Engine;
 
-namespace CanFxGen;
+namespace CanFx.Generator;
 
 /// <summary>
 /// Basit argüman ayrıştırıcı (dış paket kullanılmaz). Konumsal argümanlar, değerli seçenekler (<c>--plural x</c>,

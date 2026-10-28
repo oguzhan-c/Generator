@@ -23,8 +23,8 @@ object CanGenRunner {
             ?: return CanGenResult(
                 false,
                 emptyMap(),
-                "canfxgen was not found. Install it: dotnet tool install -g CanFxGen " +
-                    "or set the command in Settings → Tools → CanFxGen."
+                "canfxgen was not found. Install it: dotnet tool install -g CanFx.Generator " +
+                    "or set the command in Settings → Tools → CanFx Generator."
             )
 
         val commandLine = GeneralCommandLine(command + arguments.toList() + "--json")

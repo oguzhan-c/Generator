@@ -11,13 +11,13 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 
-/** Eklenti ayarları (Settings → Tools → CanFxGen). */
+/** Eklenti ayarları (Settings → Tools → CanFx Generator). */
 @State(name = "CanGenSettings", storages = [Storage("canfxgen.xml")])
 class CanGenSettings : PersistentStateComponent<CanGenSettings.State> {
     class State {
         /**
          * canfxgen komutu. Boşsa PATH'te ve ~/.dotnet/tools altında aranır. Geliştirirken kaynak koddan da çalıştırılabilir:
-         * dotnet run --project /yol/Generator/src/CanFxGen --
+         * dotnet run --project /yol/Generator/src/CanFx.Generator --
          */
         var command: String = ""
 
@@ -38,7 +38,7 @@ class CanGenSettings : PersistentStateComponent<CanGenSettings.State> {
     }
 }
 
-class CanGenConfigurable : BoundConfigurable("CanFxGen") {
+class CanGenConfigurable : BoundConfigurable("CanFx Generator") {
     override fun createPanel(): DialogPanel {
         val state = CanGenSettings.getInstance().state
         return panel {
@@ -48,8 +48,8 @@ class CanGenConfigurable : BoundConfigurable("CanFxGen") {
                     .align(AlignX.FILL)
                     .comment(
                         "If empty, canfxgen is looked up in PATH and ~/.dotnet/tools. Install: " +
-                            "dotnet tool install -g CanFxGen<br/>" +
-                            "To run from source: dotnet run --project /path/to/Generator/src/CanFxGen --"
+                            "dotnet tool install -g CanFx.Generator<br/>" +
+                            "To run from source: dotnet run --project /path/to/Generator/src/CanFx.Generator --"
                     )
             }
             row {
