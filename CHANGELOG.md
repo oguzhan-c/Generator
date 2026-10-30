@@ -9,6 +9,14 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-30
+
+### Değişti
+
+- Şablonun Rider / Visual Studio "New Solution" ekranında ikonu var; "CanFx paket kaynağı" ve "CanFx sürümü" alanları
+  gizlendi (paketler nuget.org'dan, sürüm şablonla birlikte gelir). Komut satırında `--CanFxFeed` / `--CanFxVersion`
+  yerel paketlerle denemek için duruyor.
+
 ## [0.3.0] - 2026-10-28
 
 ### Değişti (kırıcı)

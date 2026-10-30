@@ -1,6 +1,7 @@
 {
   "$schema": "http://json.schemastore.org/vs-2017.3.host",
   "order": 0,
+  "icon": "icon.png",
   "uiFilters": [
     "oneaspnet"
   ],
@@ -146,7 +147,7 @@
       "name": {
         "text": "CanFx sürümü"
       },
-      "isVisible": true,
+      "isVisible": false,
       "persistenceScope": "shared"
     },
     {
@@ -154,7 +155,7 @@
       "name": {
         "text": "CanFx paket kaynağı"
       },
-      "isVisible": true,
+      "isVisible": false,
       "persistenceScope": "shared"
     }
   ]

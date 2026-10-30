@@ -172,7 +172,7 @@
     "CanFxFeed": {
       "type": "parameter",
       "displayName": "CanFx paket kaynağı",
-      "description": "CanFx paketlerinin bulunduğu klasör ya da NuGet adresi (boşsa nuget.config'te TODO bırakılır).",
+      "description": "Yalnızca yayınlanmamış (yerel) CanFx paketleri için klasör ya da NuGet adresi. Boşsa paketler nuget.org'dan gelir.",
       "datatype": "text",
       "defaultValue": "",
       "replaces": "CANFX_FEED"
