@@ -23,7 +23,7 @@ internal sealed class Arguments
 
     private static readonly HashSet<string> ValueOptions = new(StringComparer.Ordinal)
     {
-        "plural", "endpoint-method", "output", "feed", "database",
+        "plural", "endpoint-method", "output", "database",
     };
 
     private readonly Dictionary<string, string?> _options = new(StringComparer.OrdinalIgnoreCase);

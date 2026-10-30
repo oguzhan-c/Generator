@@ -2,7 +2,7 @@
   <!-- Bu çözüm CanFx.Templates TEMPLATE_PACKAGE_VERSION ile oluşturuldu. -->
   <PropertyGroup>
     <!-- CanFx paketlerinin sürümü: tek yerden güncellenir. -->
-    <CanFxVersion>CANFX_VERSION</CanFxVersion>
+    <CanFxVersion>CANFX_PACKAGES_VERSION</CanFxVersion>
   </PropertyGroup>
 
   <ItemGroup>

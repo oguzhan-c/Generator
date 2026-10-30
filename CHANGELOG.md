@@ -9,6 +9,15 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-30
+
+### Değişti
+
+- "CanFx sürümü" ve "CanFx paket kaynağı" artık şablonun seçeneği değil: Rider, Visual Studio'ya özel `ide.host.json`'u
+  okumadığı için 0.3.1'deki gizleme Rider'da işe yaramıyordu. CanFx sürümü şablon paketlenirken yazılır; paketler her
+  zaman nuget.org'dan gelir. `canfxgen new --feed` kaldırıldı. Yayınlanmamış Core paketleriyle deneme yalnızca
+  `templates/verify-templates.sh` ile (`CANFX_VERSION`, `CANFX_FEED`).
+
 ## [0.3.1] - 2026-10-30
 
 ### Değişti

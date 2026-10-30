@@ -6,7 +6,7 @@
 #
 # Sürüm: <VersionPrefix>-local.<yyyyMMddHHmm>. Şablonun kullandığı CanFx paketleri nuget.org'dan gelir
 # (Directory.Build.props → CanFxVersion). Yayınlanmamış Core paketleriyle denemek için Core'da build/pack-local.sh
-# çalıştır, sonra: CANFX_VERSION=<o sürüm> CANFX_FEED=<Core>/artifacts/packages build/pack-local.sh --install
+# çalıştır, sonra: CANFX_VERSION=<o sürüm> CANFX_FEED=<Core>/artifacts/packages templates/verify-templates.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

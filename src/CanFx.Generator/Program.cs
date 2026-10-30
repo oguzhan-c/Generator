@@ -88,10 +88,6 @@ int New(Arguments a)
 
     templateArgs.AddRange(a.PassThrough);
 
-    // Paketler nuget.org'dan gelir; yalnızca yerel / özel kaynak (yayınlanmamış sürüm) için --feed ya da CANFX_FEED.
-    string? feed = a.Option("feed") ?? Environment.GetEnvironmentVariable("CANFX_FEED");
-    if (!string.IsNullOrWhiteSpace(feed))
-        templateArgs.AddRange(["--CanFxFeed", feed]);
 
     Console.WriteLine(Dim("dotnet " + string.Join(' ', templateArgs)));
     using Process process = Process.Start(new ProcessStartInfo("dotnet", templateArgs) { UseShellExecute = false })

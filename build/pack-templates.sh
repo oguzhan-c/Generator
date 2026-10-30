@@ -31,7 +31,7 @@ PROPS
 sed -i.bak "s#<VersionPrefix>\$(\[System.Text.RegularExpressions.Regex\].*</VersionPrefix>##" "$STAGE/CanFx.Templates.csproj"
 
 # Yer tutucular: TEMPLATE_PACKAGE_VERSION (şablonun sürümü, Directory.Packages.props'taki not),
-# CANFX_PACKAGES_VERSION (template.json → CanFxVersion varsayılanı: kullanılacak CanFx paketleri)
+# CANFX_PACKAGES_VERSION (Directory.Packages.props → CanFxVersion: kullanılacak CanFx paketleri)
 grep -rlE "TEMPLATE_PACKAGE_VERSION|CANFX_PACKAGES_VERSION" "$STAGE/content" | while IFS= read -r file; do
   sed -i.bak -e "s#TEMPLATE_PACKAGE_VERSION#$VERSION#g" -e "s#CANFX_PACKAGES_VERSION#$CANFX_VERSION#g" "$file"
 done

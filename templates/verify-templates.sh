@@ -21,9 +21,7 @@ VERSION="$(cat "$ROOT/artifacts/local-version.txt")"
 step "Sürüm: $VERSION"
 
 # Yerel CanFx paketleri verildiyse şablon onları kullanır (nuget.config'e kaynak olarak eklenir).
-FEED_ARGS=()
 if [[ -n "${CANFX_FEED:-}" ]]; then
-  FEED_ARGS=(--CanFxFeed "$CANFX_FEED")
   step "CanFx: ${CANFX_VERSION:-?} ($CANFX_FEED)"
 else
   step "CanFx: $(sed -n 's:.*<CanFxVersion>\(.*\)</CanFxVersion>.*:\1:p' "$ROOT/Directory.Build.props" | head -n 1) (nuget.org)"
@@ -43,12 +41,25 @@ else
   step "TAMAM: şablonun tüm dosyaları git'te"
 fi
 
+# Yayınlanmamış CanFx paketleri: CanFx.* bu kaynaktan gelsin (nuget.config'e kaynak + eşleme eklenir).
+add_local_feed() {
+  python3 - "$1" "$CANFX_FEED" <<'PY'
+import sys
+path, feed = sys.argv[1], sys.argv[2]
+text = open(path, encoding="utf-8").read()
+text = text.replace("  </packageSources>", f'    <add key="canfx-local" value="{feed}" />\n  </packageSources>', 1)
+text = text.replace("  </packageSourceMapping>", '    <packageSource key="canfx-local">\n      <package pattern="CanFx.*" />\n    </packageSource>\n  </packageSourceMapping>', 1)
+open(path, "w", encoding="utf-8").write(text)
+PY
+}
+
 variant() {
   local name="$1"; shift
   step "Çözüm: $name ($*)"
-  if ! dotnet new canfx-monolith -n "$name" -o "$OUT/$name" ${FEED_ARGS[@]+"${FEED_ARGS[@]}"} "$@" >>"$LOG" 2>&1; then
+  if ! dotnet new canfx-monolith -n "$name" -o "$OUT/$name" "$@" >>"$LOG" 2>&1; then
     step "HATA: $name üretilemedi"; failed=1; return
   fi
+  [[ -n "${CANFX_FEED:-}" ]] && add_local_feed "$OUT/$name/nuget.config"
   if dotnet build "$OUT/$name/$name.slnx" -c Debug >>"$LOG" 2>&1; then
     step "TAMAM: $name derlendi"
   else

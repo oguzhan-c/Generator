@@ -141,22 +141,6 @@
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
-    },
-    {
-      "id": "CanFxVersion",
-      "name": {
-        "text": "CanFx sürümü"
-      },
-      "isVisible": false,
-      "persistenceScope": "shared"
-    },
-    {
-      "id": "CanFxFeed",
-      "name": {
-        "text": "CanFx paket kaynağı"
-      },
-      "isVisible": false,
-      "persistenceScope": "shared"
     }
   ]
 }

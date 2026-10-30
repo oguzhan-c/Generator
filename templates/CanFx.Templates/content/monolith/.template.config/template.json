@@ -161,26 +161,6 @@
         ]
       }
     },
-    "CanFxVersion": {
-      "type": "parameter",
-      "displayName": "CanFx sürümü",
-      "description": "Kullanılacak CanFx paket sürümü.",
-      "datatype": "text",
-      "defaultValue": "CANFX_PACKAGES_VERSION",
-      "replaces": "CANFX_VERSION"
-    },
-    "CanFxFeed": {
-      "type": "parameter",
-      "displayName": "CanFx paket kaynağı",
-      "description": "Yalnızca yayınlanmamış (yerel) CanFx paketleri için klasör ya da NuGet adresi. Boşsa paketler nuget.org'dan gelir.",
-      "datatype": "text",
-      "defaultValue": "",
-      "replaces": "CANFX_FEED"
-    },
-    "HasCanFxFeed": {
-      "type": "computed",
-      "value": "(CanFxFeed != \"\")"
-    },
     "UserSecretsId": {
       "type": "generated",
       "generator": "guid",
