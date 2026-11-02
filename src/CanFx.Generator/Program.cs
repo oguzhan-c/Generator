@@ -114,6 +114,7 @@ int Generate(Arguments a)
     return what switch
     {
         "crud" => Crud(a, entityIndex: 2),
+        "entity" => Entity(a),
         "command" => Request(a, isCommand: true),
         "query" => Request(a, isCommand: false),
         "dynamic-query" => DynamicQuery(a),
@@ -168,6 +169,20 @@ int DynamicQuery(Arguments a)
         .PlanDynamicQuery(layout, entity, new CrudOptions { Plural = a.Option("plural"), Secured = !a.Flag("no-secured") })
         .Apply();
     return Report(a, layout, results, $"{entity.Name}: GetListByDynamic", [], new { entity.Name });
+}
+
+int Entity(Arguments a)
+{
+    Banner();
+    SolutionLayout layout = Layout(a);
+    string name = a.Positional(2) ?? Text($"Yeni {G("entity")} adı (tekil, ör. Brand)");
+    if (string.IsNullOrWhiteSpace(name))
+        throw new GeneratorException("Entity adı gerekli: canfxgen generate entity Brand");
+
+    string? folder = a.Option("folder") is { Length: > 0 } f ? Path.GetFullPath(f) : null;
+    GenerationPlan plan = EntityGenerator.Plan(layout, name, folder, a.Option("id") ?? "Guid");
+    IReadOnlyList<ChangeResult> results = plan.Apply();
+    return Report(a, layout, results, $"{Names.Pascal(name)} (entity)", ["Taban sınıfı dosyadaki yorumlardan seç, alanları ekle; sonra: canfxgen generate crud " + Names.Pascal(name)], new { Name = Names.Pascal(name) });
 }
 
 int Request(Arguments a, bool isCommand)
@@ -358,6 +373,8 @@ static string GenerateHelp() => """
     canfxgen generate — kod üret
 
     ÖRNEKLER:
+        canfxgen generate entity Brand                 (Domain/Entities/Brand.cs; taban sınıf seçenekleri dosyada)
+        canfxgen generate entity Product --folder src/Shop.Domain/Catalog --id int
         canfxgen generate crud                         (entity ve mekanizmalar sorulur)
         canfxgen generate crud Brand -c -l -t -s -d
         canfxgen generate crud src/Shop.Domain/Entities/Brand.cs --plural Brands
@@ -366,6 +383,8 @@ static string GenerateHelp() => """
         canfxgen generate dynamic-query Brand
 
     ÜRETİMLER:
+        entity [Ad]                       Domain'de yeni entity; taban sınıf seçenekleri ve ekledikleri alanlar yorumda
+                                          (--folder <klasör>: Domain içinde başka klasör, --id Guid|int|long)
         crud [Entity]                     Create/Update/Delete komutları, GetById/GetList(+ByDynamic) sorguları, yanıtlar,
                                           Messages/OperationClaims, MappingProfiles, BusinessRules, repository, servis
                                           (IXService/XManager), EF yapılandırması, controller; DbSet, kayıtlar, yetkiler, çeviri

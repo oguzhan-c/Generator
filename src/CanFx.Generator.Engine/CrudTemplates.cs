@@ -197,6 +197,13 @@ internal static class CrudTemplates
 
     public static string Response(CrudNames n, string folderNamespace, string name, IReadOnlyList<MethodParameter> fields, bool isDto = false)
     {
+        bool created = name.StartsWith("Created", StringComparison.Ordinal);
+        bool deleted = name.StartsWith("Deleted", StringComparison.Ordinal);
+
+        // Yeni oluşturulan kayıtta UpdatedAt her zaman boştur.
+        if (created)
+            fields = fields.Where(f => f.Name != "UpdatedAt").ToList();
+
         string properties = string.Join("\n\n", fields.Select(f => $"    public {f.Type} {f.Name} {{ get; set; }}{Initializer(f)}"));
         string baseType = isDto ? string.Empty : " : IResponse";
         string usings = isDto ? string.Empty : "using CanFx.Application.Responses;\n";
@@ -209,10 +216,40 @@ internal static class CrudTemplates
 
             public sealed class {{name}}{{baseType}}
             {
-            {{properties}}
+            {{properties}}{{OmittedAuditFields(n, created, deleted)}}
             }
 
             """.Replace("\n\n\nnamespace", "\n\nnamespace", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Entity'nin denetim alanlarından yanıta konmayanlar, yorum olarak: gerekirse yorumu kaldırmak yeter (eşleme ada
+    /// göre yapılır). Silinme alanları her yanıtta açıklanır: silinen kayıt (soft delete) sorgulardan düşer.
+    /// </summary>
+    private static string OmittedAuditFields(CrudNames n, bool created, bool deleted)
+    {
+        if (!n.Model.IsAudited && !n.Model.IsSoftDeletable)
+            return string.Empty;
+
+        var lines = new List<string>();
+        if (n.Model.IsAudited && !deleted)
+        {
+            lines.Add("// Denetim alanlarından yanıta eklenmeyenler (gerekirse yorumu kaldır; eşleme ada göre yapılır):");
+            lines.Add("// public string? CreatedBy { get; set; }      // oluşturan kullanıcının Id'si");
+            if (!created)
+                lines.Add("// public string? UpdatedBy { get; set; }      // son güncelleyen kullanıcının Id'si");
+            if (created)
+                lines.Add("// UpdatedAt / UpdatedBy yok: yeni oluşturulan kayıt henüz güncellenmedi.");
+        }
+
+        if (n.Model.IsSoftDeletable)
+        {
+            lines.Add(deleted
+                ? "// Silme kalıcı değil (soft delete): kayıt IsDeleted = true, DeletedAt, DeletedBy ile işaretlenir ve sorgulardan düşer."
+                : "// IsDeleted / DeletedAt / DeletedBy eklenmedi: silinen kayıtlar (soft delete) sorgulardan düşer, yanıtta hep boş olurdu.");
+        }
+
+        return "\n\n" + string.Join("\n", lines.Select(l => "    " + l));
     }
 
     // ------------------------------------------------------------------ Commands

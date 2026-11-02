@@ -179,6 +179,8 @@ public sealed class Tag : Entity<int>
 }
 CS
   run_cangen() { (cd "$OUT/$name" && "${CANGEN[@]}" "$@") >>"$LOG" 2>&1 || { step "HATA: canfxgen $* ($name)"; failed=1; }; }
+  run_cangen generate entity Color                            # yeni entity (taban sınıf seçenekleri yorumda)
+  run_cangen generate crud Color
   run_cangen generate crud Brand                              # tüm mekanizmalar
   run_cangen generate crud Tag -s                             # yalnızca yetki: transaction yok, önbellek yok, dinamik sorgu yok
   run_cangen generate dynamic-query Tag                       # dinamik sorgu sonradan

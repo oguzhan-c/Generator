@@ -388,6 +388,52 @@ public sealed class CrudGeneratorTests
         Assert.False(solution.Exists(Feature + "Localization/brands.tr.json"));
     }
 
+    [Fact]
+    public void New_entity_lists_base_class_options_in_comments()
+    {
+        using var solution = new TestSolution();
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+
+        EntityGenerator.Plan(layout, "brand").Apply();
+        EntityGenerator.Plan(layout, "Product", Path.Combine(layout.Domain, "Catalog"), "int").Apply();
+
+        string brand = solution.Read("src/Shop.Domain/Entities/Brand.cs");
+        Assert.Contains("namespace Shop.Domain.Entities;", brand);
+        Assert.Contains("public class Brand : FullAuditedEntity<Guid>", brand);
+        Assert.Contains("//   AuditedEntity<Guid>             Id + CreatedAt, CreatedBy, UpdatedAt, UpdatedBy", brand);
+        Assert.Contains("FullAuditedAggregateRoot<Guid>", brand);
+        Assert.Contains("IMultiTenant<Guid>", brand);
+
+        string product = solution.Read("src/Shop.Domain/Catalog/Product.cs");
+        Assert.Contains("namespace Shop.Domain.Catalog;", product);
+        Assert.Contains("public class Product : FullAuditedEntity<int>", product);
+
+        Assert.Equal("Brand", EntityReader.Read(layout, "Brand").Name);
+        Assert.Throws<GeneratorException>(() => EntityGenerator.Plan(layout, "2nd"));
+        Assert.Throws<GeneratorException>(() => EntityGenerator.Plan(layout, "Order", solution.Root));
+    }
+
+    [Fact]
+    public void Responses_list_omitted_audit_fields_as_comments()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", "namespace Shop.Domain.Entities; public class Brand : FullAuditedEntity<Guid> { public string Name { get; set; } = \"\"; }");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand")).Apply();
+
+        string created = solution.Read(Feature + "Commands/Create/CreatedBrandResponse.cs");
+        Assert.Contains("public DateTimeOffset CreatedAt { get; set; }", created);
+        Assert.DoesNotContain("public DateTimeOffset? UpdatedAt", created);
+        Assert.Contains("// public string? CreatedBy { get; set; }", created);
+        Assert.Contains("IsDeleted / DeletedAt / DeletedBy", created);
+
+        string read = solution.Read(Feature + "Queries/GetById/GetByIdBrandResponse.cs");
+        Assert.Contains("public DateTimeOffset? UpdatedAt { get; set; }", read);
+        Assert.Contains("// public string? UpdatedBy { get; set; }", read);
+
+        Assert.Contains("soft delete", solution.Read(Feature + "Commands/Delete/DeletedBrandResponse.cs"));
+    }
+
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
     private static string ReadWithHandler(TestSolution solution, string requestPath) =>
         solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");

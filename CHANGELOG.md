@@ -17,6 +17,11 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Eklendi
 
+- canfxgen: `generate entity <Ad> [--folder <klasör>] [--id Guid|int|long]`: Domain'de yeni entity; taban sınıf
+  seçenekleri (Entity, AuditedEntity, FullAuditedEntity, AggregateRoot ...) ve her birinin eklediği alanlar dosyada
+  yorum olarak durur, seçim sınıf satırında yapılır.
+- canfxgen: yanıtlarda eklenmeyen denetim alanları yorum olarak (`// public string? CreatedBy ...`) ve soft delete
+  açıklaması; `Created...Response`'ta `UpdatedAt` yok.
 - Şablon: veritabanı seçimi (`--Database postgresql | sqlserver | sqlite`); paket, sağlayıcı satırı, yerel bağlantı
   dizesi ve docker-compose servisi seçime göre hazır gelir.
 - Şablon: `Database:StartupMode` (`Migrate` / `Recreate` / `None`); Development'ta `Recreate` ve örnek veri seed'i.
@@ -39,7 +44,7 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
   seçilmeyen özelliğin bölümü dosyaya girmez; `appsettings.Development.json` yalnızca farklı değerleri tutar.
 - Geçersiz ayar açılışta durdurur: bölümlerde yanlış yazılmış anahtar (ör. `"PermitLimt"`), bilinmeyen
   `Mail:Provider` / `Storage:Provider`, hatalı değer tipi.
-- CanFx paketleri 0.2.0.
+- CanFx paketleri 0.2.1.
 
 ## [0.3.3] - 2026-11-02
 
