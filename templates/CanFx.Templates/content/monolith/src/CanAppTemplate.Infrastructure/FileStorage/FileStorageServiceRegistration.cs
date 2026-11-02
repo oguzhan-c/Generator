@@ -11,19 +11,22 @@ public static class FileStorageServiceRegistration
 {
     public static IServiceCollection AddFileStorage(this IServiceCollection services, IConfiguration config)
     {
-        switch ((config["Storage:Provider"] ?? "Local").ToUpperInvariant())
+        string provider = config["Storage:Provider"] is { Length: > 0 } value ? value : "Local";
+        switch (provider.ToUpperInvariant())
         {
             case "S3":
                 // SeaweedFS / MinIO / AWS / R2; anahtar user-secrets'ta: "Storage:S3:SecretAccessKey"
-                services.AddCanS3FileStorage(o => config.GetSection("Storage:S3").Bind(o));
+                services.AddCanS3FileStorage(o => config.GetSection("Storage:S3").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
                 break;
             case "AZURE":
                 // Azurite: "UseDevelopmentStorage=true"; gerçek hesap anahtarı user-secrets'ta
-                services.AddCanAzureBlobFileStorage(o => config.GetSection("Storage:Azure").Bind(o));
+                services.AddCanAzureBlobFileStorage(o => config.GetSection("Storage:Azure").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
                 break;
-            default:
+            case "LOCAL":
                 services.AddCanLocalFileStorage(o => o.RootPath = config["Storage:Local:RootPath"] is { Length: > 0 } root ? root : "files");
                 break;
+            default:
+                throw new InvalidOperationException($"Storage:Provider geçersiz: '{provider}'. Geçerli değerler: Local, S3, Azure.");
         }
 
         return services;

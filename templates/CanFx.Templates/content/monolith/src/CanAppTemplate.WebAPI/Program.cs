@@ -108,14 +108,14 @@ builder.Services.AddPersistenceServices(config);
 //   dotnet user-secrets set "Security:VerificationCodeKey" "<en az 32 karakter, JWT anahtarından farklı>"
 builder.Services.AddCanSecurity(o =>
 {
-    config.GetSection("Security:Jwt").Bind(o.Jwt);
+    config.GetSection("Security:Jwt").Bind(o.Jwt, b => b.ErrorOnUnknownConfiguration = true);
     o.VerificationCodeKey = config["Security:VerificationCodeKey"];
 
     // Passkey (WebAuthn): bölüm yoksa passkey uçları hiç açılmaz.
     if (config.GetSection("Security:Passkey").Exists())
     {
         o.Passkey = new PasskeyOptions();
-        config.GetSection("Security:Passkey").Bind(o.Passkey);
+        config.GetSection("Security:Passkey").Bind(o.Passkey, b => b.ErrorOnUnknownConfiguration = true);
     }
 });
 builder.Services.AddCanSecretProtection();          // TOTP anahtarları veritabanında şifreli
@@ -123,7 +123,7 @@ builder.Services.AddCanSecurityEvents();            // log + metrik (veritabanı
 builder.Services.AddCanAccessTokenRevocation();     // çıkış / oturum kapatma: access token hemen 401
 builder.Services.AddCanWebApi();
 builder.Services.AddControllers();
-builder.Services.AddCanJwtAuthentication(o => config.GetSection("Security:Cookies").Bind(o));
+builder.Services.AddCanJwtAuthentication(o => config.GetSection("Security:Cookies").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
 builder.Services.AddAuthorization();
 #if (ExternalLogin)
 
@@ -137,7 +137,9 @@ builder.Services.AddCanExternalLogin(o => o
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();       // Redis varsa AddCanRedisCache bunun yerine geçer
 builder.Services.AddSingleton<TwoFactorCookie>();
+#if (Passkey)
 builder.Services.AddSingleton<PasskeyCeremonyStore>();
+#endif
 builder.Services.AddSingleton<ClientInfoFactory>();
 builder.Services.AddHttpContextAccessor();
 #if (Settings)
@@ -151,7 +153,7 @@ InfrastructureStatus infrastructure = builder.Services.AddInfrastructureServices
 // canfxgen:webapi-services
 
 // HTTP: hız sınırı, idempotency, çıktı önbelleği + ETag + sıkıştırma, API sürümleri, OpenAPI.
-builder.Services.AddCanRateLimiting(o => config.GetSection("RateLimiting").Bind(o));
+builder.Services.AddCanRateLimiting(o => config.GetSection("RateLimiting").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
 builder.Services.AddCanIdempotency();
 builder.Services.AddCanHttpCaching();
 builder.Services.AddCanApiVersioning(o =>

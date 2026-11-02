@@ -79,6 +79,38 @@ variant Tenant --IdKeyType long --ExternalLogin true --MultiTenancy true --Setti
 # Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
 variant My-Shop.Api --IdKeyType int --Redis true --FileStorage true
 
+# ---------------------------------------------------------------- açılış
+# Derlenen uygulama gerçekten açılıyor mu (DI kayıtları, ayarların okunması, veritabanı hazırlığı)? SQLite'lı Minimal
+# docker gerektirmez: açılıp /health/live 200 dönmeli.
+smoke() {
+  local name="$1" port="$2"
+  local project="$OUT/$name/src/$(code_name "$name").WebAPI"
+  [[ -d "$project" ]] || return
+  step "Açılış: $name"
+  local log="$OUT/$name/run.log"
+  ( cd "$project" && ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS="http://127.0.0.1:$port" DevServices__Enabled=false \
+      Security__Jwt__SigningKey='verify-signing-key-0123456789abcdef01' Security__VerificationCodeKey='verify-code-key-0123456789abcdef0123' \
+      dotnet run --no-build --no-launch-profile >"$log" 2>&1 ) &
+  local pid=$! code="000"
+  for _ in $(seq 1 60); do
+    sleep 1
+    code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/health/live" || true)"
+    [[ "$code" == "200" ]] && break
+    kill -0 "$pid" 2>/dev/null || break
+  done
+  pkill -f "$(code_name "$name").WebAPI" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+  if [[ "$code" == "200" ]]; then
+    step "TAMAM: $name açıldı (/health/live 200)"
+  else
+    step "HATA: $name açılmadı (ayrıntı: $log)"
+    grep -m 5 -E "Exception|error|hata" "$log" | tee -a "$LOG"
+    failed=1
+  fi
+}
+
+smoke Minimal 5391
+
 # ---------------------------------------------------------------- canfxgen
 # Üretilen çözümlere iki entity eklenir (biri fabrika/Update metotlu, biri metotsuz: TODO yolları) ve CRUD üretilip
 # yeniden derlenir.

@@ -18,15 +18,17 @@ public static class MailServiceRegistration
         {
             case "SMTP":
                 // Mailpit (docker compose) ya da gerçek SMTP; şifre user-secrets'ta: "Mail:Smtp:Password"
-                services.AddCanMailKit(o => config.GetSection("Mail:Smtp").Bind(o));
+                services.AddCanMailKit(o => config.GetSection("Mail:Smtp").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
                 break;
             case "SENDGRID":
                 // dotnet user-secrets set "Mail:SendGrid:ApiKey" "<anahtar>"
-                services.AddCanSendGrid(o => config.GetSection("Mail:SendGrid").Bind(o));
+                services.AddCanSendGrid(o => config.GetSection("Mail:SendGrid").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
                 break;
-            default:
+            case "PICKUP":
                 services.AddCanEmailPickupDirectory(config["Mail:PickupDirectory"] is { Length: > 0 } dir ? dir : "mails", from, "CanAppTemplate");
                 break;
+            default:
+                throw new InvalidOperationException($"Mail:Provider geçersiz: '{provider}'. Geçerli değerler: Pickup, Smtp, SendGrid.");
         }
 
         return services;

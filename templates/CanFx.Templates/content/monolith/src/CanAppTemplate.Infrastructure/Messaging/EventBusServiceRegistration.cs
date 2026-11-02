@@ -22,7 +22,7 @@ public static class EventBusServiceRegistration
             return false;
 
         services.AddCanInbox<BaseDbContext>();
-        services.AddCanRabbitMqTransport(o => config.GetSection("EventBus:RabbitMq").Bind(o));
+        services.AddCanRabbitMqTransport(o => config.GetSection("EventBus:RabbitMq").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
         return true;
     }
 }

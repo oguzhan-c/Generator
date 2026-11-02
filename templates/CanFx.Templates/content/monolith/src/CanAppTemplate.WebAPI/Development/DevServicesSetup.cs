@@ -17,7 +17,7 @@ public static class DevServicesSetup
     {
         return services.AddCanDevServices(o =>
         {
-            config.GetSection("DevServices").Bind(o);
+            config.GetSection("DevServices").Bind(o, b => b.ErrorOnUnknownConfiguration = true);
 #if (Postgres)
             AddFromConnectionString(o, "Database", "postgres", config.GetConnectionString("CanAppTemplate"), defaultPort: 5432);
 #elif (SqlServer)

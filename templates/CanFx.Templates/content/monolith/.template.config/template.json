@@ -276,6 +276,17 @@
       ],
       "modifiers": [
         {
+          "condition": "(!Passkey)",
+          "exclude": [
+            "src/CanAppTemplate.Application/Features/Account/Commands/BeginPasskeyRegistration/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/CompletePasskeyRegistration/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/DeletePasskey/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/RenamePasskey/**",
+            "src/CanAppTemplate.Application/Features/Auth/Commands/PasskeyLogin/**",
+            "src/CanAppTemplate.WebAPI/Security/PasskeyCeremonyStore.cs"
+          ]
+        },
+        {
           "condition": "(!MultiTenancy)",
           "exclude": [
             "src/CanAppTemplate.Persistence/Repositories/CrossTenantReader.cs",

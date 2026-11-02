@@ -98,10 +98,10 @@ public static class PersistenceServiceRegistration
         services.AddCanAuditTrail();
 #endif
 #if (EventBus)
-        services.AddCanOutbox<BaseDbContext>(o => configuration.GetSection("Outbox").Bind(o));
+        services.AddCanOutbox<BaseDbContext>(o => configuration.GetSection("Outbox").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
 #endif
         services.AddCanEntityCacheInvalidation();
-        services.AddCanQueryDiagnostics(o => configuration.GetSection("QueryDiagnostics").Bind(o));
+        services.AddCanQueryDiagnostics(o => configuration.GetSection("QueryDiagnostics").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
 
         // Güvenlik: oturumlar, kayıtlı cihazlar, damga doğrulayıcı ve güvenlik olaylarının veritabanı kaydı.
         services.AddCanUserSessions<BaseDbContext, IdentityKey>();
@@ -111,7 +111,7 @@ public static class PersistenceServiceRegistration
         services.AddCanSecurityEventStore<BaseDbContext>();
 
         var seed = new SeedOptions();
-        configuration.GetSection("Seed").Bind(seed);
+        configuration.GetSection("Seed").Bind(seed, b => b.ErrorOnUnknownConfiguration = true);
         services.AddSingleton(seed);
         services.AddCanDataSeeders(typeof(PersistenceServiceRegistration).Assembly);
 #if (Settings)

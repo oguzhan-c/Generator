@@ -13,7 +13,7 @@ public static class SearchServiceRegistration
     {
         CanSearchBuilder search = services.AddCanSearch();
         if (config["Search:Elasticsearch:Url"] is { Length: > 0 })
-            search.UseElasticsearch(o => config.GetSection("Search:Elasticsearch").Bind(o));
+            search.UseElasticsearch(o => config.GetSection("Search:Elasticsearch").Bind(o, b => b.ErrorOnUnknownConfiguration = true));
         return services;
     }
 }

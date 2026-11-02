@@ -9,6 +9,12 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+### Düzeltildi
+
+- Şablon: `--Passkey false` ile oluşturulan proje açılmıyordu (passkey komutları `IPasskeyService` istiyordu ama servis
+  kayıtlı değildi). Passkey kapalıyken passkey komutları projeye girmez. Doğrulama artık uygulamayı açıp
+  `/health/live`'ın 200 döndüğünü de denetler.
+
 ### Eklendi
 
 - Şablon: veritabanı seçimi (`--Database postgresql | sqlserver | sqlite`); paket, sağlayıcı satırı, yerel bağlantı
@@ -29,6 +35,10 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
   kodları (`invalid_credentials`, `role.not_exists` ...) kullanıyorsa güncellenmeli. Alan adları da çevrilir
   (`Application/Localization/fields.{dil}.json`). canfxgen yeni entity'nin kodlarını ve çeviri dosyalarını üretir;
   doğrulama her kodun her dilde metni olduğunu denetler.
+- appsettings: her bölüm eksiksiz ve açıklamalı (tüm ayarlar, varsayılanları, geçerli değerleri, gizli olanlar);
+  seçilmeyen özelliğin bölümü dosyaya girmez; `appsettings.Development.json` yalnızca farklı değerleri tutar.
+- Geçersiz ayar açılışta durdurur: bölümlerde yanlış yazılmış anahtar (ör. `"PermitLimt"`), bilinmeyen
+  `Mail:Provider` / `Storage:Provider`, hatalı değer tipi.
 - CanFx paketleri 0.2.0.
 
 ## [0.3.3] - 2026-11-02
