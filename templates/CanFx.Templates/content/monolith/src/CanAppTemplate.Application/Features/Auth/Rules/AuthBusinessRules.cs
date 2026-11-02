@@ -66,7 +66,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
     public async Task EmailShouldNotBeTaken(string normalizedEmail, CancellationToken cancellationToken = default)
     {
         if (await _userRepository.AnyAsync(u => u.NormalizedEmail == normalizedEmail, withDeleted: true, cancellationToken: cancellationToken))
-            throw new ConflictException(AuthBusinessMessages.EmailTaken) { Code = AuthBusinessMessages.EmailTakenCode };
+            throw new ConflictException(AuthBusinessMessages.EmailTaken) { Code = AuthBusinessMessages.EmailTaken };
     }
 
     /// <summary>Şifre doğru olmalı. Hatalı denemeyle hesap kilitlendiyse "kilitlendi", değilse "e-posta ya da şifre hatalı".</summary>
@@ -79,7 +79,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
         if (user is not null && user.IsLockedOut(now))
             throw LockedOutError();
 
-        throw new UnauthorizedException(AuthBusinessMessages.InvalidCredentials) { Code = AuthBusinessMessages.InvalidCredentialsCode };
+        throw new UnauthorizedException(AuthBusinessMessages.InvalidCredentials) { Code = AuthBusinessMessages.InvalidCredentials };
     }
 
     public void UserShouldNotBeLockedOut(AppUser user, DateTimeOffset now)
@@ -94,20 +94,20 @@ public sealed class AuthBusinessRules : BaseBusinessRules
     public void EmailShouldBeVerifiedByProvider(bool verified)
     {
         if (!verified)
-            throw new ForbiddenException(AuthBusinessMessages.EmailNotConfirmed) { Code = AuthBusinessMessages.EmailNotConfirmedCode };
+            throw new ForbiddenException(AuthBusinessMessages.EmailNotConfirmed) { Code = AuthBusinessMessages.EmailNotConfirmed };
     }
 
     /// <summary>Doğrulanmış hesapta e-posta doğrulama ucu şifresiz giriş kapısı olamaz (2FA atlanırdı).</summary>
     public void EmailShouldNotBeConfirmedYet(AppUser user)
     {
         if (user.EmailConfirmed)
-            throw new ConflictException(AuthBusinessMessages.EmailAlreadyConfirmed) { Code = AuthBusinessMessages.EmailAlreadyConfirmedCode };
+            throw new ConflictException(AuthBusinessMessages.EmailAlreadyConfirmed) { Code = AuthBusinessMessages.EmailAlreadyConfirmed };
     }
 
     public void VerificationCodeShouldBeValid([DoesNotReturnIf(false)] bool valid)
     {
         if (!valid)
-            throw new BusinessException(AuthBusinessMessages.InvalidVerificationCode) { Code = AuthBusinessMessages.InvalidVerificationCodeCode };
+            throw new BusinessException(AuthBusinessMessages.InvalidVerificationCode) { Code = AuthBusinessMessages.InvalidVerificationCode };
     }
 
     /// <summary>İkinci adım kodu doğru olmalı; hatalı denemeyle hesap kilitlendiyse "kilitlendi".</summary>
@@ -119,7 +119,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
         if (user.IsLockedOut(now))
             throw LockedOutError();
 
-        throw new BusinessException(AuthBusinessMessages.InvalidTwoFactorCode) { Code = AuthBusinessMessages.InvalidTwoFactorCodeCode };
+        throw new BusinessException(AuthBusinessMessages.InvalidTwoFactorCode) { Code = AuthBusinessMessages.InvalidTwoFactorCode };
     }
 
     public void TwoFactorChallengeShouldExist([DoesNotReturnIf(false)] bool exists)
@@ -131,45 +131,45 @@ public sealed class AuthBusinessRules : BaseBusinessRules
     public void TwoFactorShouldUseEmail(AppUser user)
     {
         if (user.AuthenticatorType != AuthenticatorType.Email)
-            throw new BusinessException(AuthBusinessMessages.TwoFactorNotEmail) { Code = AuthBusinessMessages.TwoFactorNotEmailCode };
+            throw new BusinessException(AuthBusinessMessages.TwoFactorNotEmail) { Code = AuthBusinessMessages.TwoFactorNotEmail };
     }
 
     public void SessionShouldBeActive([DoesNotReturnIf(false)] bool active)
     {
         if (!active)
-            throw new UnauthorizedException(AuthBusinessMessages.SessionExpired) { Code = AuthBusinessMessages.SessionExpiredCode };
+            throw new UnauthorizedException(AuthBusinessMessages.SessionExpired) { Code = AuthBusinessMessages.SessionExpired };
     }
 
     public void PasskeyShouldBeVerified([DoesNotReturnIf(false)] bool verified)
     {
         if (!verified)
-            throw new UnauthorizedException(AuthBusinessMessages.PasskeyFailed) { Code = AuthBusinessMessages.PasskeyFailedCode };
+            throw new UnauthorizedException(AuthBusinessMessages.PasskeyFailed) { Code = AuthBusinessMessages.PasskeyFailed };
     }
 
     public void PasskeyCeremonyShouldNotBeExpired([DoesNotReturnIf(false)] bool exists)
     {
         if (!exists)
-            throw new UnauthorizedException(AuthBusinessMessages.PasskeyExpired) { Code = AuthBusinessMessages.PasskeyFailedCode };
+            throw new UnauthorizedException(AuthBusinessMessages.PasskeyExpired) { Code = AuthBusinessMessages.PasskeyExpired };
     }
 
     /// <summary>Şifre doğru olmalı (hassas işlemlerde yeniden doğrulama).</summary>
     public void PasswordShouldMatch([DoesNotReturnIf(false)] bool matches, string field = "Password")
     {
         if (!matches)
-            throw new ValidationException(field, AuthBusinessMessages.InvalidPassword) { Code = AuthBusinessMessages.InvalidPasswordCode };
+            throw new ValidationException(field, AuthBusinessMessages.InvalidPassword) { Code = AuthBusinessMessages.InvalidPassword };
     }
 
     public void ExternalEmailShouldBeVerified([DoesNotReturnIf(false)] bool verified)
     {
         if (!verified)
-            throw new ForbiddenException(AuthBusinessMessages.ExternalEmailNotVerified) { Code = AuthBusinessMessages.ExternalEmailNotVerifiedCode };
+            throw new ForbiddenException(AuthBusinessMessages.ExternalEmailNotVerified) { Code = AuthBusinessMessages.ExternalEmailNotVerified };
     }
 
     /// <summary>Aynı sağlayıcıda kullanıcının başka bir hesabı bağlı olmamalı (<c>AppUser.AddLogin</c>'in sonucu).</summary>
     public void ExternalLoginShouldBeAdded(bool added)
     {
         if (!added)
-            throw new ConflictException(AuthBusinessMessages.ExternalProviderLinked) { Code = AuthBusinessMessages.ExternalProviderLinkedCode };
+            throw new ConflictException(AuthBusinessMessages.ExternalProviderLinked) { Code = AuthBusinessMessages.ExternalProviderLinked };
     }
 
     /// <summary>Dış hesap başka bir kullanıcıya bağlı olmamalı.</summary>
@@ -179,16 +179,16 @@ public sealed class AuthBusinessRules : BaseBusinessRules
                 u => u.Id != userId && u.Logins.Any(l => l.LoginProvider == provider && l.ProviderKey == providerKey),
                 cancellationToken: cancellationToken))
         {
-            throw new ConflictException(AuthBusinessMessages.ExternalAlreadyLinked) { Code = AuthBusinessMessages.ExternalAlreadyLinkedCode };
+            throw new ConflictException(AuthBusinessMessages.ExternalAlreadyLinked) { Code = AuthBusinessMessages.ExternalAlreadyLinked };
         }
     }
 
     private static UnauthorizedException UnauthorizedError() =>
-        new(AuthBusinessMessages.Unauthorized) { Code = AuthBusinessMessages.UnauthorizedCode };
+        new(AuthBusinessMessages.Unauthorized) { Code = AuthBusinessMessages.Unauthorized };
 
     private static UnauthorizedException LockedOutError() =>
-        new(AuthBusinessMessages.LockedOut) { Code = AuthBusinessMessages.LockedOutCode };
+        new(AuthBusinessMessages.LockedOut) { Code = AuthBusinessMessages.LockedOut };
 
     private static UnauthorizedException TwoFactorExpiredError() =>
-        new(AuthBusinessMessages.TwoFactorExpired) { Code = AuthBusinessMessages.TwoFactorExpiredCode };
+        new(AuthBusinessMessages.TwoFactorExpired) { Code = AuthBusinessMessages.TwoFactorExpired };
 }

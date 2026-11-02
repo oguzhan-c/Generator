@@ -14,17 +14,57 @@ internal static class CrudTemplates
         {{Header}}
         namespace {{n.ConstantsNamespace}};
 
-        /// <summary>{{n.Words}} iş kuralı mesajları. Kodlar (<c>{{n.ErrorPrefix}}.*</c>) WebAPI/Localization/*.json'da çevrilir.</summary>
+        /// <summary>
+        /// {{n.Words}} hata kodları: ProblemDetails <c>code</c> alanı ve çeviri anahtarı. Metinler kodda değil,
+        /// <c>Features/{{n.Plural}}/Localization/{{n.ErrorPrefix}}.{dil}.json</c>'da (anahtar: kodun noktadan sonrası).
+        /// </summary>
         public static class {{n.Plural}}BusinessMessages
         {
-            public const string {{n.Entity}}NotExists = "{{n.Words}} kaydı bulunamadı.";
-            public const string {{n.Entity}}NotExistsCode = "{{n.ErrorPrefix}}.not_exists";
+            public const string {{n.Entity}}NotExists = "{{n.NotExistsCode}}";
 
-            // TODO(canfxgen): İş kurallarının mesajlarını ekle, ör.:
-            // public const string {{n.Entity}}NameExists = "Bu adla bir kayıt var.";
+            // TODO(canfxgen): İş kurallarının kodlarını ekle ve metinlerini json dosyalarına yaz, ör.:
+            // public const string {{n.Entity}}NameExists = "{{n.ErrorPrefix}}.{{Names.Snake(n.Entity)}}_name_exists";
+            //   {{n.ErrorPrefix}}.tr.json: "{{Names.Snake(n.Entity)}}_name_exists": "{name} adında bir kayıt zaten var."
+            //   kullanım: throw new BusinessException({{n.Plural}}BusinessMessages.{{n.Entity}}NameExists) { Code = {{n.Plural}}BusinessMessages.{{n.Entity}}NameExists }.With("name", name);
         }
 
         """;
+
+    /// <summary>Kayıt bulunamadı metni.</summary>
+    public static string NotExistsText(CrudNames n, string culture) =>
+        culture == "tr" ? $"{n.Words} kaydı bulunamadı." : $"{n.Words} not found.";
+
+    /// <summary>
+    /// Özelliğin çeviri dosyası: mesajlar ve ortak dosyada (<c>Localization/fields.{dil}.json</c>) olmayan alan adları.
+    /// Türkçe ve İngilizce dışındaki dillerde metinler İngilizce yazılır, çevrilmesi için TODO bırakılır.
+    /// </summary>
+    public static string Localization(CrudNames n, string culture, IReadOnlySet<string> knownFields)
+    {
+        bool english = culture == "en";
+        bool turkish = culture == "tr";
+        List<string> fields = n.Model.ScalarProperties.Select(p => p.Name).Where(p => p != "Id" && !knownFields.Contains(p)).ToList();
+
+        var lines = new List<string>();
+        lines.Add(turkish
+            ? $"// {n.Words} metinleri. Kod: {n.ErrorPrefix}.anahtar ({n.Plural}BusinessMessages). Yer tutucular: {{ad}} → exception.With(\"ad\", değer)."
+            : $"// {n.Words} texts. Code: {n.ErrorPrefix}.key ({n.Plural}BusinessMessages). Placeholders: {{name}} → exception.With(\"name\", value).");
+        if (!english && !turkish)
+            lines.Add($"// TODO(canfxgen): Metinleri {culture} diline çevir.");
+        if (turkish && fields.Count > 0)
+            lines.Add("// TODO(canfxgen): Alan adlarını (fields) Türkçeye çevir; doğrulama mesajlarında görünürler.");
+
+        var entries = new List<string> { $"    {Json(n.NotExistsKey)}: {Json(NotExistsText(n, turkish ? "tr" : "en"))}" };
+        if (fields.Count > 0)
+        {
+            string body = string.Join(",\n", fields.Select(f => $"      {Json(f)}: {Json(Names.Words(f))}"));
+            entries.Add($"    \"fields\": {{\n{body}\n    }}");
+        }
+
+        return string.Join("\n", lines) + $"\n{{\n  {Json(n.ErrorPrefix)}: {{\n{string.Join(",\n", entries)}\n  }}\n}}\n";
+    }
+
+    private static string Json(string value) =>
+        System.Text.Json.JsonSerializer.Serialize(value, new System.Text.Json.JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
 
     public static string OperationClaims(CrudNames n) => $$"""
         {{Header}}
@@ -87,7 +127,7 @@ internal static class CrudTemplates
             public void {{n.Entity}}ShouldExistWhenSelected({{n.Entity}}? {{n.Variable}})
             {
                 if ({{n.Variable}} is null)
-                    throw new NotFoundException({{n.Plural}}BusinessMessages.{{n.Entity}}NotExists) { Code = {{n.Plural}}BusinessMessages.{{n.Entity}}NotExistsCode };
+                    throw new NotFoundException({{n.Plural}}BusinessMessages.{{n.Entity}}NotExists) { Code = {{n.Plural}}BusinessMessages.{{n.Entity}}NotExists };
             }
 
             /// <summary>Kaydı getirir (değişiklik izlenir); yoksa 404.</summary>
@@ -102,7 +142,7 @@ internal static class CrudTemplates
             // public async Task {{n.Entity}}NameCanNotBeDuplicatedWhenInserted(string name, CancellationToken cancellationToken = default)
             // {
             //     if (await {{n.Repository}}.AnyAsync(x => x.Name == name, cancellationToken: cancellationToken))
-            //         throw new BusinessException({{n.Plural}}BusinessMessages.{{n.Entity}}NameExists);
+            //         throw new BusinessException({{n.Plural}}BusinessMessages.{{n.Entity}}NameExists) { Code = {{n.Plural}}BusinessMessages.{{n.Entity}}NameExists }.With("name", name);
             // }
         }
 

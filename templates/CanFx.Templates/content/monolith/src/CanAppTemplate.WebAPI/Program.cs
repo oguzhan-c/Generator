@@ -56,6 +56,7 @@ using CanAppTemplate.Persistence;
 using CanAppTemplate.Persistence.Contexts;
 using CanAppTemplate.Infrastructure;
 using CanAppTemplate.WebAPI.Development;
+using CanAppTemplate.WebAPI.Localization;
 using CanAppTemplate.WebAPI.Security;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -84,11 +85,14 @@ if (config.GetValue("OpenTelemetry:Enabled", false))
 }
 #endif
 
-// TODO(canfxgen): Desteklenen dilleri ve varsayılan dili ayarla (çeviriler: Localization/*.json).
+// Diller. Metinler Application'a gömülü: Features/{Özellik}/Localization/*.{dil}.json (hata kodu = özellik.anahtar),
+// Localization/fields.{dil}.json (alan adları). Development'ta bir dilde eksik kalan çeviriler açılışta loglanır.
+// TODO(canfxgen): Desteklenen dilleri ve varsayılan dili ayarla.
 builder.Services.AddCanLocalization(o =>
 {
     o.DefaultCulture = "tr";
     o.SupportedCultures = ["tr", "en"];
+    o.ResourceAssemblies.Add(typeof(ApplicationServiceRegistration).Assembly);
 });
 
 // Geliştirme servisleri (yalnızca Development): veritabanı vb. bilgisayarda yoksa docker-compose'dan başlatılır.
@@ -222,6 +226,8 @@ builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Ad
 // ================================================================ uygulama
 
 WebApplication app = builder.Build();
+
+app.Services.UseLocalizedFieldNames();  // doğrulama mesajlarında alan adları isteğin dilinde
 
 // Geliştirme servisleri her şeyden önce ayağa kalksın (veritabanı, arama ...). Development dışında hiçbir şey yapmaz.
 await app.Services.StartCanDevServicesAsync();

@@ -2,17 +2,18 @@ using CanFx.Application.Authorization;
 
 namespace CanAppTemplate.Application.Features.Roles.Constants;
 
+/// <summary>
+/// Rol hata kodları: ProblemDetails <c>code</c> alanı (istemciyle sözleşme) ve çeviri anahtarı. Metinler kodda
+/// değil, <c>Features/Roles/Localization/roles.{dil}.json</c>'da; yer tutucular (<c>{max}</c>) <c>exception.With("max", değer)</c> ile doldurulur.
+/// </summary>
 public static class RolesBusinessMessages
 {
-    public const string RoleNotExists = "Rol bulunamadı.";
-    public const string RoleNotExistsCode = "role.not_exists";
+    public const string RoleNotExists = "roles.role_not_exists";
 
-    public const string RoleNameExists = "Bu adda bir rol zaten var.";
-    public const string RoleNameExistsCode = "role.name_exists";
+    public const string RoleNameExists = "roles.role_name_exists";
 
-    public const string RoleInUse = "Bu rol kullanıcılara atanmış; önce kullanıcılardan kaldır.";
-    public const string RoleInUseCode = AccessGrantErrorCodes.RoleInUse;
+    /// <summary>CanFx kodu; metni Application/Localization/identity.*.json'da.</summary>
+    public const string RoleInUse = AccessGrantErrorCodes.RoleInUse;
 
-    public const string HostOnly = "Roller ve rol yetkileri yalnızca ana (host) yönetimden düzenlenebilir.";
-    public const string HostOnlyCode = "identity.host_only";
+    public const string HostOnly = "roles.host_only";
 }

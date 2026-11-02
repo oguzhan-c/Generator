@@ -1,0 +1,17 @@
+// Hesap güvenliği texts (code: account.key). Placeholders: {name}.
+{
+  "account": {
+    "current_password_invalid": "The current password is incorrect.",
+    "otp_already_enabled": "The authenticator app is already enabled. Turn off two-step verification before setting up a new one.",
+    "otp_code_invalid": "The code is incorrect. Enter the current code from the app (make sure your clock is correct).",
+    "email_not_confirmed": "Verify your email address first.",
+    "two_factor_disabled": "Recovery codes are only used when two-step verification is enabled.",
+    "passkey_not_found": "Passkey not found.",
+    "passkey_wrong_user": "This passkey request does not belong to this account.",
+    "passkey_limit": "You can add at most {max} passkeys; delete one first.",
+    "passkey_registration_failed": "The passkey could not be saved; please try again.",
+    "passkey_registration_expired": "The passkey request expired; please try again.",
+    "external_login_not_found": "Linked external account not found.",
+    "last_sign_in_method": "This is the only way to sign in to your account. Add a password, a passkey or another external account before removing it."
+  }
+}

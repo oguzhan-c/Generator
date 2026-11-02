@@ -2,11 +2,15 @@ using CanFx.Application.Authorization;
 
 namespace CanAppTemplate.Application.Features.OperationClaims.Constants;
 
+/// <summary>
+/// Yetki hata kodları: ProblemDetails <c>code</c> alanı (istemciyle sözleşme) ve çeviri anahtarı. Metinler kodda
+/// değil, <c>Application/Localization/identity.{dil}.json</c>'da; yer tutucular (<c>{max}</c>) <c>exception.With("max", değer)</c> ile doldurulur.
+/// </summary>
 public static class OperationClaimsBusinessMessages
 {
-    public const string OperationClaimNotExists = "Yetkilerden biri ya da birkaçı bulunamadı.";
-    public const string OperationClaimNotExistsCode = AccessGrantErrorCodes.UnknownPermission;
+    /// <summary>CanFx kodu; metni Application/Localization/identity.*.json'da.</summary>
+    public const string OperationClaimNotExists = AccessGrantErrorCodes.UnknownPermission;
 
-    public const string OperationClaimDeprecated = "Kullanımdan kaldırılmış yetki verilemez.";
-    public const string OperationClaimDeprecatedCode = AccessGrantErrorCodes.DeprecatedPermission;
+    /// <summary>CanFx kodu; metni Application/Localization/identity.*.json'da.</summary>
+    public const string OperationClaimDeprecated = AccessGrantErrorCodes.DeprecatedPermission;
 }

@@ -18,7 +18,7 @@ public sealed class UserAuthorizationBusinessRules : BaseBusinessRules
     {
         AppUser? user = await _userRepository.GetByIdAsync(userId, include: q => q.WithRolesAndPermissions(), cancellationToken: cancellationToken);
         if (user is null)
-            throw new NotFoundException(UserAuthorizationsBusinessMessages.UserNotExists) { Code = UserAuthorizationsBusinessMessages.UserNotExistsCode };
+            throw new NotFoundException(UserAuthorizationsBusinessMessages.UserNotExists) { Code = UserAuthorizationsBusinessMessages.UserNotExists };
         return user;
     }
 

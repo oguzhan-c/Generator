@@ -24,6 +24,11 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
   `Application/Services/Users/AppUserService.cs`'te.
 - Dosya başına tek tip: şablondaki ve canfxgen'in ürettiği handler'lar `{İstek}Handler.cs`'te; diğer çok tipli
   dosyalar da bölündü. Doğrulama bu kuralı denetler.
+- Metinler kodda değil, özellik başına gömülü çeviri dosyalarında (`Features/{Özellik}/Localization/{özellik}.{dil}.json`);
+  hata kodları `özellik.anahtar` (ör. `auth.invalid_credentials`, `roles.role_not_exists`). **Kırıcı:** istemciler eski
+  kodları (`invalid_credentials`, `role.not_exists` ...) kullanıyorsa güncellenmeli. Alan adları da çevrilir
+  (`Application/Localization/fields.{dil}.json`). canfxgen yeni entity'nin kodlarını ve çeviri dosyalarını üretir;
+  doğrulama her kodun her dilde metni olduğunu denetler.
 - CanFx paketleri 0.2.0.
 
 ## [0.3.3] - 2026-11-02

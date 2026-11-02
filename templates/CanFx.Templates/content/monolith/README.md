@@ -54,6 +54,23 @@ CRUD** (ya da terminalde `canfxgen generate crud Brand`; komut/sorgu eklemek iç
 Generator `// canfxgen:...` işaretlerinin olduğu yerlere ekleme yapar; bu satırları silme. Senin doldurman gereken yerler
 `TODO(canfxgen)` ile işaretlidir (Rider: View → Tool Windows → TODO).
 
+## Metinler ve diller
+
+Hata mesajları kodda değil, özellik başına çeviri dosyalarında; dosyalar Application DLL'ine gömülür:
+
+```
+Application/Features/Brands/Constants/BrandsBusinessMessages.cs   BrandNotExists = "brands.brand_not_exists"  (yalnızca kod)
+Application/Features/Brands/Localization/brands.tr.json           { "brands": { "brand_not_exists": "Brand kaydı bulunamadı." } }
+Application/Features/Brands/Localization/brands.en.json           { "brands": { "brand_not_exists": "Brand not found." } }
+Application/Localization/fields.{dil}.json                        alan adları (doğrulama mesajlarında): { "fields": { "Name": "Ad" } }
+```
+
+- Kod (`özellik.anahtar`) istemciyle sözleşmedir: yanıtta `"code"` alanı; metin isteğin diline göre `"detail"`'da.
+- Yer tutucu: `"{name} adında bir marka var."` + `throw new BusinessException(...) { Code = ... }.With("name", name)`.
+- canfxgen her entity için kodları ve iki dilin dosyalarını üretir. Development'ta bir dilde eksik kalan metinler açılışta loglanır.
+- Yeni dil: dosyaların `.{dil}.json` kopyası + `Program.cs`'te `SupportedCultures`.
+- Kod değiştirmeden metni ezmek için WebAPI/Localization/`{dil}.json` (ör. müşteriye özel metinler).
+
 ## Kimlik anahtar tipi
 
 Kullanıcı, rol, yetki, oturum, passkey gibi kimlik tablolarının Id tipi tek yerde seçilir: kökteki `Directory.Build.props`

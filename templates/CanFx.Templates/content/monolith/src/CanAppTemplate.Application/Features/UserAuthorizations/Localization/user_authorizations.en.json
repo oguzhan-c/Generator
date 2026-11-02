@@ -1,0 +1,6 @@
+// Kullanıcı yetkileri texts (code: user_authorizations.key). Placeholders: {name}.
+{
+  "user_authorizations": {
+    "user_not_exists": "User not found."
+  }
+}

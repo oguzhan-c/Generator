@@ -1,0 +1,8 @@
+// Rol metinleri (kod: roles.anahtar). Yer tutucular: {ad}.
+{
+  "roles": {
+    "role_not_exists": "Rol bulunamadı.",
+    "role_name_exists": "Bu adda bir rol zaten var.",
+    "host_only": "Roller ve rol yetkileri yalnızca ana (host) yönetimden düzenlenebilir."
+  }
+}

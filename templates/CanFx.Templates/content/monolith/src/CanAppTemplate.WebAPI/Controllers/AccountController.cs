@@ -153,7 +153,7 @@ public class AccountController : BaseController
     public async Task<IResult> CompletePasskeyRegistration([FromBody] AddPasskeyRequest body, [FromServices] PasskeyCeremonyStore ceremonies, CancellationToken ct)
     {
         if (await ceremonies.TakeAsync(Request, Response, PasskeyCeremonyStore.Register, ct) is not { } optionsJson)
-            throw new CanFx.Domain.Exceptions.BusinessException(AccountBusinessMessages.PasskeyRegistrationExpired) { Code = AccountBusinessMessages.PasskeyFailedCode };
+            throw new CanFx.Domain.Exceptions.BusinessException(AccountBusinessMessages.PasskeyRegistrationExpired) { Code = AccountBusinessMessages.PasskeyRegistrationExpired };
 
         AuthenticatorAttestationRawResponse credential = AuthController.ReadCredential<AuthenticatorAttestationRawResponse>(body.Credential);
         return TypedResults.Ok(await Mediator.Send(new CompletePasskeyRegistrationCommand(credential, CredentialCreateOptions.FromJson(optionsJson), body.Name), ct));

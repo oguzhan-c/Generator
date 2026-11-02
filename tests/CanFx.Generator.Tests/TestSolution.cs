@@ -79,6 +79,17 @@ internal sealed class TestSolution : IDisposable
             }
             """);
 
+        Write("src/Shop.Application/Localization/fields.tr.json", """
+            // yorum
+            { "fields": { "Name": "Ad" } }
+            """);
+        Write("src/Shop.Application/Localization/fields.en.json", """{ "fields": { "Name": "Name" } }""");
+    }
+
+    /// <summary>Eski düzen: metinler WebAPI/Localization/tr.json'da (Application/Localization yok).</summary>
+    public void UseLegacyLocalization()
+    {
+        Directory.Delete(Path_("src/Shop.Application/Localization"), recursive: true);
         Write("src/Shop.WebAPI/Localization/tr.json", """
             {
               // yorum

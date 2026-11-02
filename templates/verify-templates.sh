@@ -168,6 +168,7 @@ generate My-Shop.Api
 #   Features/{Özellik}/Constants/ + Rules/  (mesajlar, yetkiler, iş kuralları)
 #   Commands|Queries/{İstek}/  {İstek}.cs, {İstek}Handler.cs, {İstek}Validator.cs, {...}Response.cs / {...}Dto.cs
 #   dosya başına tek tip ve dosya adı = tip adı (Domain hariç: entity dosyaları kullanıcının).
+#   metinler kodda değil Features/{Özellik}/Localization/*.{dil}.json'da; her kodun her dilde metni var.
 #   hatalar exception (Rules) ile; istekler Result<T> dönmez.
 standards() {
   local name="$1"
@@ -199,6 +200,12 @@ standards() {
     fi
   done < <(find "$src" -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -path '*.Domain/*')
 
+  # Her hata kodunun her dilde metni olmalı (metinler Features/*/Localization/*.{dil}.json'da)
+  local missing
+  if ! missing="$(python3 "$ROOT/templates/check-translations.py" "$OUT/$name/src/$(code_name "$name").Application")"; then
+    problems+=$'\n  Eksik çeviri:\n'"$missing"
+  fi
+
   for d in "$features"/*/; do
     [[ -d "$d/Constants" && -d "$d/Rules" ]] || problems+=$'\n  Constants/ ya da Rules/ eksik: '"$d"
   done
@@ -208,7 +215,7 @@ standards() {
     echo "$problems" | tee -a "$LOG"
     failed=1
   else
-    step "TAMAM: $name standarda uygun (Constants/Rules, dosya başına tek tip, ayrı handler/validator/yanıt, Result yok)"
+    step "TAMAM: $name standarda uygun (Constants/Rules, dosya başına tek tip, ayrı handler/validator/yanıt, çeviriler tam, Result yok)"
   fi
 }
 standards Minimal

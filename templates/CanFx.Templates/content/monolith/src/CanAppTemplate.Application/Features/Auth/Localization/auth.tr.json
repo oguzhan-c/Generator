@@ -1,0 +1,23 @@
+// Kimlik doğrulama metinleri (kod: auth.anahtar). Yer tutucular: {ad}.
+{
+  "auth": {
+    "unauthorized": "Bu işlem için giriş yapmalısın.",
+    "invalid_credentials": "E-posta ya da şifre hatalı.",
+    "locked_out": "Çok fazla hatalı deneme yapıldı; hesap geçici olarak kilitlendi.",
+    "email_not_confirmed": "E-posta adresin henüz doğrulanmadı. Gönderdiğimiz kodu gir.",
+    "email_already_confirmed": "E-posta adresin zaten doğrulanmış; giriş yapabilirsin.",
+    "email_taken": "Bu e-posta adresiyle kayıtlı bir hesap var.",
+    "invalid_verification_code": "Kod hatalı ya da süresi dolmuş; yeni kod iste.",
+    "invalid_two_factor_code": "Kod hatalı ya da süresi dolmuş.",
+    "two_factor_expired": "Doğrulama süresi doldu; tekrar giriş yap.",
+    "two_factor_not_email": "Bu hesap kodları authenticator uygulamasından alıyor.",
+    "passkey_failed": "Passkey doğrulanamadı.",
+    "passkey_expired": "Passkey isteğinin süresi doldu; tekrar dene.",
+    "passkey_invalid_response": "Geçersiz passkey yanıtı.",
+    "session_expired": "Oturumun süresi doldu; tekrar giriş yap.",
+    "invalid_password": "Şifre hatalı.",
+    "external_email_not_verified": "Sağlayıcı doğrulanmış bir e-posta vermedi. Şifrenle giriş yapıp hesabı Hesap güvenliği sayfasından bağlayabilirsin.",
+    "external_already_linked": "Bu dış hesap başka bir kullanıcıya bağlı.",
+    "external_provider_linked": "Bu sağlayıcıda zaten bağlı bir hesabın var; önce onu kaldır."
+  }
+}

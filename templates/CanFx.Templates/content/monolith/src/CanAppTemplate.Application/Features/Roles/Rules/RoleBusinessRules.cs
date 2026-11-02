@@ -33,7 +33,7 @@ public sealed class RoleBusinessRules : BaseBusinessRules
     public void RoleDefinitionsShouldBeManagedFromHost()
     {
         if (_currentTenant.Id is not null)
-            throw new ForbiddenException(RolesBusinessMessages.HostOnly) { Code = RolesBusinessMessages.HostOnlyCode };
+            throw new ForbiddenException(RolesBusinessMessages.HostOnly) { Code = RolesBusinessMessages.HostOnly };
     }
 
     /// <summary>Rolü yetkileriyle getirir (değişiklik izlenir); yoksa 404.</summary>
@@ -41,7 +41,7 @@ public sealed class RoleBusinessRules : BaseBusinessRules
     {
         Role<IdentityKey>? role = await _roleRepository.GetByIdAsync(id, include: IncludeOperationClaims, cancellationToken: cancellationToken);
         if (role is null)
-            throw new NotFoundException(RolesBusinessMessages.RoleNotExists) { Code = RolesBusinessMessages.RoleNotExistsCode };
+            throw new NotFoundException(RolesBusinessMessages.RoleNotExists) { Code = RolesBusinessMessages.RoleNotExists };
         return role;
     }
 
@@ -49,14 +49,14 @@ public sealed class RoleBusinessRules : BaseBusinessRules
     {
         string normalized = name.Trim().ToUpperInvariant();
         if (await _roleRepository.AnyAsync(r => r.NormalizedName == normalized && (exceptId == null || r.Id != exceptId), cancellationToken: cancellationToken))
-            throw new BusinessException(RolesBusinessMessages.RoleNameExists) { Code = RolesBusinessMessages.RoleNameExistsCode };
+            throw new BusinessException(RolesBusinessMessages.RoleNameExists) { Code = RolesBusinessMessages.RoleNameExists };
     }
 
     /// <summary>Kullanıcısı olan rol silinmez (tüm tenant'lar dahil).</summary>
     public async Task RoleShouldNotBeInUse(IdentityKey roleId, CancellationToken cancellationToken = default)
     {
         if (await _userRoleRepository.AnyAsync(ur => ur.RoleId == roleId, cancellationToken: cancellationToken))
-            throw new ConflictException(RolesBusinessMessages.RoleInUse) { Code = RolesBusinessMessages.RoleInUseCode };
+            throw new ConflictException(RolesBusinessMessages.RoleInUse) { Code = RolesBusinessMessages.RoleInUse };
     }
 
     /// <summary>Rolün etkin yetki adları (<see cref="IncludeOperationClaims"/> ile yüklenmiş olmalı).</summary>

@@ -1,0 +1,6 @@
+// Kullanıcı yetkileri metinleri (kod: user_authorizations.anahtar). Yer tutucular: {ad}.
+{
+  "user_authorizations": {
+    "user_not_exists": "Kullanıcı bulunamadı."
+  }
+}

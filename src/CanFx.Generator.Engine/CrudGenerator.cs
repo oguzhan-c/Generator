@@ -107,18 +107,36 @@ public static class CrudGenerator
         plan.Inject(claims, "canfxgen:permissions", $"..{n.Plural}OperationClaims.All,", n.ConstantsNamespace);
         plan.Inject(claims, "canfxgen:user-grants", $"// {n.Plural}OperationClaims.Read, // TODO(canfxgen): User rolü {n.Words} kayıtlarını görebilsin mi?");
 
-        string localization = Path.Combine(layout.WebApi, "Localization");
-        if (Directory.Exists(localization))
-        {
-            foreach (string file in Directory.EnumerateFiles(localization, "*.json"))
-            {
-                bool turkish = Path.GetFileNameWithoutExtension(file).StartsWith("tr", StringComparison.OrdinalIgnoreCase);
-                string message = turkish ? $"{n.Words} kaydı bulunamadı." : $"{n.Words} not found.";
-                plan.Edit(file, $"\"{n.ErrorPrefix}.not_exists\" çevirisi", text => SourceEditor.AddJsonGroup(text, n.ErrorPrefix, "not_exists", message));
-            }
-        }
+        AddLocalization(plan, layout, n, feature);
 
         return plan;
+    }
+
+    /// <summary>
+    /// Metinler: <c>Features/{Özellik}/Localization/{özellik}.{dil}.json</c> (iş kuralı mesajları ve alan adları). Diller
+    /// Application/Localization'daki dosyalardan okunur. Eski düzende (metinler WebAPI/Localization/tr.json'da) oraya eklenir.
+    /// </summary>
+    private static void AddLocalization(GenerationPlan plan, SolutionLayout layout, CrudNames n, string feature)
+    {
+        string shared = Path.Combine(layout.Application, "Localization");
+        string legacy = Path.Combine(layout.WebApi, "Localization");
+        if (!Directory.Exists(shared) && Directory.Exists(legacy) && Directory.EnumerateFiles(legacy, "*.json").Any())
+        {
+            foreach (string file in Directory.EnumerateFiles(legacy, "*.json"))
+            {
+                bool turkish = LocalizationFiles.Culture(file) == "tr";
+                plan.Edit(file, $"\"{n.NotExistsCode}\" çevirisi", text => SourceEditor.AddJsonGroup(text, n.ErrorPrefix, n.NotExistsKey, CrudTemplates.NotExistsText(n, turkish ? "tr" : "en")));
+            }
+
+            return;
+        }
+
+        IReadOnlyList<string> cultures = LocalizationFiles.Cultures(shared);
+        foreach (string culture in cultures)
+        {
+            IReadOnlySet<string> known = LocalizationFiles.FieldNames(Path.Combine(shared, $"fields.{culture}.json"));
+            plan.AddFile(Path.Combine(feature, "Localization", $"{n.ErrorPrefix}.{culture}.json"), CrudTemplates.Localization(n, culture, known));
+        }
     }
 
     /// <summary>
@@ -185,7 +203,7 @@ internal sealed class CrudNames
         Plural = string.IsNullOrWhiteSpace(plural) ? Names.Plural(entity.Name) : Names.Pascal(plural.Trim());
         Words = Names.Words(entity.Name);
         Route = Names.Kebab(Plural);
-        ErrorPrefix = Names.Snake(entity.Name);
+        ErrorPrefix = Names.Snake(Plural);
         Variable = Names.Camel(entity.Name) is var v && v is "event" or "class" or "object" or "string" or "operator" ? "@" + v : Names.Camel(entity.Name);
         Repository = $"_{Names.Camel(entity.Name)}Repository";
         Rules = $"_{Names.Camel(entity.Name)}BusinessRules";
@@ -233,7 +251,13 @@ internal sealed class CrudNames
     public string Route { get; }
 
     /// <summary>"product_category" (hata kodu öneki).</summary>
+    /// <summary>Hata kodlarının ve çeviri dosyasının öneki: özellik adı (Brands → <c>brands</c>).</summary>
     public string ErrorPrefix { get; }
+
+    /// <summary>Kayıt bulunamadı kodunun anahtarı (<c>brand_not_exists</c>) ve kodu (<c>brands.brand_not_exists</c>).</summary>
+    public string NotExistsKey => Names.Snake(Entity) + "_not_exists";
+
+    public string NotExistsCode => $"{ErrorPrefix}.{NotExistsKey}";
 
     /// <summary>"brand" (yerel değişken).</summary>
     public string Variable { get; }

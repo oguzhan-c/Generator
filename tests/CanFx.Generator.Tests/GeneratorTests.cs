@@ -218,9 +218,13 @@ public sealed class CrudGeneratorTests
         Assert.Contains("..BrandsOperationClaims.All,", claims);
         Assert.Contains("using Shop.Application.Features.Brands.Constants;", claims);
 
-        string tr = solution.Read("src/Shop.WebAPI/Localization/tr.json");
-        Assert.Contains("\"invalid_credentials\": \"E-posta ya da şifre hatalı.\",\n  \"brand\": { \"not_exists\": \"Brand kaydı bulunamadı.\" }", tr.ReplaceLineEndings("\n"));
-        Assert.Contains("\"brand\": { \"not_exists\": \"Brand not found.\" }", solution.Read("src/Shop.WebAPI/Localization/en.json"));
+        // Metinler özelliğin kendi dosyalarında; ortak dosyada çevirisi olan alan (Name) tekrar yazılmaz.
+        string tr = solution.Read(Feature + "Localization/brands.tr.json").ReplaceLineEndings("\n");
+        Assert.Contains("\"brands\": {\n    \"brand_not_exists\": \"Brand kaydı bulunamadı.\"", tr);
+        Assert.DoesNotContain("\"Name\"", tr);
+        Assert.Contains("\"brand_not_exists\": \"Brand not found.\"", solution.Read(Feature + "Localization/brands.en.json"));
+        Assert.Contains("public const string BrandNotExists = \"brands.brand_not_exists\";", solution.Read(Feature + "Constants/BrandsBusinessMessages.cs"));
+        Assert.Contains("{ Code = BrandsBusinessMessages.BrandNotExists }", solution.Read(Feature + "Rules/BrandBusinessRules.cs"));
 
         // İkinci çalıştırma: dosyalar korunur, eklemeler tekrarlanmaz.
         IReadOnlyList<ChangeResult> second = CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand")).Apply();
@@ -368,6 +372,20 @@ public sealed class CrudGeneratorTests
         Assert.Contains("using Shop.Application.Features.Brands.Commands.SyncBrand;", controller);
 
         Assert.Throws<GeneratorException>(() => FeatureGenerator.PlanCommand(layout, "Nope", "X"));
+    }
+
+    [Fact]
+    public void Old_solutions_get_texts_in_webapi_localization()
+    {
+        using var solution = new TestSolution();
+        solution.UseLegacyLocalization();
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", "namespace Shop.Domain.Entities; public class Brand : Entity<Guid> { public string Name { get; set; } = \"\"; }");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+
+        CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand")).Apply();
+
+        Assert.Contains("\"brands\": { \"brand_not_exists\": \"Brand kaydı bulunamadı.\" }", solution.Read("src/Shop.WebAPI/Localization/tr.json"));
+        Assert.False(solution.Exists(Feature + "Localization/brands.tr.json"));
     }
 
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>

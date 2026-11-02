@@ -1,0 +1,19 @@
+// Alan adları: doğrulama mesajlarında görünür ("Ad boş olamaz."). Anahtar: fields.{Özellik}; yalnızca bir özellikte
+// farklı olacaksa o özelliğin dosyasına {özellik}.fields.{Özellik} yaz (ör. "brands": { "fields": { "Name": "Marka adı" } }).
+{
+  "fields": {
+    "Email": "E-posta",
+    "Password": "Şifre",
+    "CurrentPassword": "Mevcut şifre",
+    "NewPassword": "Yeni şifre",
+    "FirstName": "Ad",
+    "LastName": "Soyad",
+    "PhoneNumber": "Telefon",
+    "Code": "Kod",
+    "Name": "Ad",
+    "Description": "Açıklama",
+    "Permissions": "Yetkiler",
+    "RoleId": "Rol",
+    "UserId": "Kullanıcı"
+  }
+}

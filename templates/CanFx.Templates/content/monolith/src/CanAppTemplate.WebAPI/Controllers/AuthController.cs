@@ -117,7 +117,7 @@ public class AuthController : BaseController
             // Kilitlenme ya da geçersiz bekleyen giriş: baştan giriş yapılmalı, bekleyen giriş cookie'si silinir. Exception
             // handler yanıt başlıklarını (Set-Cookie dahil) temizlediği için hata yanıtı burada yazılır.
             _twoFactor.Clear(Response);
-            return Error.Unauthorized(ex.Code ?? AuthBusinessMessages.UnauthorizedCode, ex.Message).ToProblem();
+            return Error.Unauthorized(ex.Code ?? AuthBusinessMessages.Unauthorized, ex.Message).ToProblem();
         }
 
         _twoFactor.Clear(Response);
@@ -139,7 +139,7 @@ public class AuthController : BaseController
     }
 
     private static UnauthorizedException TwoFactorExpired() =>
-        new(AuthBusinessMessages.TwoFactorExpired) { Code = AuthBusinessMessages.TwoFactorExpiredCode };
+        new(AuthBusinessMessages.TwoFactorExpired) { Code = AuthBusinessMessages.TwoFactorExpired };
 #endif
 
     /// <summary>Sunucuda açık olan giriş yöntemleri.</summary>
@@ -170,7 +170,7 @@ public class AuthController : BaseController
     public async Task<IResult> PasskeyLogin([FromBody] PasskeyLoginRequest body, [FromServices] PasskeyCeremonyStore ceremonies, CancellationToken ct)
     {
         if (await ceremonies.TakeAsync(Request, Response, PasskeyCeremonyStore.Login, ct) is not { } optionsJson)
-            throw new UnauthorizedException(AuthBusinessMessages.PasskeyExpired) { Code = AuthBusinessMessages.PasskeyFailedCode };
+            throw new UnauthorizedException(AuthBusinessMessages.PasskeyExpired) { Code = AuthBusinessMessages.PasskeyExpired };
 
         AuthenticatorAssertionRawResponse credential = ReadCredential<AuthenticatorAssertionRawResponse>(body.Credential);
         AuthResult session = await Mediator.Send(new PasskeyLoginCommand(credential, AssertionOptions.FromJson(optionsJson), _clients.Create(HttpContext)), ct);
@@ -233,7 +233,7 @@ public class AuthController : BaseController
     public async Task<IResult> Refresh(CancellationToken ct)
     {
         if (_cookies.GetRefreshToken(Request) is not { } refreshToken)
-            throw new UnauthorizedException(AuthBusinessMessages.SessionExpired) { Code = AuthBusinessMessages.SessionExpiredCode };
+            throw new UnauthorizedException(AuthBusinessMessages.SessionExpired) { Code = AuthBusinessMessages.SessionExpired };
 
         AuthResult session;
         try
@@ -244,7 +244,7 @@ public class AuthController : BaseController
         {
             // Geçersiz/çalınmış token: tarayıcıdaki cookie'leri de temizle (yanıt burada yazılır, bkz. CompleteTwoFactorLogin).
             _cookies.Clear(Response);
-            return Error.Unauthorized(ex.Code ?? AuthBusinessMessages.UnauthorizedCode, ex.Message).ToProblem();
+            return Error.Unauthorized(ex.Code ?? AuthBusinessMessages.Unauthorized, ex.Message).ToProblem();
         }
 
         _cookies.SetTokens(Response, session.AccessToken, session.RefreshToken);
@@ -286,7 +286,7 @@ public class AuthController : BaseController
 
         throw new CanFx.Application.Exceptions.ValidationException("credential", AuthBusinessMessages.PasskeyInvalidResponse)
         {
-            Code = AuthBusinessMessages.PasskeyFailedCode,
+            Code = AuthBusinessMessages.PasskeyInvalidResponse,
         };
     }
 }

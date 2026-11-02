@@ -1,0 +1,8 @@
+// Rol texts (code: roles.key). Placeholders: {name}.
+{
+  "roles": {
+    "role_not_exists": "Role not found.",
+    "role_name_exists": "A role with this name already exists.",
+    "host_only": "Roles and role permissions can only be managed by the host."
+  }
+}

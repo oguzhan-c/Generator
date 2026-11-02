@@ -1,0 +1,12 @@
+// Error codes of CanFx role/permission rules (AccessGrantGuard): identity.key.
+{
+  "identity": {
+    "grant_exceeds_own": "You cannot grant or revoke permissions you do not have.",
+    "self_modification": "You cannot change your own roles or permissions.",
+    "system_role": "System roles cannot be deleted or renamed; the administrator role's permissions cannot be edited.",
+    "last_admin": "The last administrator cannot be removed; make another user an administrator first.",
+    "role_in_use": "This role is assigned to users; remove it from them first.",
+    "unknown_permission": "One or more permissions were not found.",
+    "deprecated_permission": "Deprecated permissions cannot be granted."
+  }
+}

@@ -29,10 +29,10 @@ public sealed class OperationClaimBusinessRules : BaseBusinessRules
             .ToListAsync(cancellationToken);
 
         if (claims.Count != distinct.Length)
-            throw new NotFoundException(OperationClaimsBusinessMessages.OperationClaimNotExists) { Code = OperationClaimsBusinessMessages.OperationClaimNotExistsCode };
+            throw new NotFoundException(OperationClaimsBusinessMessages.OperationClaimNotExists) { Code = OperationClaimsBusinessMessages.OperationClaimNotExists };
 
         if (!allowDeprecated && claims.Any(c => c.IsDeprecated))
-            throw new BusinessException(OperationClaimsBusinessMessages.OperationClaimDeprecated) { Code = OperationClaimsBusinessMessages.OperationClaimDeprecatedCode };
+            throw new BusinessException(OperationClaimsBusinessMessages.OperationClaimDeprecated) { Code = OperationClaimsBusinessMessages.OperationClaimDeprecated };
 
         return claims;
     }

@@ -33,4 +33,14 @@
 <!--#endif-->
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Metinler (hata mesajları, alan adları) koda değil, özellik başına çeviri dosyalarına yazılır ve DLL'e gömülür:
+        Features/{Özellik}/Localization/{özellik}.tr.json, .en.json ...   (kod: özellik.anahtar)
+        Localization/*.json                                              (ortak: alan adları, CanFx kodları)
+      Yeni dil: aynı dosyaların .{dil}.json kopyası + Program.cs'te SupportedCultures.
+    -->
+    <EmbeddedResource Include="Features\**\Localization\*.json;Localization\*.json" WithCulture="false" />
+  </ItemGroup>
+
 </Project>

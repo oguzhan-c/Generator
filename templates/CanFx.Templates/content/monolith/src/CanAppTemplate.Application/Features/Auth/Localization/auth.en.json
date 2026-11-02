@@ -1,0 +1,23 @@
+// Kimlik doğrulama texts (code: auth.key). Placeholders: {name}.
+{
+  "auth": {
+    "unauthorized": "You need to sign in to do this.",
+    "invalid_credentials": "Email or password is incorrect.",
+    "locked_out": "Too many failed attempts; the account is temporarily locked.",
+    "email_not_confirmed": "Your email address is not verified yet. Enter the code we sent.",
+    "email_already_confirmed": "Your email address is already verified; you can sign in.",
+    "email_taken": "An account with this email already exists.",
+    "invalid_verification_code": "The code is invalid or expired; request a new one.",
+    "invalid_two_factor_code": "The code is invalid or expired.",
+    "two_factor_expired": "Verification timed out; please sign in again.",
+    "two_factor_not_email": "This account gets its codes from an authenticator app.",
+    "passkey_failed": "The passkey could not be verified.",
+    "passkey_expired": "The passkey request expired; please try again.",
+    "passkey_invalid_response": "Invalid passkey response.",
+    "session_expired": "Your session has expired; please sign in again.",
+    "invalid_password": "The password is incorrect.",
+    "external_email_not_verified": "The provider did not return a verified email. Sign in with your password and link the account from the Account security page.",
+    "external_already_linked": "This external account is linked to another user.",
+    "external_provider_linked": "You already have an account linked with this provider; remove it first."
+  }
+}

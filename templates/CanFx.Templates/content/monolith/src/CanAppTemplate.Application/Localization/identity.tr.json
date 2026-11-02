@@ -1,0 +1,12 @@
+// CanFx'in rol/yetki kurallarının (AccessGrantGuard) hata kodları: identity.anahtar. Metinler uygulamanındır.
+{
+  "identity": {
+    "grant_exceeds_own": "Sahip olmadığın yetkileri veremez ya da geri alamazsın.",
+    "self_modification": "Kendi rollerini ve yetkilerini değiştiremezsin.",
+    "system_role": "Sistem rolü silinemez, adı değiştirilemez; yönetici rolünün yetkileri düzenlenemez.",
+    "last_admin": "Son yönetici kaldırılamaz; önce başka bir kullanıcıyı yönetici yap.",
+    "role_in_use": "Bu rol kullanıcılara atanmış; önce kullanıcılardan kaldır.",
+    "unknown_permission": "Yetkilerden biri ya da birkaçı bulunamadı.",
+    "deprecated_permission": "Kullanımdan kaldırılmış yetki verilemez."
+  }
+}

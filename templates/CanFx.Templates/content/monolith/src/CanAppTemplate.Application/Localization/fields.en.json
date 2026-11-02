@@ -1,0 +1,18 @@
+// Field names shown in validation messages. Key: fields.{Property}; feature-specific: {feature}.fields.{Property}.
+{
+  "fields": {
+    "Email": "Email",
+    "Password": "Password",
+    "CurrentPassword": "Current password",
+    "NewPassword": "New password",
+    "FirstName": "First name",
+    "LastName": "Last name",
+    "PhoneNumber": "Phone",
+    "Code": "Code",
+    "Name": "Name",
+    "Description": "Description",
+    "Permissions": "Permissions",
+    "RoleId": "Role",
+    "UserId": "User"
+  }
+}

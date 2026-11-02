@@ -36,7 +36,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Hata ve metin çevirileri (tr/en) -->
+    <!--
+      İsteğe bağlı: Localization/*.json (ör. tr.json) gömülü metinleri (Application'daki özellik dosyaları) ezer; kod
+      değiştirmeden müşteriye özel metin vermek için. Asıl metinler Application/Features/*/Localization'da.
+    -->
     <Content Update="Localization\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

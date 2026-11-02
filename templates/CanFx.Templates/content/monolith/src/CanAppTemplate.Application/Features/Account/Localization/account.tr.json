@@ -1,0 +1,17 @@
+// Hesap güvenliği metinleri (kod: account.anahtar). Yer tutucular: {ad}.
+{
+  "account": {
+    "current_password_invalid": "Mevcut şifre hatalı.",
+    "otp_already_enabled": "Authenticator uygulaması zaten açık. Yenisini kurmak için önce iki adımlı doğrulamayı kapat.",
+    "otp_code_invalid": "Kod hatalı. Uygulamadaki güncel kodu gir (saatin doğru olduğundan emin ol).",
+    "email_not_confirmed": "Önce e-posta adresini doğrula.",
+    "two_factor_disabled": "Kurtarma kodları yalnızca iki adımlı doğrulama açıkken kullanılır.",
+    "passkey_not_found": "Passkey bulunamadı.",
+    "passkey_wrong_user": "Passkey isteği bu hesaba ait değil.",
+    "passkey_limit": "En fazla {max} passkey eklenebilir; önce birini sil.",
+    "passkey_registration_failed": "Passkey kaydedilemedi; tekrar dene.",
+    "passkey_registration_expired": "Passkey isteğinin süresi doldu; tekrar dene.",
+    "external_login_not_found": "Bağlı dış hesap bulunamadı.",
+    "last_sign_in_method": "Bu, hesabına girmenin tek yolu. Kaldırmadan önce bir şifre, passkey ya da başka bir dış hesap ekle."
+  }
+}
