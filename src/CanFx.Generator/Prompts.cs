@@ -14,6 +14,7 @@ internal static class Prompts
     private const string Cyan = "\u001b[36m";
     private const string Gray = "\u001b[90m";
     private const string Yellow = "\u001b[33m";
+    private const string Red = "\u001b[31m";
 
     public static bool Interactive { get; set; } = !Console.IsInputRedirected && !Console.IsOutputRedirected;
 
@@ -28,6 +29,8 @@ internal static class Prompts
     public static string Dim(string text) => Paint(text, Gray);
 
     public static string Warn(string text) => Paint(text, Yellow);
+
+    public static string R(string text) => Paint(text, Red);
 
     public static void Banner()
     {

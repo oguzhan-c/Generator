@@ -186,6 +186,9 @@ CS
   run_cangen generate dynamic-query Tag                       # dinamik sorgu sonradan
   run_cangen generate seeder Brand                            # zorunlu (JSON) + örnek veri
   run_cangen generate seeder Color --has-data                 # oluşturulamayan entity: TODO'lu seeder + HasData
+  run_cangen disable caching dynamic-query Brand              # mekanizmaları sonradan kapat / aç
+  run_cangen enable caching logging Tag
+  run_cangen disable secured GetByIdTagQuery
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands
   if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then

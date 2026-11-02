@@ -20,6 +20,10 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 - canfxgen: `generate entity <Ad> [--folder <klasör>] [--id Guid|int|long]`: Domain'de yeni entity; taban sınıf
   seçenekleri (Entity, AuditedEntity, FullAuditedEntity, AggregateRoot ...) ve her birinin eklediği alanlar dosyada
   yorum olarak durur, seçim sınıf satırında yapılır.
+- canfxgen: `enable` / `disable <mekanizma...> <hedef>`: önbellek, log, transaction, yetki ve dinamik sorgu sonradan
+  açılıp kapatılır. Hedef bir istek (`CreateBrandCommand`), özellik (`Brands`) ya da entity (`Brand`, özelliğin tüm
+  istekleri). İstek sınıfına arayüz ve üyeleri (Permissions, CacheKey/CacheTags ...) eklenir ya da çıkarılır; dosyanın
+  geri kalanına dokunulmaz. `--preview` değişiklikleri satır farkı olarak gösterir, dosyalara yazmaz (`--json` ile IDE için).
 - canfxgen: `generate seeder <Entity>`: `{Entity}Seeder` (her ortamda; `Seeding/Data/{çoğul}.json`'dan, doğal anahtarla
   eşleşmeyen eksik kayıtlar eklenir), `{Entity}SampleSeeder` (yalnızca geliştirmede, `SampleData` ile alan adına ve
   tipine göre örnek değer; ilişkili kayıtlar var olanlardan seçilir), ilişkilere göre sıra önerisi; `--has-data` ile

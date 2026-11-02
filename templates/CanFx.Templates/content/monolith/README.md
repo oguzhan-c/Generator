@@ -54,6 +54,18 @@ CRUD** (ya da terminalde `canfxgen generate crud Brand`; komut/sorgu eklemek iç
 Generator `// canfxgen:...` işaretlerinin olduğu yerlere ekleme yapar; bu satırları silme. Senin doldurman gereken yerler
 `TODO(canfxgen)` ile işaretlidir (Rider: View → Tool Windows → TODO).
 
+## Mekanizmaları sonradan açıp kapatma
+
+```bash
+canfxgen enable caching Brand --preview          # önce neyin değişeceğini gör
+canfxgen enable caching Brand                    # Brands özelliğinin tüm sorguları önbellekte
+canfxgen disable secured logging CreateBrandCommand
+canfxgen disable dynamic-query Brand             # GetListByDynamic dosyaları, eşlemesi ve uçları kaldırılır
+```
+
+Mekanizmalar: `caching`, `logging`, `transaction`, `secured`, `dynamic-query`. Yalnızca istek sınıfının arayüzleri ve
+ilgili üyeleri değişir; handler ve kendi eklediklerin olduğu gibi kalır (transaction kapatılırken handler kaydetmiyorsa uyarılır).
+
 ## Başlangıç verisi (seed)
 
 ```bash

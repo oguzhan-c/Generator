@@ -9,6 +9,7 @@ public sealed class GenerationPlan
 
     private readonly List<GeneratedFile> _files = [];
     private readonly List<Injection> _injections = [];
+    private readonly List<string> _deletions = [];
 
     public IReadOnlyList<GeneratedFile> Files => _files;
 
@@ -33,10 +34,53 @@ public sealed class GenerationPlan
     internal void Edit(string file, string description, Func<string, InjectResult> edit) =>
         _injections.Add(new Injection(file, description, edit));
 
+    /// <summary>Dosyayı siler (ör. bir mekanizma kapatılınca onun dosyaları).</summary>
+    internal void Delete(string file) => _deletions.Add(file);
+
+    /// <summary>Başka bir planın dosyalarını, değişikliklerini ve silmelerini bu plana katar.</summary>
+    internal void Include(GenerationPlan other)
+    {
+        _files.AddRange(other._files);
+        _injections.AddRange(other._injections);
+        _deletions.AddRange(other._deletions);
+    }
+
+    /// <summary>
+    /// Diske yazmadan değişikliklerin önizlemesi: her dosyanın önceki ve sonraki hali (yeni dosyada önceki, silinende
+    /// sonraki <see langword="null"/>).
+    /// </summary>
+    public IReadOnlyList<FilePreview> Preview(bool force = false) => Compute(force).Select(c => c.Preview).ToList();
+
     /// <summary>Planı uygular. <paramref name="force"/> yoksa var olan dosyaların üzerine yazılmaz.</summary>
     public IReadOnlyList<ChangeResult> Apply(bool force = false, bool dryRun = false)
     {
-        var results = new List<ChangeResult>();
+        List<Computed> changes = Compute(force);
+        if (!dryRun)
+        {
+            foreach (Computed change in changes)
+            {
+                switch (change.Result.Kind)
+                {
+                    case ChangeKind.Created or ChangeKind.Overwritten or ChangeKind.Updated:
+                        Directory.CreateDirectory(Path.GetDirectoryName(change.Result.Path)!);
+                        File.WriteAllText(change.Result.Path, change.Preview.After!, Utf8);
+                        break;
+                    case ChangeKind.Deleted:
+                        File.Delete(change.Result.Path);
+                        DeleteEmptyDirectory(Path.GetDirectoryName(change.Result.Path));
+                        break;
+                }
+            }
+        }
+
+        return changes.Select(c => c.Result).ToList();
+    }
+
+    private sealed record Computed(ChangeResult Result, FilePreview Preview);
+
+    private List<Computed> Compute(bool force)
+    {
+        var results = new List<Computed>();
 
         // Planın başındaki durum: yazılan dosyalar sonraki kontrolleri etkilemesin.
         var originsBefore = _files.Where(f => f.Origin != f.Path).Select(f => f.Origin).Distinct().Where(File.Exists).ToHashSet();
@@ -44,35 +88,32 @@ public sealed class GenerationPlan
         foreach (GeneratedFile file in _files)
         {
             bool exists = File.Exists(file.Path);
+            string? before = exists ? File.ReadAllText(file.Path) : null;
 
             // Ayrılan dosyalar (ör. handler) asıl dosyayla birlikte yazılır: asıl dosya korunuyorsa (eski üretimde handler
             // onun içinde olabilir) ayrılanlar da yazılmaz, yoksa aynı tip iki kez tanımlanır.
             if (!force && file.Origin != file.Path && originsBefore.Contains(file.Origin))
             {
-                results.Add(new ChangeResult(file.Path, ChangeKind.Skipped, $"{System.IO.Path.GetFileName(file.Origin)} var, değiştirilmedi"));
+                results.Add(Unchanged(file.Path, before, ChangeKind.Skipped, $"{System.IO.Path.GetFileName(file.Origin)} var, değiştirilmedi"));
                 continue;
             }
 
             if (exists && !force)
             {
-                results.Add(new ChangeResult(file.Path, ChangeKind.Skipped, "dosya var, değiştirilmedi"));
+                results.Add(Unchanged(file.Path, before, ChangeKind.Skipped, "dosya var, değiştirilmedi"));
                 continue;
             }
 
-            if (!dryRun)
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                File.WriteAllText(file.Path, file.Content, Utf8);
-            }
-
-            results.Add(new ChangeResult(file.Path, exists ? ChangeKind.Overwritten : ChangeKind.Created, null));
+            results.Add(new Computed(
+                new ChangeResult(file.Path, exists ? ChangeKind.Overwritten : ChangeKind.Created, null),
+                new FilePreview(file.Path, exists ? ChangeKind.Overwritten : ChangeKind.Created, before, file.Content)));
         }
 
         foreach (IGrouping<string, Injection> group in _injections.GroupBy(i => i.File))
         {
             if (!File.Exists(group.Key))
             {
-                results.Add(new ChangeResult(group.Key, ChangeKind.Failed, "dosya bulunamadı"));
+                results.Add(Unchanged(group.Key, null, ChangeKind.Failed, "dosya bulunamadı"));
                 continue;
             }
 
@@ -89,15 +130,31 @@ public sealed class GenerationPlan
             }
 
             ChangeKind kind = notes.Count > 0 && text == original ? ChangeKind.Failed : text == original ? ChangeKind.Unchanged : ChangeKind.Updated;
-            if (kind == ChangeKind.Updated && !dryRun)
-                File.WriteAllText(group.Key, text, Utf8);
+            string? note = notes.Count > 0 ? string.Join("; ", notes) : null;
+            results.Add(new Computed(new ChangeResult(group.Key, kind, note), new FilePreview(group.Key, kind, original, text)));
+        }
 
-            results.Add(new ChangeResult(group.Key, kind, notes.Count > 0 ? string.Join("; ", notes) : null));
+        foreach (string file in _deletions.Distinct(StringComparer.Ordinal))
+        {
+            if (File.Exists(file))
+                results.Add(new Computed(new ChangeResult(file, ChangeKind.Deleted, null), new FilePreview(file, ChangeKind.Deleted, File.ReadAllText(file), null)));
         }
 
         return results;
+
+        static Computed Unchanged(string path, string? text, ChangeKind kind, string note) =>
+            new(new ChangeResult(path, kind, note), new FilePreview(path, kind, text, text));
+    }
+
+    private static void DeleteEmptyDirectory(string? directory)
+    {
+        if (directory is not null && Directory.Exists(directory) && !Directory.EnumerateFileSystemEntries(directory).Any())
+            Directory.Delete(directory);
     }
 }
+
+/// <summary>Önizlemede bir dosya: önceki ve sonraki hali.</summary>
+public sealed record FilePreview(string Path, ChangeKind Kind, string? Before, string? After);
 
 public sealed record GeneratedFile(string Path, string Content)
 {
@@ -115,6 +172,7 @@ public enum ChangeKind
     Unchanged,
     Skipped,
     Failed,
+    Deleted,
 }
 
 public sealed record ChangeResult(string Path, ChangeKind Kind, string? Note);

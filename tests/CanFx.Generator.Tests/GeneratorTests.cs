@@ -508,6 +508,70 @@ public sealed class CrudGeneratorTests
         Assert.False(solution.Exists("src/Shop.Persistence/Seeding/BrandSeeder.cs"));
     }
 
+    [Fact]
+    public void Mechanisms_can_be_toggled_later_with_preview()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", "namespace Shop.Domain.Entities; public class Brand : Entity<Guid> { public string Name { get; set; } = \"\"; }");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand"), new CrudOptions { Caching = false }).Apply();
+
+        string getById = Feature + "Queries/GetById/GetByIdBrandQuery.cs";
+        string before = solution.Read(getById);
+        Assert.DoesNotContain("ICachableRequest", before);
+
+        // Önizleme: dosya değişmez, farkı görünür.
+        var warnings = new List<string>();
+        GenerationPlan plan = MechanismEditor.Plan(layout, "Brand", [Mechanism.Caching], enable: true, warnings);
+        IReadOnlyList<FilePreview> preview = plan.Preview();
+        Assert.Contains(preview, p => p.Path.EndsWith("GetByIdBrandQuery.cs", StringComparison.Ordinal) && p.After!.Contains("ICachableRequest", StringComparison.Ordinal));
+        Assert.Equal(before, solution.Read(getById));
+        Assert.Contains(warnings, w => w.Contains("GetListByDynamicBrandQuery", StringComparison.Ordinal)); // dinamik sorgu önbelleğe alınmaz
+
+        // Entity için aç: tüm sorgular önbellekli, anahtar parametrelerden.
+        plan.Apply();
+        string cached = solution.Read(getById);
+        Assert.Contains("ISecuredRequest, ICachableRequest", cached);
+        Assert.Contains("public string CacheKey => $\"GetByIdBrand({Id})\";", cached);
+        Assert.Contains("[CanFx.Application.CacheTags.Entity<Brand>()]", cached);
+        Assert.Contains("public string CacheKey => $\"GetListBrand({PageRequest.Page},{PageRequest.PageSize})\";", solution.Read(Feature + "Queries/GetList/GetListBrandQuery.cs"));
+        Assert.Contains("ICacheRemoverRequest", solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs"));
+
+        // Tek istek için kapat; tekrar çalıştırmak bir şey değiştirmez.
+        MechanismEditor.Plan(layout, "GetByIdBrandQuery", [Mechanism.Caching, Mechanism.Secured], enable: false, []).Apply();
+        string plain = solution.Read(getById);
+        Assert.DoesNotContain("ICachableRequest", plain);
+        Assert.DoesNotContain("CacheKey", plain);
+        Assert.DoesNotContain("ISecuredRequest", plain);
+        Assert.DoesNotContain("Permissions", plain);
+        Assert.Contains("public sealed class GetByIdBrandQuery : IRequest<GetByIdBrandResponse>\n", plain.ReplaceLineEndings("\n"));
+        Assert.DoesNotContain("\n\n\n", plain.ReplaceLineEndings("\n"));
+        IReadOnlyList<ChangeResult> again = MechanismEditor.Plan(layout, "GetByIdBrandQuery", [Mechanism.Caching], enable: false, []).Apply();
+        Assert.All(again, r => Assert.Equal(ChangeKind.Unchanged, r.Kind));
+
+        // Yetkiyi geri aç: Admin + Read.
+        MechanismEditor.Plan(layout, "GetByIdBrandQuery", [Mechanism.Secured], enable: true, []).Apply();
+        Assert.Contains("public IReadOnlyCollection<string> Permissions => [BrandsOperationClaims.Admin, BrandsOperationClaims.Read];", solution.Read(getById));
+
+        // Transaction kapatılırken handler kaydetmiyorsa uyarı.
+        var transactionWarnings = new List<string>();
+        MechanismEditor.Plan(layout, "UpdateBrandCommand", [Mechanism.Transaction], enable: false, transactionWarnings).Apply();
+        Assert.DoesNotContain("ITransactionalRequest", solution.Read(Feature + "Commands/Update/UpdateBrandCommand.cs"));
+        Assert.Contains(transactionWarnings, w => w.Contains("SaveChangesAsync", StringComparison.Ordinal));
+
+        // Dinamik sorguyu kapat: dosyalar, eşleme ve uçlar gider.
+        IReadOnlyList<ChangeResult> dynamic = MechanismEditor.Plan(layout, "Brand", [Mechanism.DynamicQuery], enable: false, []).Apply();
+        Assert.Contains(dynamic, r => r.Kind == ChangeKind.Deleted);
+        Assert.False(solution.Exists(Feature + "Queries/GetListByDynamic/GetListByDynamicBrandQuery.cs"));
+        Assert.DoesNotContain("GetListByDynamic", solution.Read(Feature + "Profiles/MappingProfiles.cs"));
+        Assert.DoesNotContain("GetListByDynamic", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
+
+        // ve geri aç
+        MechanismEditor.Plan(layout, "Brand", [Mechanism.DynamicQuery], enable: true, []).Apply();
+        Assert.True(solution.Exists(Feature + "Queries/GetListByDynamic/GetListByDynamicBrandQuery.cs"));
+        Assert.Contains("GetListByDynamic", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
+    }
+
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
     private static string ReadWithHandler(TestSolution solution, string requestPath) =>
         solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");

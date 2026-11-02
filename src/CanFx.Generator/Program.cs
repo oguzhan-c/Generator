@@ -28,6 +28,8 @@ try
         "new" => New(arguments),
         "generate" or "g" => Generate(arguments),
         "crud" => Crud(arguments, entityIndex: 1),
+        "enable" => Toggle(arguments, enable: true),
+        "disable" => Toggle(arguments, enable: false),
         "entities" => Entities(arguments),
         "features" => Features(arguments),
         "version" => Print(Version()),
@@ -205,6 +207,85 @@ int Seeder(Arguments a)
     return Report(a, layout, results, $"{entity.Name}: seed (sıra {order})", [$"Sıra önerisi: {order}. {reason}"], new { entity.Name, Order = order });
 }
 
+// ================================================================ enable / disable
+
+int Toggle(Arguments a, bool enable)
+{
+    if (!a.Json)
+        Banner();
+    SolutionLayout layout = Layout(a);
+
+    var mechanisms = new List<Mechanism>();
+    string? target = null;
+    for (int i = 1; a.Positional(i) is { } word; i++)
+    {
+        if (MechanismEditor.Parse(word) is { } mechanism)
+            mechanisms.Add(mechanism);
+        else if (target is null)
+            target = word;
+        else
+            throw new GeneratorException($"Fazla argüman: {word}");
+    }
+
+    foreach ((string flag, Mechanism mechanism) in new[] { ("caching", Mechanism.Caching), ("logging", Mechanism.Logging), ("transaction", Mechanism.Transaction), ("secured", Mechanism.Secured), ("dynamic-query", Mechanism.DynamicQuery) })
+    {
+        if (a.Flag(flag))
+            mechanisms.Add(mechanism);
+    }
+
+    string verb = enable ? "açılacak" : "kapatılacak";
+    if (mechanisms.Count == 0)
+    {
+        IReadOnlyList<string> chosen = MultiSelect($"Hangi {G("mekanizmalar")} {verb}?", [("caching", false), ("logging", false), ("transaction", false), ("secured", false), ("dynamic-query", false)]);
+        mechanisms.AddRange(chosen.Select(c => MechanismEditor.Parse(c)!.Value));
+        if (mechanisms.Count == 0)
+            throw new GeneratorException("Mekanizma gerekli: canfxgen " + (enable ? "enable" : "disable") + " caching Brand");
+    }
+
+    target ??= Text($"Hedef: {G("istek")} (CreateBrandCommand), {G("özellik")} (Brands) ya da {G("entity")} (Brand)");
+    var warnings = new List<string>();
+    GenerationPlan plan = MechanismEditor.Plan(layout, target, mechanisms, enable, warnings);
+    string title = $"{target}: {string.Join(", ", mechanisms.Distinct().Select(MechanismEditor.Name))} {(enable ? "açıldı" : "kapatıldı")}";
+
+    if (a.Flag("preview") || a.Flag("dry-run"))
+        return PrintPreview(a, layout, plan, title, warnings);
+
+    return Report(a, layout, plan.Apply(), title, warnings, new { Target = target, Enable = enable, Mechanisms = mechanisms.Distinct() });
+}
+
+int PrintPreview(Arguments a, SolutionLayout layout, GenerationPlan plan, string title, IReadOnlyList<string> warnings)
+{
+    List<FilePreview> previews = plan.Preview().Where(p => p.Kind is ChangeKind.Created or ChangeKind.Overwritten or ChangeKind.Updated or ChangeKind.Deleted or ChangeKind.Failed).ToList();
+    if (a.Json)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            ok = previews.All(p => p.Kind != ChangeKind.Failed),
+            solution = layout.Root,
+            preview = true,
+            warnings,
+            changes = previews.Select(p => new { p.Path, p.Kind, Diff = Diff.Unified(p.Before, p.After) }),
+        }, json));
+        return 0;
+    }
+
+    Console.WriteLine($"{title} {Dim("(önizleme: hiçbir dosya değiştirilmedi)")}");
+    foreach (FilePreview preview in previews)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"{preview.Kind switch { ChangeKind.Created => "🆕", ChangeKind.Deleted => "🗑 ", ChangeKind.Failed => "❌", _ => "🔼" }} {B(Path.GetRelativePath(layout.Root, preview.Path))}");
+        foreach (string line in Diff.Unified(preview.Before, preview.After).Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            Console.WriteLine(line.StartsWith('+') ? G(line) : line.StartsWith('-') ? R(line) : Dim(line));
+    }
+
+    if (previews.Count == 0)
+        Console.WriteLine(Dim("Değişiklik yok (zaten istenen durumda)."));
+    foreach (string warning in warnings)
+        Console.WriteLine($"⚠️  {warning}");
+    Console.WriteLine(Dim("\nUygulamak için aynı komutu --preview olmadan çalıştır."));
+    return 0;
+}
+
 int Request(Arguments a, bool isCommand)
 {
     Banner();
@@ -339,6 +420,7 @@ int Report(Arguments a, SolutionLayout layout, IReadOnlyList<ChangeResult> resul
     Section("Üretilen dosyalar:", r => r.Kind is ChangeKind.Created or ChangeKind.Overwritten, "🆕");
     Section("Güncellenen dosyalar:", r => r.Kind == ChangeKind.Updated, "🔼");
     Section("Atlanan dosyalar (zaten var, değiştirilmedi):", r => r.Kind == ChangeKind.Skipped, "⏭ ");
+    Section("Silinen dosyalar:", r => r.Kind == ChangeKind.Deleted, "🗑 ");
     Section("Başarısız:", r => r.Kind == ChangeKind.Failed, "❌");
 
     foreach (string warning in warnings)
@@ -375,10 +457,15 @@ static string Help() => """
         canfxgen generate command SyncBrand Brands
         canfxgen generate query GetBrandByName Brands
         canfxgen generate dynamic-query Brand
+        canfxgen enable caching Brand --preview
+        canfxgen disable secured logging CreateBrandCommand
 
     KOMUTLAR:
         new [Ad]                  CanFx şablonuyla yeni çözüm (veritabanı ve özellikler sorulur)
         generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
+        enable / disable          Mekanizmayı sonradan aç / kapat: caching, logging, transaction, secured, dynamic-query
+                                  Hedef: istek (CreateBrandCommand), özellik (Brands), entity (Brand) ya da dosya yolu.
+                                  --preview: değişiklikleri göster, dosyalara yazma
         entities                  Domain'deki entity'leri listeler
         features                  Application/Features altındaki özellikleri listeler
         version                   Sürümü yazar
