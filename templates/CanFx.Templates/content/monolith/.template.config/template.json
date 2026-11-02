@@ -10,13 +10,34 @@
   "identity": "CanFx.Templates.Monolith",
   "groupIdentity": "CanFx.Templates.Monolith",
   "name": "CanFx Monolith",
-  "description": "CanFx paketleriyle nArchitecture düzeninde monolith Web API: Domain / Application (CQRS) / Persistence / Infrastructure / WebAPI (Controllers). Kimlik (JWT HttpOnly cookie), 2FA, passkey, çoklu kiracılık ve dış servisler seçmeli.",
   "shortName": "canfx-monolith",
-  "sourceName": "CanAppTemplate",
-  "preferNameDirectory": true,
+  "description": "CanFx paketleriyle nArchitecture düzeninde monolith Web API: Domain / Application (CQRS) / Persistence / Infrastructure / WebAPI (Controllers). Kimlik (JWT HttpOnly cookie), 2FA, passkey, çoklu kiracılık ve dış servisler seçmeli.",
   "tags": {
     "language": "C#",
     "type": "solution"
+  },
+  "preferNameDirectory": true,
+  "forms": {
+    "codeName": {
+      "identifier": "replace",
+      "pattern": "[^A-Za-z0-9_.]",
+      "replacement": "_"
+    },
+    "lowerName": {
+      "identifier": "lowerCaseInvariant"
+    },
+    "slugChars": {
+      "identifier": "replace",
+      "pattern": "[^a-z0-9]+",
+      "replacement": "-"
+    },
+    "slug": {
+      "identifier": "chain",
+      "steps": [
+        "lowerName",
+        "slugChars"
+      ]
+    }
   },
   "symbols": {
     "MultiTenancy": {
@@ -142,9 +163,18 @@
       "datatype": "choice",
       "defaultValue": "guid",
       "choices": [
-        { "choice": "guid", "description": "Guid v7 (kodda üretilir, zamana göre sıralı)" },
-        { "choice": "int", "description": "int (veritabanı üretir)" },
-        { "choice": "long", "description": "long (veritabanı üretir)" }
+        {
+          "choice": "guid",
+          "description": "Guid v7 (kodda üretilir, zamana göre sıralı)"
+        },
+        {
+          "choice": "int",
+          "description": "int (veritabanı üretir)"
+        },
+        {
+          "choice": "long",
+          "description": "long (veritabanı üretir)"
+        }
       ]
     },
     "IdKeyClrType": {
@@ -155,9 +185,18 @@
         "evaluator": "C++",
         "datatype": "string",
         "cases": [
-          { "condition": "(IdKeyType == \"int\")", "value": "System.Int32" },
-          { "condition": "(IdKeyType == \"long\")", "value": "System.Int64" },
-          { "condition": "", "value": "System.Guid" }
+          {
+            "condition": "(IdKeyType == \"int\")",
+            "value": "System.Int32"
+          },
+          {
+            "condition": "(IdKeyType == \"long\")",
+            "value": "System.Int64"
+          },
+          {
+            "condition": "",
+            "value": "System.Guid"
+          }
         ]
       }
     },
@@ -168,6 +207,21 @@
       "parameters": {
         "defaultFormat": "d"
       }
+    },
+    "AppCodeName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "codeName",
+      "replaces": "CanAppTemplate",
+      "fileRename": "CanAppTemplate",
+      "description": "Kod, proje ve klasör adlarında kullanılan ad: harf, rakam, nokta ve alt çizgi (CanFx.Shop-Api → CanFx.Shop_Api)."
+    },
+    "AppSlug": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "slug",
+      "replaces": "canapptemplate",
+      "description": "Docker, veritabanı, bucket ve e-posta alan adlarında kullanılan ad: küçük harf, rakam ve tire (canfx-shop-api)."
     }
   },
   "sources": [

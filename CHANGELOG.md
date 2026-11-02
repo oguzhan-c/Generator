@@ -9,6 +9,15 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-02
+
+### Düzeltildi
+
+- Tire içeren proje adında (`CanFx.Shop-Api`) çözüm derlenmiyordu: klasörler adı olduğu gibi, proje referansları ve
+  namespace'ler tiresi `_` yapılmış haliyle kullanıyordu. Artık ad her yerde tek biçimde: kodda, proje ve klasör
+  adlarında `CanFx.Shop_Api`; Docker, veritabanı, bucket ve e-posta adlarında `canfx-shop-api`. Doğrulamaya tireli
+  adla bir çözüm eklendi.
+
 ## [0.3.2] - 2026-10-30
 
 ### Değişti

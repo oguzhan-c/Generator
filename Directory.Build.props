@@ -11,7 +11,7 @@
       Sürüm: canfxgen (CanFx.Generator) ve proje şablonu (CanFx.Templates) bu sürümle yayınlanır. CanFx paketlerinden
       bağımsızdır (CanFx: github.com/oguzhan-c/Core). CI etiketli derlemede sürümü etiketten alır (v0.2.0 → 0.2.0).
     -->
-    <VersionPrefix>0.3.2</VersionPrefix>
+    <VersionPrefix>0.3.3</VersionPrefix>
 
     <!--
       Şablonla oluşturulan projelerin kullandığı CanFx paket sürümü (nuget.org). Yeni CanFx sürümü çıkınca burası

@@ -53,6 +53,9 @@ open(path, "w", encoding="utf-8").write(text)
 PY
 }
 
+# Şablonun kod adı kuralı (AppCodeName): harf, rakam, nokta ve alt çizgi dışı → "_" (My-Shop → My_Shop).
+code_name() { printf '%s' "${1//[^A-Za-z0-9_.]/_}"; }
+
 variant() {
   local name="$1"; shift
   step "Çözüm: $name ($*)"
@@ -60,7 +63,7 @@ variant() {
     step "HATA: $name üretilemedi"; failed=1; return
   fi
   [[ -n "${CANFX_FEED:-}" ]] && add_local_feed "$OUT/$name/nuget.config"
-  if dotnet build "$OUT/$name/$name.slnx" -c Debug >>"$LOG" 2>&1; then
+  if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then
     step "TAMAM: $name derlendi"
   else
     step "HATA: $name derlenemedi"; failed=1
@@ -73,6 +76,8 @@ variant Minimal --IdKeyType int --Otp false --EmailTwoFactor false --Passkey fal
 variant Full --MultiTenancy true --ExternalLogin true --Redis true --EventBus true --Hangfire true \
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
 variant Tenant --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true
+# Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
+variant My-Shop.Api --IdKeyType int --Redis true --FileStorage true
 
 # ---------------------------------------------------------------- canfxgen
 # Üretilen çözümlere iki entity eklenir (biri fabrika/Update metotlu, biri metotsuz: TODO yolları) ve CRUD üretilip
@@ -86,7 +91,8 @@ step "canfxgen sürümü: $("${CANGEN[@]}" version 2>&1)"
 
 generate() {
   local name="$1"
-  local domain="$OUT/$name/src/$name.Domain"
+  local code; code="$(code_name "$name")"
+  local domain="$OUT/$name/src/$code.Domain"
   [[ -d "$domain" ]] || return
   step "canfxgen: $name (Brand, Tag)"
   mkdir -p "$domain/Catalog" "$domain/Tags"
@@ -94,7 +100,7 @@ generate() {
 using CanFx.Domain.Auditing;
 using CanFx.Domain.Results;
 
-namespace $name.Domain.Catalog;
+namespace $code.Domain.Catalog;
 
 public enum BrandTier { Standard, Premium }
 
@@ -131,7 +137,7 @@ CS
   cat > "$domain/Tags/Tag.cs" <<CS
 using CanFx.Domain.Entities;
 
-namespace $name.Domain.Tags;
+namespace $code.Domain.Tags;
 
 public sealed class Tag : Entity<int>
 {
@@ -146,7 +152,7 @@ CS
   run_cangen generate dynamic-query Tag                       # dinamik sorgu sonradan
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands
-  if dotnet build "$OUT/$name/$name.slnx" -c Debug >>"$LOG" 2>&1; then
+  if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then
     step "TAMAM: $name + canfxgen derlendi"
   else
     step "HATA: $name + canfxgen derlenemedi"; failed=1
@@ -155,6 +161,7 @@ CS
 
 generate Minimal
 generate Full
+generate My-Shop.Api
 
 # ---------------------------------------------------------------- standart
 # Şablonla gelen (Auth, Account, Roles ...) ve canfxgen'in ürettiği (Brands ...) özellikler aynı kurala uyar:
@@ -163,7 +170,7 @@ generate Full
 #   hatalar exception (Rules) ile; istekler Result<T> dönmez.
 standards() {
   local name="$1"
-  local features="$OUT/$name/src/$name.Application/Features"
+  local features="$OUT/$name/src/$(code_name "$name").Application/Features"
   [[ -d "$features" ]] || return
   local problems=""
   local f d
@@ -194,5 +201,6 @@ standards() {
 standards Minimal
 standards Full
 standards Tenant
+standards My-Shop.Api
 
 [[ $failed == 0 ]] && step "HEPSİ TAMAM" || step "HATALAR VAR (ayrıntı yukarıda)"
