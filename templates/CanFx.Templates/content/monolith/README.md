@@ -54,6 +54,19 @@ CRUD** (ya da terminalde `canfxgen generate crud Brand`; komut/sorgu eklemek iç
 Generator `// canfxgen:...` işaretlerinin olduğu yerlere ekleme yapar; bu satırları silme. Senin doldurman gereken yerler
 `TODO(canfxgen)` ile işaretlidir (Rider: View → Tool Windows → TODO).
 
+## Başlangıç verisi (seed)
+
+```bash
+canfxgen generate seeder Brand          # zorunlu veri (JSON) + geliştirme örnek verisi
+canfxgen generate seeder Currency --required-only --has-data
+```
+
+- `Persistence/Seeding/Data/brands.json`: her ortamda gereken kayıtlar (para birimleri, durumlar ...). `BrandSeeder`
+  her açılışta eksik olanları ekler (eşleşme `Code` / `Name` gibi doğal anahtarla), var olanlara dokunmaz.
+- `BrandSampleSeeder`: yalnızca Development'ta, ekranlar boş görünmesin diye `SampleData` ile örnek kayıtlar.
+- Sıra (`Order`): ilişkili entity'nin seeder'ından sonra (ör. Product, Category'den sonra); canfxgen önerir.
+- `--has-data`: EF Core `HasData`; kayıtlar migration'a yazılır, Id'ler sabit olmalı. Nadiren değişen sabit listeler için.
+
 ## Metinler ve diller
 
 Hata mesajları kodda değil, özellik başına çeviri dosyalarında; dosyalar Application DLL'ine gömülür:

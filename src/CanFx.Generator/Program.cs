@@ -115,6 +115,7 @@ int Generate(Arguments a)
     {
         "crud" => Crud(a, entityIndex: 2),
         "entity" => Entity(a),
+        "seeder" => Seeder(a),
         "command" => Request(a, isCommand: true),
         "query" => Request(a, isCommand: false),
         "dynamic-query" => DynamicQuery(a),
@@ -183,6 +184,25 @@ int Entity(Arguments a)
     GenerationPlan plan = EntityGenerator.Plan(layout, name, folder, a.Option("id") ?? "Guid");
     IReadOnlyList<ChangeResult> results = plan.Apply();
     return Report(a, layout, results, $"{Names.Pascal(name)} (entity)", ["Taban sınıfı dosyadaki yorumlardan seç, alanları ekle; sonra: canfxgen generate crud " + Names.Pascal(name)], new { Name = Names.Pascal(name) });
+}
+
+int Seeder(Arguments a)
+{
+    Banner();
+    (SolutionLayout layout, EntityModel entity) = SelectEntity(a, 2);
+    int count = a.Option("count") is { } c ? int.TryParse(c, out int parsed) && parsed > 0 ? parsed : throw new GeneratorException($"--count pozitif bir sayı olmalı: {c}") : 20;
+    var options = new SeederOptions
+    {
+        Required = !a.Flag("sample-only"),
+        Sample = !a.Flag("required-only"),
+        HasData = a.Flag("has-data"),
+        SampleCount = count,
+        Plural = a.Option("plural"),
+    };
+
+    (int order, string reason) = SeederGenerator.SuggestedOrder(layout, entity);
+    IReadOnlyList<ChangeResult> results = SeederGenerator.Plan(layout, entity, options).Apply();
+    return Report(a, layout, results, $"{entity.Name}: seed (sıra {order})", [$"Sıra önerisi: {order}. {reason}"], new { entity.Name, Order = order });
 }
 
 int Request(Arguments a, bool isCommand)
@@ -378,6 +398,8 @@ static string GenerateHelp() => """
         canfxgen generate crud                         (entity ve mekanizmalar sorulur)
         canfxgen generate crud Brand -c -l -t -s -d
         canfxgen generate crud src/Shop.Domain/Entities/Brand.cs --plural Brands
+        canfxgen generate seeder Brand                 (zorunlu veri JSON'dan + geliştirme örnek verisi)
+        canfxgen generate seeder Currency --required-only --has-data
         canfxgen generate command SyncBrand Brands -e Put
         canfxgen generate query GetBrandByName Brands -c -s
         canfxgen generate dynamic-query Brand
@@ -388,6 +410,11 @@ static string GenerateHelp() => """
         crud [Entity]                     Create/Update/Delete komutları, GetById/GetList(+ByDynamic) sorguları, yanıtlar,
                                           Messages/OperationClaims, MappingProfiles, BusinessRules, repository, servis
                                           (IXService/XManager), EF yapılandırması, controller; DbSet, kayıtlar, yetkiler, çeviri
+        seeder [Entity]                   Persistence/Seeding: {Entity}Seeder (her ortamda; Seeding/Data/{çoğul}.json'dan,
+                                          eksikler eklenir), {Entity}SampleSeeder (yalnızca geliştirmede, SampleData);
+                                          sıra ilişkili entity'lerin seeder'larına göre önerilir
+                                          --required-only | --sample-only, --count <N> (örnek sayısı, 20),
+                                          --has-data (EF Core HasData: migration'a yazılır, Id'ler sabit)
         command [Ad] [Özellik]            Özelliğe komut (+ yanıt, validator, yetki, controller ucu)
         query [Ad] [Özellik]              Özelliğe sorgu (+ yanıt, validator, yetki, controller ucu)
         dynamic-query [Entity]            CRUD'a sonradan dinamik filtre/sıralama sorgusu

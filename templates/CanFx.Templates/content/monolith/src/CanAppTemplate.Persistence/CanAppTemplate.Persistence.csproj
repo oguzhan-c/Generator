@@ -24,4 +24,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Seed verisi (canfxgen generate seeder): çıktıya kopyalanır, SeedFiles.ReadJsonAsync okur. -->
+    <None Update="Seeding\Data\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

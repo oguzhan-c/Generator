@@ -434,6 +434,80 @@ public sealed class CrudGeneratorTests
         Assert.Contains("soft delete", solution.Read(Feature + "Commands/Delete/DeletedBrandResponse.cs"));
     }
 
+    [Fact]
+    public void Seeders_read_required_data_from_json_and_add_sample_data_in_development()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Category.cs", """
+            namespace Shop.Domain.Entities;
+
+            public class Category : Entity<Guid>
+            {
+                public string Name { get; set; } = "";
+            }
+            """);
+        solution.Write("src/Shop.Domain/Entities/Product.cs", """
+            namespace Shop.Domain.Entities;
+
+            public enum ProductStatus { Draft, Active }
+
+            public class Product : FullAuditedEntity<Guid>
+            {
+                public const int NameMaxLength = 80;
+
+                private Product() { }
+
+                public string Name { get; private set; } = "";
+                public decimal Price { get; private set; }
+                public Guid CategoryId { get; private set; }
+                public ProductStatus Status { get; private set; }
+
+                public static Product Create(string name, decimal price, Guid categoryId, ProductStatus status) =>
+                    new() { Name = name, Price = price, CategoryId = categoryId, Status = status };
+            }
+            """);
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+
+        IReadOnlyList<ChangeResult> category = SeederGenerator.Plan(layout, EntityReader.Read(layout, "Category")).Apply();
+        Assert.DoesNotContain(category, r => r.Kind == ChangeKind.Failed);
+        string categorySeeder = solution.Read("src/Shop.Persistence/Seeding/CategorySeeder.cs");
+        Assert.Contains("public int Order => 100;", categorySeeder);
+        Assert.Contains("SeedFiles.ReadJsonAsync<CategorySeed>(\"Seeding/Data/categories.json\"", categorySeeder);
+        Assert.Contains("!existing.Contains(i.Name)", categorySeeder);
+        Assert.Contains("new Category { Name = item.Name }", categorySeeder);
+        Assert.Contains("public sealed record CategorySeed(string Name);", solution.Read("src/Shop.Persistence/Seeding/CategorySeed.cs"));
+        Assert.Contains("[\n]", solution.Read("src/Shop.Persistence/Seeding/Data/categories.json").ReplaceLineEndings("\n"));
+        Assert.Contains(@"<None Update=""Seeding\Data\*.json""", solution.Read("src/Shop.Persistence/Shop.Persistence.csproj"));
+
+        // Product, Category'ye bağlı: sırası ondan sonra; örnek veride kategori var olanlardan seçilir.
+        SeederGenerator.Plan(layout, EntityReader.Read(layout, "Product")).Apply();
+        string product = solution.Read("src/Shop.Persistence/Seeding/ProductSeeder.cs");
+        Assert.Contains("public int Order => 110;", product);
+        Assert.Contains("Product.Create(item.Name, item.Price, item.CategoryId, item.Status)", product);
+        Assert.Contains(".IgnoreQueryFilters()", product); // soft delete: silinmiş kayıt tekrar eklenmesin
+
+        string sample = solution.Read("src/Shop.Persistence/Seeding/ProductSampleSeeder.cs");
+        Assert.Contains("public bool DevelopmentOnly => true;", sample);
+        Assert.Contains("public int Order => 111;", sample);
+        Assert.Contains("List<Guid> categoryIds = await db.Set<Category>().Select(x => x.Id).ToListAsync(cancellationToken);", sample);
+        Assert.Contains("Fit($\"{sample.ProductName()} {i + 1}\", Product.NameMaxLength), sample.Price(), sample.Pick(categoryIds), sample.Pick(Enum.GetValues<ProductStatus>())", sample);
+    }
+
+    [Fact]
+    public void Has_data_writes_seed_data_class_and_wires_it_into_configuration()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", "namespace Shop.Domain.Entities; public class Brand : Entity<Guid> { public string Name { get; set; } = \"\"; }");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand")).Apply();
+
+        SeederGenerator.Plan(layout, EntityReader.Read(layout, "Brand"), new SeederOptions { Required = false, Sample = false, HasData = true }).Apply();
+
+        Assert.Contains("internal static class BrandSeedData", solution.Read("src/Shop.Persistence/EntityConfigurations/BrandSeedData.cs"));
+        Assert.Contains("builder.HasData(BrandSeedData.Items);", solution.Read("src/Shop.Persistence/EntityConfigurations/BrandConfiguration.cs"));
+        Assert.False(solution.Exists("src/Shop.Persistence/Seeding/BrandSeeder.cs"));
+    }
+
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
     private static string ReadWithHandler(TestSolution solution, string requestPath) =>
         solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");

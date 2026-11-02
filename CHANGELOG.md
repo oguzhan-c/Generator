@@ -20,6 +20,10 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 - canfxgen: `generate entity <Ad> [--folder <klasör>] [--id Guid|int|long]`: Domain'de yeni entity; taban sınıf
   seçenekleri (Entity, AuditedEntity, FullAuditedEntity, AggregateRoot ...) ve her birinin eklediği alanlar dosyada
   yorum olarak durur, seçim sınıf satırında yapılır.
+- canfxgen: `generate seeder <Entity>`: `{Entity}Seeder` (her ortamda; `Seeding/Data/{çoğul}.json`'dan, doğal anahtarla
+  eşleşmeyen eksik kayıtlar eklenir), `{Entity}SampleSeeder` (yalnızca geliştirmede, `SampleData` ile alan adına ve
+  tipine göre örnek değer; ilişkili kayıtlar var olanlardan seçilir), ilişkilere göre sıra önerisi; `--has-data` ile
+  EF Core `HasData` (migration'a yazılır), `--required-only`, `--sample-only`, `--count`.
 - canfxgen: yanıtlarda eklenmeyen denetim alanları yorum olarak (`// public string? CreatedBy ...`) ve soft delete
   açıklaması; `Created...Response`'ta `UpdatedAt` yok.
 - Şablon: veritabanı seçimi (`--Database postgresql | sqlserver | sqlite`); paket, sağlayıcı satırı, yerel bağlantı
