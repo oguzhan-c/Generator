@@ -1,0 +1,94 @@
+{
+  // canfxgen projenin şablon seçeneklerini buradan okur (canfxgen add / remove feature değiştirir). Elle değiştirme.
+  "template": "canfx-monolith",
+  "templateVersion": "TEMPLATE_PACKAGE_VERSION",
+  "options": {
+    "Database": "CANFX_OPT_DATABASE",
+    "IdKeyType": "CANFX_OPT_IDKEY",
+//#if (MultiTenancy)
+    "MultiTenancy": true,
+//#else
+    "MultiTenancy": false,
+//#endif
+//#if (Otp)
+    "Otp": true,
+//#else
+    "Otp": false,
+//#endif
+//#if (EmailTwoFactor)
+    "EmailTwoFactor": true,
+//#else
+    "EmailTwoFactor": false,
+//#endif
+//#if (Passkey)
+    "Passkey": true,
+//#else
+    "Passkey": false,
+//#endif
+//#if (ExternalLogin)
+    "ExternalLogin": true,
+//#else
+    "ExternalLogin": false,
+//#endif
+//#if (Redis)
+    "Redis": true,
+//#else
+    "Redis": false,
+//#endif
+//#if (EventBus)
+    "EventBus": true,
+//#else
+    "EventBus": false,
+//#endif
+//#if (Hangfire)
+    "Hangfire": true,
+//#else
+    "Hangfire": false,
+//#endif
+//#if (FileStorage)
+    "FileStorage": true,
+//#else
+    "FileStorage": false,
+//#endif
+//#if (Search)
+    "Search": true,
+//#else
+    "Search": false,
+//#endif
+//#if (Realtime)
+    "Realtime": true,
+//#else
+    "Realtime": false,
+//#endif
+//#if (Sms)
+    "Sms": true,
+//#else
+    "Sms": false,
+//#endif
+//#if (AuditTrail)
+    "AuditTrail": true,
+//#else
+    "AuditTrail": false,
+//#endif
+//#if (Settings)
+    "Settings": true,
+//#else
+    "Settings": false,
+//#endif
+//#if (Reporting)
+    "Reporting": true,
+//#else
+    "Reporting": false,
+//#endif
+//#if (OpenTelemetry)
+    "OpenTelemetry": true,
+//#else
+    "OpenTelemetry": false,
+//#endif
+//#if (Postman)
+    "Postman": true
+//#else
+    "Postman": false
+//#endif
+  }
+}

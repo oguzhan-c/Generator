@@ -624,6 +624,90 @@ public sealed class CrudGeneratorTests
         Assert.Throws<GeneratorException>(() => RateLimitBinder.Plan(layout, "Bad Name", "CreateBrandCommand", new RateLimitOptions(), []));
     }
 
+    [Fact]
+    public void Feature_difference_of_the_template_is_patched_into_the_project()
+    {
+        using var solution = new TestSolution();
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        string temp = Path.Combine(Path.GetTempPath(), "canfxgen-test-" + Guid.NewGuid().ToString("N"));
+        string baseDir = Path.Combine(temp, "base"), targetDir = Path.Combine(temp, "target");
+
+        void Both(string relative, string baseText, string targetText)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(baseDir, relative))!);
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(targetDir, relative))!);
+            File.WriteAllText(Path.Combine(baseDir, relative), baseText);
+            File.WriteAllText(Path.Combine(targetDir, relative), targetText);
+        }
+
+        try
+        {
+            // Şablon: Program.cs'e iki satır, yeni kayıt dosyası, appsettings'e bölüm.
+            Both("src/Shop.WebAPI/Program.cs",
+                "var builder = WebApplication.CreateBuilder(args);\nbuilder.Services.AddA();\nbuilder.Services.AddB();\nvar app = builder.Build();\napp.Run();\n",
+                "var builder = WebApplication.CreateBuilder(args);\nbuilder.Services.AddA();\nbuilder.Services.AddRedis();\nbuilder.Services.AddB();\nvar app = builder.Build();\napp.UseRedis();\napp.Run();\n");
+            Directory.CreateDirectory(Path.Combine(targetDir, "src/Shop.Infrastructure/Caching"));
+            File.WriteAllText(Path.Combine(targetDir, "src/Shop.Infrastructure/Caching/RedisServiceRegistration.cs"), "// redis\n");
+            Both("canfx.json", "{ \"options\": { \"Redis\": false } }", "{ \"options\": { \"Redis\": true } }");
+
+            // Proje: kullanıcı satır eklemiş, girinti farklı.
+            solution.Write("src/Shop.WebAPI/Program.cs",
+                "var builder = WebApplication.CreateBuilder(args);\n// benim ayarım\nbuilder.Services.AddA();\nbuilder.Services.AddB();\nbuilder.Services.AddMine();\nvar app = builder.Build();\n  app.MapMine();\napp.Run();\n");
+            solution.Write("canfx.json", "{\n  // yorum\n  \"options\": { \"Redis\": false }\n}\n");
+
+            var warnings = new List<string>();
+            IReadOnlyList<ChangeResult> results = FeaturePatcher.Plan(layout, baseDir, targetDir, "Redis", enable: true, warnings).Apply();
+            Assert.DoesNotContain(results, r => r.Kind == ChangeKind.Failed);
+            Assert.Empty(warnings);
+
+            string program = solution.Read("src/Shop.WebAPI/Program.cs");
+            Assert.Contains("builder.Services.AddA();\nbuilder.Services.AddRedis();\nbuilder.Services.AddB();\nbuilder.Services.AddMine();", program);
+            Assert.Contains("app.UseRedis();", program);
+            Assert.Contains("// benim ayarım", program);
+            Assert.True(solution.Exists("src/Shop.Infrastructure/Caching/RedisServiceRegistration.cs"));
+            Assert.Contains("\"Redis\": true", solution.Read("canfx.json"));
+            Assert.Contains("// yorum", solution.Read("canfx.json"));
+
+            // Tekrar uygulamak bir şey değiştirmez; geri almak (hedef → taban) eski haline döndürür.
+            FeaturePatcher.Plan(layout, baseDir, targetDir, "Redis", enable: true, []).Apply();
+            Assert.Single(solution.Read("src/Shop.WebAPI/Program.cs").Split("AddRedis")[1..]);
+
+            FeaturePatcher.Plan(layout, targetDir, baseDir, "Redis", enable: false, []).Apply();
+            string removed = solution.Read("src/Shop.WebAPI/Program.cs");
+            Assert.DoesNotContain("Redis", removed);
+            Assert.Contains("builder.Services.AddMine();", removed);
+            Assert.False(solution.Exists("src/Shop.Infrastructure/Caching/RedisServiceRegistration.cs"));
+
+            // Yerleştirilemeyen değişiklik elle yapılmak üzere raporlanır.
+            solution.Write("src/Shop.WebAPI/Program.cs", "// tamamen farklı\n");
+            var manual = new List<string>();
+            FeaturePatcher.Plan(layout, baseDir, targetDir, "Redis", enable: true, manual).Apply();
+            Assert.Contains(manual, w => w.Contains("AddRedis", StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Feature_names_are_normalized_and_options_inferred_for_old_projects()
+    {
+        Assert.Equal("EventBus", FeaturePatcher.Normalize("event-bus"));
+        Assert.Equal("Search", FeaturePatcher.Normalize("elasticsearch"));
+        Assert.Equal("Redis", FeaturePatcher.Normalize("REDIS"));
+        Assert.Throws<GeneratorException>(() => FeaturePatcher.Normalize("kafka"));
+
+        using var solution = new TestSolution();
+        solution.Write("Directory.Packages.props", "<PackageVersion Include=\"CanFx.Caching.Redis\" />");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        var warnings = new List<string>();
+        Dictionary<string, string> options = FeaturePatcher.ReadOptions(layout, warnings);
+        Assert.Equal("true", options["Redis"]);
+        Assert.Equal("false", options["Search"]);
+        Assert.Single(warnings);
+    }
+
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
     private static string ReadWithHandler(TestSolution solution, string requestPath) =>
         solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");

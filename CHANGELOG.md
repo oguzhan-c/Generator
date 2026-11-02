@@ -20,6 +20,12 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 - canfxgen: `generate entity <Ad> [--folder <klasör>] [--id Guid|int|long]`: Domain'de yeni entity; taban sınıf
   seçenekleri (Entity, AuditedEntity, FullAuditedEntity, AggregateRoot ...) ve her birinin eklediği alanlar dosyada
   yorum olarak durur, seçim sınıf satırında yapılır.
+- canfxgen: `add` / `remove feature <ad>`: redis, search, event-bus, hangfire, file-storage, realtime, sms,
+  open-telemetry ve postman sonradan eklenir / çıkarılır. Kurallar elle yazılmaz: şablon projenin seçenekleriyle özellik
+  kapalı ve açık olarak üretilir, fark (paket, kayıt, appsettings, docker-compose, yeni dosyalar) projeye bağlamıyla
+  yama olarak uygulanır; yerleştirilemeyen parça elle yapılmak üzere raporlanır. `--preview` ile önce görülebilir.
+  Şema ya da kimlik akışını değiştiren seçenekler (çoklu kiracılık, OTP, passkey, ayarlar, raporlama ...) desteklenmez.
+- Şablon: `canfx.json` projenin şablon seçeneklerini tutar (canfxgen okur; eski projelerde dosyalardan çıkarılır).
 - canfxgen: `rate-limit <politika> <uç>`: uca (istek, `Controller.Action`, controller ya da özellik)
   `[EnableRateLimiting("ad")]` bağlar; politika appsettings'te yoksa `RateLimiting:Policies` altına eklenir
   (`--permit`, `--window`, `--partition-by`). Hazır politikalar `auth` ve `sensitive`; `--remove` bağı kaldırır.

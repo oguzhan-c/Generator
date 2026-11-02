@@ -54,6 +54,19 @@ CRUD** (ya da terminalde `canfxgen generate crud Brand`; komut/sorgu eklemek iç
 Generator `// canfxgen:...` işaretlerinin olduğu yerlere ekleme yapar; bu satırları silme. Senin doldurman gereken yerler
 `TODO(canfxgen)` ile işaretlidir (Rider: View → Tool Windows → TODO).
 
+## Özellik ekleme / çıkarma
+
+```bash
+canfxgen add feature redis --preview     # önce neyin değişeceğini gör
+canfxgen add feature redis
+canfxgen remove feature search
+```
+
+Sonradan eklenebilenler: `redis`, `search`, `event-bus`, `hangfire`, `file-storage`, `realtime`, `sms`,
+`open-telemetry`, `postman`. Paket, servis kaydı, appsettings bölümü ve docker-compose servisi birlikte eklenir / çıkarılır.
+canfxgen şablonu projenin seçenekleriyle (`canfx.json`) özellik kapalı ve açık olarak üretip farkı projeye uygular;
+projede değiştirdiğin yerlerde yerleştiremediği parçayı elle yapman için raporlar.
+
 ## Mekanizmaları sonradan açıp kapatma
 
 ```bash

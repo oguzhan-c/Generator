@@ -191,6 +191,13 @@ CS
   run_cangen disable secured GetByIdTagQuery
   run_cangen rate-limit reports GetListBrandQuery --permit 20 --partition-by Tenant   # politikayı uca bağla
   run_cangen rate-limit sensitive TagsController.Delete
+  if [[ "$name" == "Minimal" ]]; then
+    run_cangen add feature redis                              # şablon farkı projeye yama olarak
+    run_cangen add feature search
+  fi
+  if [[ "$name" == "Full" ]]; then
+    run_cangen remove feature realtime
+  fi
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands
   if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then

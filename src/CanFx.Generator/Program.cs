@@ -29,6 +29,8 @@ try
         "generate" or "g" => Generate(arguments),
         "crud" => Crud(arguments, entityIndex: 1),
         "rate-limit" => RateLimit(arguments),
+        "add" => Feature(arguments, enable: true),
+        "remove" => Feature(arguments, enable: false),
         "enable" => Toggle(arguments, enable: true),
         "disable" => Toggle(arguments, enable: false),
         "entities" => Entities(arguments),
@@ -252,6 +254,73 @@ int Toggle(Arguments a, bool enable)
         return PrintPreview(a, layout, plan, title, warnings);
 
     return Report(a, layout, plan.Apply(), title, warnings, new { Target = target, Enable = enable, Mechanisms = mechanisms.Distinct() });
+}
+
+// ================================================================ add / remove feature
+
+int Feature(Arguments a, bool enable)
+{
+    if (!a.Json)
+        Banner();
+    SolutionLayout layout = Layout(a);
+    int index = a.Positional(1) is "feature" or "features" ? 2 : 1;
+    string name = a.Positional(index) ?? Select($"Hangi {G("özellik")} {(enable ? "eklenecek" : "çıkarılacak")}?", FeaturePatcher.Supported.Select(f => f.ToLowerInvariant()).ToList());
+    string feature = FeaturePatcher.Normalize(name);
+    if (FeaturePatcher.Unsupported.Contains(feature))
+    {
+        throw new GeneratorException(
+            $"{feature} sonradan {(enable ? "eklenemez" : "çıkarılamaz")}: veritabanı şemasını ya da kimlik akışını değiştirir. " +
+            "Yeni bir çözüm oluşturup (canfxgen new) kodu taşımak daha güvenli.");
+    }
+
+    var warnings = new List<string>();
+    Dictionary<string, string> options = FeaturePatcher.ReadOptions(layout, warnings);
+    bool current = options.TryGetValue(feature, out string? value) && value == "true";
+    if (current == enable)
+        throw new GeneratorException($"{feature} zaten {(enable ? "açık" : "kapalı")}.");
+
+    string temp = Path.Combine(Path.GetTempPath(), "canfxgen-" + Guid.NewGuid().ToString("N")[..8]);
+    try
+    {
+        // Şablon iki kez üretilir: projenin seçenekleriyle (taban) ve özellik değiştirilmiş haliyle (hedef); fark uygulanır.
+        string baseDirectory = Path.Combine(temp, "base");
+        string targetDirectory = Path.Combine(temp, "target");
+        if (!a.Json)
+            Console.WriteLine(Dim("Şablon karşılaştırma için üretiliyor ..."));
+        RunTemplate(layout.RootNamespace, baseDirectory, options);
+        var target = new Dictionary<string, string>(options, StringComparer.Ordinal) { [feature] = enable ? "true" : "false" };
+        RunTemplate(layout.RootNamespace, targetDirectory, target);
+
+        GenerationPlan plan = FeaturePatcher.Plan(layout, baseDirectory, targetDirectory, feature, enable, warnings);
+        string title = $"{feature} {(enable ? "eklendi" : "çıkarıldı")}";
+        if (a.Flag("preview") || a.Flag("dry-run"))
+            return PrintPreview(a, layout, plan, title, warnings);
+
+        IReadOnlyList<ChangeResult> results = plan.Apply();
+        warnings.Add("Derle ve dene: dotnet build. Yeni ayarlar appsettings.json'da; Development'ta servis gerekiyorsa docker'dan kendiliğinden başlatılır.");
+        return Report(a, layout, results, title, warnings, new { Feature = feature, Enable = enable });
+    }
+    finally
+    {
+        if (Directory.Exists(temp))
+            Directory.Delete(temp, recursive: true);
+    }
+}
+
+static void RunTemplate(string name, string output, IReadOnlyDictionary<string, string> options)
+{
+    var arguments = new List<string> { "new", "canfx-monolith", "-n", name, "-o", output };
+    arguments.AddRange(FeaturePatcher.TemplateArguments(options));
+    var info = new ProcessStartInfo("dotnet", arguments) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+    using Process process = Process.Start(info) ?? throw new GeneratorException("dotnet çalıştırılamadı.");
+    string stdout = process.StandardOutput.ReadToEnd();
+    string stderr = process.StandardError.ReadToEnd();
+    process.WaitForExit();
+    if (process.ExitCode != 0)
+    {
+        throw new GeneratorException(
+            "Şablon üretilemedi (karşılaştırma için gerekli). Şablon kurulu mu: dotnet new install CanFx.Templates\n" + (stderr + stdout).Trim());
+    }
 }
 
 // ================================================================ rate-limit
@@ -486,6 +555,8 @@ static string Help() => """
         canfxgen generate command SyncBrand Brands
         canfxgen generate query GetBrandByName Brands
         canfxgen generate dynamic-query Brand
+        canfxgen add feature redis --preview
+        canfxgen remove feature search
         canfxgen rate-limit reports GetBrandReportQuery --permit 20 --partition-by Tenant
         canfxgen enable caching Brand --preview
         canfxgen disable secured logging CreateBrandCommand
@@ -493,6 +564,9 @@ static string Help() => """
     KOMUTLAR:
         new [Ad]                  CanFx şablonuyla yeni çözüm (veritabanı ve özellikler sorulur)
         generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
+        add / remove feature <Ad> Şablon özelliğini sonradan ekler / çıkarır: redis, search, event-bus, hangfire,
+                                  file-storage, realtime, sms, open-telemetry, postman (paket, kayıt, appsettings,
+                                  docker-compose birlikte). --preview: değişiklikleri göster, yazma
         rate-limit <Politika> <Uç> Uca hız sınırı bağlar ([EnableRateLimiting]); politika appsettings'te yoksa eklenir.
                                   Uç: istek (CreateReportCommand), Controller.Action, controller ya da özellik.
                                   --permit 60 --window 00:01:00 --partition-by UserOrIp|Ip|Tenant, --remove, --preview

@@ -59,7 +59,8 @@
           "choice": "sqlite",
           "description": "SQLite (dosya; docker gerekmez)"
         }
-      ]
+      ],
+      "replaces": "CANFX_OPT_DATABASE"
     },
     "Postgres": {
       "type": "computed",
@@ -215,7 +216,8 @@
           "choice": "long",
           "description": "long (veritabanı üretir)"
         }
-      ]
+      ],
+      "replaces": "CANFX_OPT_IDKEY"
     },
     "IdKeyClrType": {
       "type": "generated",
