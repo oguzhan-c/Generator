@@ -9,6 +9,7 @@ using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
 using CanAppTemplate.Persistence.Contexts;
 using CanAppTemplate.Domain.Identity;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Persistence.Seeding;
 
@@ -103,7 +104,7 @@ internal sealed partial class IdentitySeeder : IDataSeeder
         if (user is not null)
             return user;
 
-        user = AppUser.Create(email, firstName, lastName, _passwordHasher.Hash(password)).ThrowIfFailure();
+        user = AppUserService.Create(email, firstName, lastName, _passwordHasher.Hash(password)).ThrowIfFailure();
         user.AddRole(role);
         _db.Users.Add(user);
         return user;

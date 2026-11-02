@@ -13,7 +13,6 @@ internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(u => u.FirstName).HasMaxLength(AppUser.NameMaxLength).IsRequired();
         builder.Property(u => u.LastName).HasMaxLength(AppUser.NameMaxLength).IsRequired();
         builder.Property(u => u.PhoneNumber).HasMaxLength(AppUser.PhoneMaxLength);
-        builder.Ignore(u => u.FullName);
 #if (MultiTenancy)
         builder.HasIndex(u => u.TenantId);
 #endif

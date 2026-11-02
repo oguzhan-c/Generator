@@ -15,6 +15,10 @@
     <PackageReference Include="CanFx.WebApi.OpenApi" />
     <PackageReference Include="CanFx.Localization" />
     <PackageReference Include="CanFx.Logging.Serilog" />
+    <PackageReference Include="CanFx.DevServices" />
+<!--#if (Postman)-->
+    <PackageReference Include="CanFx.WebApi.Postman" />
+<!--#endif-->
 <!--#if (OpenTelemetry)-->
     <PackageReference Include="CanFx.Observability.OpenTelemetry" />
 <!--#endif-->

@@ -15,6 +15,7 @@ using CanAppTemplate.Application.Services.AuthService;
 using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
 using CanAppTemplate.Domain.Identity;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Features.Auth.Commands.Register;
 
@@ -55,15 +56,15 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Re
         string normalizedEmail = request.Email.Trim().ToUpperInvariant();
         await _authBusinessRules.EmailShouldNotBeTaken(normalizedEmail, cancellationToken);
 
-        AppUser user = AppUser.Register(
+        AppUser user = AppUserService.Register(
             request.Email,
             request.FirstName,
             request.LastName,
             _passwordHasher.Hash(request.Password),
+            request.PhoneNumber,
             request.MarketingConsent
         ).OrThrow();
 
-        user.UpdateProfile(user.FirstName, user.LastName, request.PhoneNumber, request.MarketingConsent).OrThrow();
         user.AddRole(await DefaultRoles.GetAsync(_roles, cancellationToken));
         await _users.AddAsync(user, cancellationToken);
         if (IdentityKeys.IsDatabaseGenerated)

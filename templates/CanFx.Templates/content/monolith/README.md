@@ -23,12 +23,10 @@ ve ProblemDetails yanıtına çevrilir.
 ## İlk çalıştırma
 
 1. CanFx paketleri nuget.org'dan gelir; ek ayar gerekmez (yerel / özel kaynak için `nuget.config`'teki nota bak).
-2. Veritabanı (şablon sağlayıcı seçmez; `TODO(canfxgen)` işaretli yerleri doldur):
-   - `Directory.Packages.props` + `Persistence` projesine sağlayıcı paketi (Npgsql / SqlServer / Sqlite),
-   - `Persistence/PersistenceServiceRegistration.cs` → `options.UseNpgsql(...)` (ya da diğeri), `throw` satırını sil,
-   - bağlantı dizesi: `appsettings.Development.json` ya da user-secrets (`ConnectionStrings:CanAppTemplate`),
-   - gerekirse `docker-compose.yml`'deki veritabanı servisini aç, `docker compose up -d`.
-   Doldurulmadan çalıştırılırsa uygulama açılışta "Veritabanı ayarlanmadı" hatasıyla durur.
+2. Veritabanı hazır: sağlayıcı oluştururken seçildi (`--Database postgresql | sqlserver | sqlite`), yerel bağlantı
+   dizesi `appsettings.Development.json`'da. Uygulama Development'ta açılırken veritabanı bilgisayarında çalışıyorsa onu
+   kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı; SQLite'ta docker gerekmez).
+   Ayar: `appsettings.Development.json` → `DevServices` (servis başına `Auto` / `Docker` / `Local` / `Off`).
 3. Gizli değerler (appsettings'e YAZMA):
 
    ```bash
@@ -94,4 +92,33 @@ anahtarı bundan bağımsızdır, her entity kendi tipini seçer.
 dotnet ef migrations add Initial --project src/CanAppTemplate.Persistence --startup-project src/CanAppTemplate.WebAPI
 ```
 
-Migration yoksa uygulama ilk açılışta şemayı doğrudan oluşturur (yalnızca deneme için).
+Açılışta veritabanına ne yapılacağı `Database:StartupMode` ile belirlenir:
+
+| Mod | Ne yapar | Nerede |
+| --- | --- | --- |
+| `Recreate` | Siler, güncel entity'lerden yeniden oluşturur, seed çalışır | Development varsayılanı (entity tasarlarken). Yalnızca Development'ta ve yerel veritabanında çalışır |
+| `Migrate` | Bekleyen migration'ları uygular; migration yoksa şemayı oluşturur. Veri korunur | Diğer ortamların varsayılanı |
+| `None` | Dokunmaz | Migration'lar ayrı bir adımda (CI) uygulanıyorsa |
+
+İlk migration'ı ekledikten sonra Development'ı da `Migrate` yap; `Recreate` açıkken migration varsa açılışta uyarı yazılır.
+
+## Docker
+
+```bash
+docker compose up -d                          # yalnızca veritabanı (uygulama bunu kendisi de yapar)
+docker compose --profile app up -d --build    # uygulama da konteynerde → http://localhost:8080/docs
+```
+
+Konteynerdeki uygulamanın gizli ayarları kök klasördeki `.env` dosyasından okunur (git'e girmez):
+`Security__Jwt__SigningKey=...`, `Security__VerificationCodeKey=...`.
+
+## Postman
+
+Proje `--Postman true` (varsayılan) ile oluşturulduysa, Development'ta her açılışta API Postman'deki AYNI koleksiyona
+aktarılır (API değişmediyse istek atılmaz) ve `baseUrl`'li bir ortam hazırlanır. Anahtar olmadan hiçbir şey yapılmaz:
+
+```bash
+cd src/CanAppTemplate.WebAPI
+dotnet user-secrets set 'Postman:ApiKey' 'PMAK-...'            # Postman → Settings → API keys
+dotnet user-secrets set 'Postman:WorkspaceId' '<id>'           # isteğe bağlı
+```

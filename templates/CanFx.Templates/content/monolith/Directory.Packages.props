@@ -23,6 +23,10 @@
     <PackageVersion Include="CanFx.WebApi.OpenApi" Version="$(CanFxVersion)" />
     <PackageVersion Include="CanFx.Localization" Version="$(CanFxVersion)" />
     <PackageVersion Include="CanFx.Logging.Serilog" Version="$(CanFxVersion)" />
+    <PackageVersion Include="CanFx.DevServices" Version="$(CanFxVersion)" />
+<!--#if (Postman)-->
+    <PackageVersion Include="CanFx.WebApi.Postman" Version="$(CanFxVersion)" />
+<!--#endif-->
 <!--#if (EventBus)-->
     <PackageVersion Include="CanFx.EventBus" Version="$(CanFxVersion)" />
     <PackageVersion Include="CanFx.EventBus.RabbitMQ" Version="$(CanFxVersion)" />
@@ -64,14 +68,16 @@
     <PackageVersion Include="CanFx.Observability.OpenTelemetry" Version="$(CanFxVersion)" />
 <!--#endif-->
 
-    <!-- Veritabanı -->
-    <!--
-      TODO(canfxgen): Veritabanı sağlayıcısının sürümünü buraya ekle (Persistence projesine de PackageReference ekle):
-        PostgreSQL : Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3
-        SQL Server : Microsoft.EntityFrameworkCore.SqlServer 10.0.13 (+ System.Security.Cryptography.Pkcs 10.0.13, güvenlik yaması)
-        SQLite     : Microsoft.EntityFrameworkCore.Sqlite 10.0.13
-      Örnek: <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    -->
+    <!-- Veritabanı sağlayıcısı (başka sağlayıcıya geçiş: PersistenceServiceRegistration.cs'teki açıklama) -->
+<!--#if (Postgres)-->
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+<!--#elif (SqlServer)-->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
+    <!-- SqlServer sağlayıcısının getirdiği eski sürümdeki güvenlik açığı için -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+<!--#else-->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
+<!--#endif-->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
 <!--#if (Hangfire)-->

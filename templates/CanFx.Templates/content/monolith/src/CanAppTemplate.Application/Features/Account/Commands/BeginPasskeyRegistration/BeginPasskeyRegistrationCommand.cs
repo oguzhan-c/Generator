@@ -16,6 +16,7 @@ using CanAppTemplate.Application.Features.Auth.Rules;
 using CanAppTemplate.Application.Services.AuthService;
 using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Features.Account.Commands.BeginPasskeyRegistration;
 
@@ -48,6 +49,6 @@ public sealed class BeginPasskeyRegistrationCommandHandler : IRequestHandler<Beg
         List<byte[]> existing = await _passkeys.Query(enableTracking: false).Where(p => p.UserId == user.Id).Select(p => p.CredentialId).ToListAsync(cancellationToken);
         _accountBusinessRules.PasskeyLimitShouldNotBeExceeded(existing.Count);
 
-        return _passkeyService.BeginRegistration(new PasskeyUser(user.PasskeyUserHandle, user.Email, user.FullName), existing);
+        return _passkeyService.BeginRegistration(new PasskeyUser(user.PasskeyUserHandle, user.Email, user.FullName()), existing);
     }
 }

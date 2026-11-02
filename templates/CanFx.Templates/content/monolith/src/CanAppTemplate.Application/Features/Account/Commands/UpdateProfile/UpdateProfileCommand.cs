@@ -8,6 +8,7 @@ using CanAppTemplate.Application.Features.Auth.Rules;
 using CanAppTemplate.Application.Services.AuthService;
 using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Features.Account.Commands.UpdateProfile;
 

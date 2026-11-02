@@ -14,6 +14,7 @@ using CanAppTemplate.Application.Services.AuthService;
 using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
 using CanAppTemplate.Domain.Identity;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Features.Auth.Commands.ExternalLogin;
 
@@ -144,7 +145,7 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
     {
         (string firstName, string lastName) = ExternalNames.Split(request.FirstName, request.LastName, request.FullName, request.Email!);
 
-        AppUser user = AppUser.RegisterExternal(request.Email!, firstName, lastName).OrThrow();
+        AppUser user = AppUserService.RegisterExternal(request.Email!, firstName, lastName).OrThrow();
         user.AddRole(await DefaultRoles.GetAsync(_roles, cancellationToken));
         await _users.AddAsync(user, cancellationToken);
         if (IdentityKeys.IsDatabaseGenerated)

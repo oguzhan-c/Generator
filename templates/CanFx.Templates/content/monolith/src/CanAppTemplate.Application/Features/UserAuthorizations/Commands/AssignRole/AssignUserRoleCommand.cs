@@ -8,6 +8,7 @@ using CanAppTemplate.Application.Features.Roles.Rules;
 using CanAppTemplate.Application.Features.UserAuthorizations.Constants;
 using CanAppTemplate.Application.Features.UserAuthorizations.Rules;
 using CanAppTemplate.Domain.Entities;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Features.UserAuthorizations.Commands.AssignRole;
 

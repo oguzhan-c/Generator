@@ -11,6 +11,7 @@ using CanFx.Security.VerificationCodes;
 using FluentValidation;
 using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Services.AuthService;
 
@@ -70,7 +71,7 @@ public sealed class EmailVerification
                 + $"<p style=\"font-size:28px;font-weight:bold;letter-spacing:6px\">{code.Code}</p>"
                 + $"<p>Kod 10 dakika geçerlidir. {System.Net.WebUtility.HtmlEncode(warning)}</p>",
         };
-        message.To.Add(new EmailAddress(user.Email, user.FullName));
+        message.To.Add(new EmailAddress(user.Email, user.FullName()));
         await _emailSender.SendAsync(message, cancellationToken);
 
         return code.ExpiresAt;

@@ -40,6 +40,39 @@
     }
   },
   "symbols": {
+    "Database": {
+      "type": "parameter",
+      "displayName": "Veritabanı",
+      "description": "Veritabanı sağlayıcısı. Paket, bağlantı dizesi ve docker-compose servisi buna göre hazırlanır.",
+      "datatype": "choice",
+      "defaultValue": "postgresql",
+      "choices": [
+        {
+          "choice": "postgresql",
+          "description": "PostgreSQL"
+        },
+        {
+          "choice": "sqlserver",
+          "description": "SQL Server"
+        },
+        {
+          "choice": "sqlite",
+          "description": "SQLite (dosya; docker gerekmez)"
+        }
+      ]
+    },
+    "Postgres": {
+      "type": "computed",
+      "value": "(Database == \"postgresql\")"
+    },
+    "SqlServer": {
+      "type": "computed",
+      "value": "(Database == \"sqlserver\")"
+    },
+    "Sqlite": {
+      "type": "computed",
+      "value": "(Database == \"sqlite\")"
+    },
     "MultiTenancy": {
       "type": "parameter",
       "displayName": "Tenancy: Multi-tenancy",
@@ -155,6 +188,13 @@
       "description": "İz ve metrikleri OTLP ile dışa aktarır (Aspire dashboard).",
       "datatype": "bool",
       "defaultValue": "false"
+    },
+    "Postman": {
+      "type": "parameter",
+      "displayName": "Geliştirme: Postman eşitleme",
+      "description": "Development'ta API'yi Postman koleksiyonuna aktarır ve her açılışta günceller. Anahtar user-secrets'ta (Postman:ApiKey); yoksa hiçbir şey yapmaz.",
+      "datatype": "bool",
+      "defaultValue": "true"
     },
     "IdKeyType": {
       "type": "parameter",

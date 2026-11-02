@@ -9,11 +9,13 @@ using CanFx.Caching.Redis;
 #if (EventBus)
 using CanFx.EventBus;
 #endif
+using CanFx.DevServices;
 using CanFx.Localization;
 using CanFx.Logging.Serilog;
 #if (OpenTelemetry)
 using CanFx.Observability.OpenTelemetry;
 #endif
+using CanFx.Persistence.Database;
 using CanFx.Persistence.HealthChecks;
 #if (Realtime)
 using CanFx.Realtime.SignalR;
@@ -40,6 +42,9 @@ using CanFx.WebApi.ExternalLogin;
 using CanFx.WebApi.HealthChecks;
 using CanFx.WebApi.Idempotency;
 using CanFx.WebApi.OpenApi;
+#if (Postman)
+using CanFx.WebApi.Postman;
+#endif
 using CanFx.WebApi.RateLimiting;
 using CanFx.WebApi.RequestLogging;
 using CanFx.WebApi.Security;
@@ -50,6 +55,7 @@ using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Persistence;
 using CanAppTemplate.Persistence.Contexts;
 using CanAppTemplate.Infrastructure;
+using CanAppTemplate.WebAPI.Development;
 using CanAppTemplate.WebAPI.Security;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -84,6 +90,9 @@ builder.Services.AddCanLocalization(o =>
     o.DefaultCulture = "tr";
     o.SupportedCultures = ["tr", "en"];
 });
+
+// Geliştirme servisleri (yalnızca Development): veritabanı vb. bilgisayarda yoksa docker-compose'dan başlatılır.
+builder.Services.AddDevServices(config);
 
 // Katmanlar
 builder.Services.AddApplicationServices();
@@ -155,6 +164,11 @@ builder.Services.AddCanOpenApi(o =>
     // TODO(canfxgen): API açıklamasını yaz.
     o.Description = "CanAppTemplate API (CanFx).";
 });
+#if (Postman)
+// Postman (yalnızca Development): API koleksiyonu her açılışta güncellenir. Anahtar user-secrets'ta:
+//   dotnet user-secrets set "Postman:ApiKey" "PMAK-..."      (yoksa hiçbir şey yapılmaz)
+builder.Services.AddCanPostmanSync(config);
+#endif
 builder.Services.AddCanFeatureFlags(config.GetSection("Features"));
 
 // İsteğe bağlı (varsayılan KAPALI): istek aktivite logu, güvenlik başlıkları, CORS, CSRF.
@@ -208,6 +222,9 @@ builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Ad
 // ================================================================ uygulama
 
 WebApplication app = builder.Build();
+
+// Geliştirme servisleri her şeyden önce ayağa kalksın (veritabanı, arama ...). Development dışında hiçbir şey yapmaz.
+await app.Services.StartCanDevServicesAsync();
 #if (Search)
 
 // Arama dizinleri veriden ÖNCE eşlemesiyle kurulur; arama motoruna ulaşılamazsa uygulama yine açılır.
@@ -221,8 +238,10 @@ catch (SearchException ex)
 }
 #endif
 
-if (config.GetValue("Database:InitializeOnStartup", true))
-    await app.Services.InitializeDatabaseAsync();
+// Veritabanı: Database:StartupMode = Migrate | Recreate | None (Recreate yalnızca Development'ta).
+await app.Services.InitializeDatabaseAsync(
+    config.GetValue("Database:StartupMode", DatabaseStartupMode.Migrate),
+    app.Environment.IsDevelopment());
 
 app.UseForwardedHeaders();
 app.UseCanRequestLogging();             // her isteğe tek özet satırı: en dışta (gerçek durum kodu)

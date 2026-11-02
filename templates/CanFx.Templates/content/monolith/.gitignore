@@ -16,3 +16,6 @@ obj/
 *.db
 *.db-shm
 *.db-wal
+
+# docker compose --profile app için gizli ayarlar
+.env

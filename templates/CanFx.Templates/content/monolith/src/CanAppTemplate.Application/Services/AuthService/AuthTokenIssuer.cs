@@ -3,6 +3,7 @@ using CanFx.Security.Entities;
 using CanFx.Security.Tokens;
 using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
+using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Services.AuthService;
 
@@ -63,7 +64,7 @@ public sealed class AuthTokenIssuer
         AccessToken accessToken = _tokens.CreateAccessToken(
             new TokenSubject(
                 UserId: user.Id.ToString(),
-                UserName: user.FullName,
+                UserName: user.FullName(),
                 Email: user.Email,
                 Roles: profile.Roles,
                 TenantId: tenantId,

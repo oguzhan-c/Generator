@@ -4,6 +4,7 @@ using CanFx.MultiTenancy;
 #if (AuditTrail)
 using CanFx.Persistence.AuditTrail;
 #endif
+using CanFx.Persistence.Database;
 using CanFx.Persistence.DependencyInjection;
 #if (MultiTenancy)
 using CanFx.Persistence.MultiTenancy;
@@ -26,6 +27,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 #if (MultiTenancy)
 using CanAppTemplate.Application.Services.Repositories;
 #endif
@@ -47,8 +49,8 @@ public static class PersistenceServiceRegistration
     /// <remarks>appsettings: <c>ConnectionStrings:CanAppTemplate</c>, <c>Seed</c>, <c>QueryDiagnostics</c>, <c>DataRetention</c>.</remarks>
     public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // TODO(canfxgen): Bağlantı dizesini user-secrets'a yaz (appsettings'e şifre koyma):
-        //   dotnet user-secrets set "ConnectionStrings:CanAppTemplate" "<bağlantı dizesi>" --project src/CanAppTemplate.WebApi
+        // Geliştirmede appsettings.Development.json'daki yerel (docker) bağlantı dizesi kullanılır. Gerçek ortamın bağlantı
+        // dizesi appsettings'e YAZILMAZ: ortam değişkeni (ConnectionStrings__CanAppTemplate) ya da user-secrets.
         string connectionString =
             configuration.GetConnectionString("CanAppTemplate") ?? throw new InvalidOperationException("ConnectionStrings:CanAppTemplate ayarı eksik.");
 #if (MultiTenancy)
@@ -76,17 +78,19 @@ public static class PersistenceServiceRegistration
                 // Aggregate'ler arası ilişkiler navigation'sız olabilir; filtreli zorunlu ilişki uyarısı burada geçersiz.
                 options.ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
 
-                // TODO(canfxgen): Veritabanı sağlayıcını seç. Paketi Directory.Packages.props'a ve bu projeye ekle, aşağıdaki
-                // satırlardan birini aç ve throw satırını sil. Bağlantı dizesi: ConnectionStrings:CanAppTemplate (user-secrets).
-                //   PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL):
-                //     options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());
-                //   SQL Server (Microsoft.EntityFrameworkCore.SqlServer):
-                //     options.UseSqlServer(tenantConnectionString, sql => sql.EnableRetryOnFailure());
-                //   SQLite (Microsoft.EntityFrameworkCore.Sqlite):
-                //     options.UseSqlite(tenantConnectionString);
-                throw new InvalidOperationException(
-                    $"Veritabanı ayarlanmadı (bağlantı dizesi uzunluğu: {tenantConnectionString.Length}). " +
-                    "CanAppTemplate.Persistence/PersistenceServiceRegistration.cs içindeki TODO(canfxgen)'e bak.");
+#if (Postgres)
+                options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());
+#elif (SqlServer)
+                options.UseSqlServer(tenantConnectionString, sql => sql.EnableRetryOnFailure());
+#else
+                options.UseSqlite(tenantConnectionString);
+#endif
+                // Başka bir veritabanına geçmek için: paketi Directory.Packages.props'ta ve Persistence projesinde değiştir,
+                // yukarıdaki satırı değiştir, docker-compose.yml'deki servisi ve appsettings.Development.json'daki
+                // bağlantı dizesini güncelle, eski migration'ları sil (sağlayıcıya özeldir).
+                //   PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL)    : options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());
+                //   SQL Server (Microsoft.EntityFrameworkCore.SqlServer)  : options.UseSqlServer(tenantConnectionString, sql => sql.EnableRetryOnFailure());
+                //   SQLite     (Microsoft.EntityFrameworkCore.Sqlite)     : options.UseSqlite(tenantConnectionString);
             }
         );
 
@@ -163,26 +167,31 @@ public static class PersistenceServiceRegistration
     }
 
     /// <summary>
-    /// Veritabanını hazırlar ve başlangıç verisini yükler. Migration varsa uygulanır; yoksa şema doğrudan oluşturulur
-    /// (ilk deneme için; kalıcı ortamlarda migration kullan: <c>dotnet ef migrations add Initial</c>).
+    /// Veritabanını <c>Database:StartupMode</c>'a göre hazırlar ve başlangıç verisini yükler:
+    /// <c>Migrate</c> (migration'ları uygular, yoksa şemayı oluşturur), <c>Recreate</c> (siler ve yeniden oluşturur;
+    /// yalnızca Development'ta ve yerel veritabanında), <c>None</c> (dokunmaz). Geliştirmede örnek veri de eklenir
+    /// (<c>IDataSeeder.DevelopmentOnly</c>).
     /// </summary>
-    public static async Task InitializeDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    public static async Task InitializeDatabaseAsync(
+        this IServiceProvider services,
+        DatabaseStartupMode mode,
+        bool isDevelopment,
+        CancellationToken cancellationToken = default)
     {
+        ILogger logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("CanAppTemplate.Database");
 #if (MultiTenancy)
-        await services.InitializeTenantDatabasesAsync<BaseDbContext>(PrepareAsync, cancellationToken);
+        await services.InitializeTenantDatabasesAsync<BaseDbContext>(
+            (db, ct) => DatabaseStartup.PrepareAsync(db, mode, isDevelopment, logger, ct),
+            cancellationToken);
 #else
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
-            await PrepareAsync(scope.ServiceProvider.GetRequiredService<BaseDbContext>(), cancellationToken);
+        {
+            BaseDbContext db = scope.ServiceProvider.GetRequiredService<BaseDbContext>();
+            await DatabaseStartup.PrepareAsync(db, mode, isDevelopment, logger, cancellationToken);
+        }
 #endif
 
-        await services.SeedDataAsync(cancellationToken: cancellationToken);
-
-        static async Task PrepareAsync(BaseDbContext db, CancellationToken ct)
-        {
-            if (db.Database.GetMigrations().Any())
-                await db.Database.MigrateAsync(ct);
-            else
-                await db.Database.EnsureCreatedAsync(ct);
-        }
+        if (mode != DatabaseStartupMode.None)
+            await services.SeedDataAsync(includeDevelopmentData: isDevelopment, cancellationToken: cancellationToken);
     }
 }

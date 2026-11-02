@@ -72,10 +72,10 @@ variant() {
   echo "    TODO(canfxgen): $(grep -r --include=*.cs --include=*.json --include=*.config 'TODO(canfxgen)' "$OUT/$name" | wc -l | tr -d ' ')" | tee -a "$LOG"
 }
 
-variant Minimal --IdKeyType int --Otp false --EmailTwoFactor false --Passkey false --AuditTrail false
+variant Minimal --IdKeyType int --Otp false --EmailTwoFactor false --Passkey false --AuditTrail false --Postman false --Database sqlite
 variant Full --MultiTenancy true --ExternalLogin true --Redis true --EventBus true --Hangfire true \
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
-variant Tenant --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true
+variant Tenant --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true --Database sqlserver
 # Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
 variant My-Shop.Api --IdKeyType int --Redis true --FileStorage true
 
