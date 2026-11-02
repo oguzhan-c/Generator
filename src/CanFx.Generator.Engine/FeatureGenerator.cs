@@ -19,8 +19,8 @@ public sealed record RequestOptions
 /// <summary>
 /// Var olan bir özelliğe yeni komut ya da sorgu ekler (nArchitecture'daki <c>generate command/query</c>):
 /// <code>
-/// Features/{Özellik}/Commands/{Ad}/{Ad}Command.cs (+ Handler), {Ad}CommandValidator.cs, {Ad}Response.cs
-/// Features/{Özellik}/Queries/{Ad}/{Ad}Query.cs (+ Handler), {Ad}QueryValidator.cs, {Ad}Response.cs
+/// Features/{Özellik}/Commands/{Ad}/{Ad}Command.cs, {Ad}CommandHandler.cs, {Ad}CommandValidator.cs, {Ad}Response.cs
+/// Features/{Özellik}/Queries/{Ad}/{Ad}Query.cs, {Ad}QueryHandler.cs, {Ad}QueryValidator.cs, {Ad}Response.cs
 /// </code>
 /// ve <c>{Özellik}OperationClaims</c>'e yetki, <c>{Özellik}Controller</c>'a uç ekler.
 /// </summary>

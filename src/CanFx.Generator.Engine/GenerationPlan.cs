@@ -15,7 +15,12 @@ public sealed class GenerationPlan
     /// <summary>Var olan dosyalara yapılacak değişiklikler (dosya + açıklama).</summary>
     public IReadOnlyList<(string File, string Description)> Injections => _injections.Select(i => (i.File, i.Description)).ToList();
 
-    public void AddFile(string path, string content) => _files.Add(new GeneratedFile(path, content.ReplaceLineEndings("\n")));
+    /// <summary>Dosya ekler. C# dosyasında birden çok tip varsa her biri kendi dosyasına ayrılır (ör. istek + handler).</summary>
+    public void AddFile(string path, string content)
+    {
+        foreach ((string file, string text) in TypeFileSplitter.Split(path, content.ReplaceLineEndings("\n")))
+            _files.Add(new GeneratedFile(file, text) { Origin = path });
+    }
 
     /// <summary>
     /// <paramref name="file"/>'da <c>// {marker}</c> satırının ÜSTÜNE <paramref name="line"/>'ı (işaretin girintisiyle)
@@ -33,9 +38,21 @@ public sealed class GenerationPlan
     {
         var results = new List<ChangeResult>();
 
+        // Planın başındaki durum: yazılan dosyalar sonraki kontrolleri etkilemesin.
+        var originsBefore = _files.Where(f => f.Origin != f.Path).Select(f => f.Origin).Distinct().Where(File.Exists).ToHashSet();
+
         foreach (GeneratedFile file in _files)
         {
             bool exists = File.Exists(file.Path);
+
+            // Ayrılan dosyalar (ör. handler) asıl dosyayla birlikte yazılır: asıl dosya korunuyorsa (eski üretimde handler
+            // onun içinde olabilir) ayrılanlar da yazılmaz, yoksa aynı tip iki kez tanımlanır.
+            if (!force && file.Origin != file.Path && originsBefore.Contains(file.Origin))
+            {
+                results.Add(new ChangeResult(file.Path, ChangeKind.Skipped, $"{System.IO.Path.GetFileName(file.Origin)} var, değiştirilmedi"));
+                continue;
+            }
+
             if (exists && !force)
             {
                 results.Add(new ChangeResult(file.Path, ChangeKind.Skipped, "dosya var, değiştirilmedi"));
@@ -82,7 +99,11 @@ public sealed class GenerationPlan
     }
 }
 
-public sealed record GeneratedFile(string Path, string Content);
+public sealed record GeneratedFile(string Path, string Content)
+{
+    /// <summary>Dosyanın ayrıldığı asıl dosya (ayrılmadıysa kendisi).</summary>
+    public string Origin { get; init; } = Path;
+}
 
 internal sealed record Injection(string File, string Description, Func<string, InjectResult> Apply);
 

@@ -26,7 +26,7 @@ public sealed record CrudOptions
 /// Bir entity için CRUD özelliğini nArchitecture düzeninde üretir:
 /// <code>
 /// Application/Features/{Çoğul}/
-///   Commands/Create|Update|Delete/   {İşlem}{Entity}Command (+ Handler), Validator, {Created|Updated|Deleted}{Entity}Response
+///   Commands/Create|Update|Delete/   {İşlem}{Entity}Command, ...CommandHandler, Validator, {Created|Updated|Deleted}{Entity}Response
 ///   Queries/GetById/                 GetById{Entity}Query, GetById{Entity}Response
 ///   Queries/GetList/                 GetList{Entity}Query, GetList{Entity}ListItemDto
 ///   Queries/GetListByDynamic/        GetListByDynamic{Entity}Query

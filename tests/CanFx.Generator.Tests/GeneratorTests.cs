@@ -164,6 +164,9 @@ public sealed class CrudGeneratorTests
             "Constants/BrandsBusinessMessages.cs", "Constants/BrandsOperationClaims.cs",
             "Commands/Delete/DeleteBrandCommandValidator.cs", "Queries/GetListByDynamic/GetListByDynamicBrandListItemDto.cs",
             "Profiles/MappingProfiles.cs", "Rules/BrandBusinessRules.cs",
+            "Commands/Create/CreateBrandCommandHandler.cs", "Commands/Update/UpdateBrandCommandHandler.cs",
+            "Commands/Delete/DeleteBrandCommandHandler.cs", "Queries/GetById/GetByIdBrandQueryHandler.cs",
+            "Queries/GetList/GetListBrandQueryHandler.cs", "Queries/GetListByDynamic/GetListByDynamicBrandQueryHandler.cs",
         })
         {
             Assert.True(solution.Exists(Feature + file), file);
@@ -176,16 +179,26 @@ public sealed class CrudGeneratorTests
         Assert.True(solution.Exists("src/Shop.Application/Services/Brands/IBrandService.cs"));
         Assert.True(solution.Exists("src/Shop.Application/Services/Brands/BrandManager.cs"));
         Assert.Contains("services.AddScoped<IBrandService, BrandManager>();", solution.Read("src/Shop.Application/ApplicationServiceRegistration.cs"));
-        Assert.Contains("ISecuredRequest, ILoggableRequest, ITransactionalRequest", solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs"));
-        Assert.Contains("ICachableRequest", solution.Read(Feature + "Queries/GetList/GetListBrandQuery.cs"));
+        Assert.Contains("ISecuredRequest, ILoggableRequest, ITransactionalRequest", ReadWithHandler(solution, Feature + "Commands/Create/CreateBrandCommand.cs"));
+        Assert.Contains("ICachableRequest", ReadWithHandler(solution, Feature + "Queries/GetList/GetListBrandQuery.cs"));
+
+        // Dosya başına tek tip: istek dosyasında handler yok, handler kendi dosyasında ve yalnızca gerektiği using'lerle.
+        string request = solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs");
+        string handler = solution.Read(Feature + "Commands/Create/CreateBrandCommandHandler.cs");
+        Assert.DoesNotContain("Handler", request);
+        Assert.DoesNotContain("using CanFx.Mapping;", request);
+        Assert.Contains("public sealed class CreateBrandCommandHandler : IRequestHandler<CreateBrandCommand, CreatedBrandResponse>", handler);
+        Assert.Contains("using CanFx.Mapping;", handler);
+        Assert.DoesNotContain("using System.Text.Json.Serialization;", handler);
+        Assert.StartsWith("// canfxgen ile üretildi", handler);
         Assert.Contains("// canfxgen:endpoints", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
 
-        string create = solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs");
+        string create = ReadWithHandler(solution, Feature + "Commands/Create/CreateBrandCommand.cs");
         Assert.Contains("Brand brand = Brand.Create(request.Name).OrThrow();", create);
         Assert.Contains("public string Name { get; set; } = string.Empty;", create);
         Assert.Contains("[BrandsOperationClaims.Admin, BrandsOperationClaims.Write, BrandsOperationClaims.Create]", create);
         Assert.DoesNotContain("SaveChangesAsync", create); // Guid kimlik kodda üretilir
-        Assert.Contains("brand.Update(request.Name, request.IsActive);", solution.Read(Feature + "Commands/Update/UpdateBrandCommand.cs"));
+        Assert.Contains("brand.Update(request.Name, request.IsActive);", ReadWithHandler(solution, Feature + "Commands/Update/UpdateBrandCommand.cs"));
         Assert.Contains("RuleFor(x => x.Name).NotEmpty().MaximumLength(Brand.NameMaxLength);", solution.Read(Feature + "Commands/Create/CreateBrandCommandValidator.cs"));
         Assert.Contains("throw new NotFoundException(BrandsBusinessMessages.BrandNotExists)", solution.Read(Feature + "Rules/BrandBusinessRules.cs"));
         Assert.DoesNotContain("CreateMap<CreateBrandCommand, Brand>", solution.Read(Feature + "Profiles/MappingProfiles.cs"));
@@ -234,16 +247,16 @@ public sealed class CrudGeneratorTests
         CrudGenerator.Plan(layout, EntityReader.Read(layout, "Color")).Apply();
 
         string feature = "src/Shop.Application/Features/Colors/";
-        string create = solution.Read(feature + "Commands/Create/CreateColorCommand.cs");
+        string create = ReadWithHandler(solution, feature + "Commands/Create/CreateColorCommand.cs");
         Assert.Contains("Color color = _mapper.Map<Color>(request);", create);
         Assert.Contains("await _unitOfWork.SaveChangesAsync(cancellationToken);", create); // int kimlik veritabanında
-        Assert.Contains("_mapper.Map(request, color);", solution.Read(feature + "Commands/Update/UpdateColorCommand.cs"));
+        Assert.Contains("_mapper.Map(request, color);", ReadWithHandler(solution, feature + "Commands/Update/UpdateColorCommand.cs"));
 
         string profiles = solution.Read(feature + "Profiles/MappingProfiles.cs");
         Assert.Contains("CreateMap<CreateColorCommand, Color>();", profiles);
         Assert.Contains("CreateMap<UpdateColorCommand, Color>().ForMember(x => x.Id, o => o.Ignore());", profiles);
         Assert.Contains("\"{Id}\"", solution.Read("src/Shop.WebAPI/Controllers/ColorsController.cs"));
-        Assert.Contains(".OrderByDescending(x => x.CreatedAt)", solution.Read(feature + "Queries/GetList/GetListColorQuery.cs"));
+        Assert.Contains(".OrderByDescending(x => x.CreatedAt)", ReadWithHandler(solution, feature + "Queries/GetList/GetListColorQuery.cs"));
     }
 
     [Fact]
@@ -263,11 +276,11 @@ public sealed class CrudGeneratorTests
         SolutionLayout layout = SolutionLayout.Find(solution.Root);
         CrudGenerator.Plan(layout, EntityReader.Read(layout, "Tag")).Apply();
 
-        string create = solution.Read("src/Shop.Application/Features/Tags/Commands/Create/CreateTagCommand.cs");
+        string create = ReadWithHandler(solution, "src/Shop.Application/Features/Tags/Commands/Create/CreateTagCommand.cs");
         Assert.Contains("TODO(canfxgen): Tag'de fabrika metodu", create);
         Assert.Contains("Tag tag = NewTag(request);", create);
-        Assert.Contains("TODO(canfxgen): Tag'de 'Update(...)' metodu ya da public setter'lar bulunamadı", solution.Read("src/Shop.Application/Features/Tags/Commands/Update/UpdateTagCommand.cs"));
-        Assert.Contains(".OrderBy(x => x.Id)", solution.Read("src/Shop.Application/Features/Tags/Queries/GetList/GetListTagQuery.cs"));
+        Assert.Contains("TODO(canfxgen): Tag'de 'Update(...)' metodu ya da public setter'lar bulunamadı", ReadWithHandler(solution, "src/Shop.Application/Features/Tags/Commands/Update/UpdateTagCommand.cs"));
+        Assert.Contains(".OrderBy(x => x.Id)", ReadWithHandler(solution, "src/Shop.Application/Features/Tags/Queries/GetList/GetListTagQuery.cs"));
     }
 
     [Fact]
@@ -298,12 +311,12 @@ public sealed class CrudGeneratorTests
 
         CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand"), new CrudOptions { Caching = false, Logging = false, Transaction = false, Secured = false, DynamicQuery = false }).Apply();
 
-        string create = solution.Read(Feature + "Commands/Create/CreateBrandCommand.cs");
+        string create = ReadWithHandler(solution, Feature + "Commands/Create/CreateBrandCommand.cs");
         Assert.Contains("public sealed class CreateBrandCommand : IRequest<CreatedBrandResponse>\n", create.ReplaceLineEndings("\n"));
         Assert.DoesNotContain("Permissions", create);
         Assert.Contains("transaction kapalı: handler kendisi kaydeder", create);
-        Assert.Contains("await _unitOfWork.SaveChangesAsync(cancellationToken);", solution.Read(Feature + "Commands/Delete/DeleteBrandCommand.cs"));
-        Assert.DoesNotContain("ICachableRequest", solution.Read(Feature + "Queries/GetList/GetListBrandQuery.cs"));
+        Assert.Contains("await _unitOfWork.SaveChangesAsync(cancellationToken);", ReadWithHandler(solution, Feature + "Commands/Delete/DeleteBrandCommand.cs"));
+        Assert.DoesNotContain("ICachableRequest", ReadWithHandler(solution, Feature + "Queries/GetList/GetListBrandQuery.cs"));
         Assert.False(solution.Exists(Feature + "Queries/GetListByDynamic/GetListByDynamicBrandQuery.cs"));
         Assert.DoesNotContain("GetList/ByDynamic", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
 
@@ -332,6 +345,7 @@ public sealed class CrudGeneratorTests
         Assert.DoesNotContain(command, r => r.Kind == ChangeKind.Failed);
         string syncFolder = Feature + "Commands/SyncBrand/";
         Assert.True(solution.Exists(syncFolder + "SyncBrandCommand.cs"));
+        Assert.True(solution.Exists(syncFolder + "SyncBrandCommandHandler.cs"));
         Assert.True(solution.Exists(syncFolder + "SyncBrandCommandValidator.cs"));
         Assert.True(solution.Exists(syncFolder + "SyncBrandResponse.cs"));
         string sync = solution.Read(syncFolder + "SyncBrandCommand.cs");
@@ -341,6 +355,7 @@ public sealed class CrudGeneratorTests
 
         FeatureGenerator.PlanQuery(layout, "Brands", "GetBrandByName").Apply();
         Assert.Contains("ICachableRequest", solution.Read(Feature + "Queries/GetBrandByName/GetBrandByNameQuery.cs"));
+        Assert.True(solution.Exists(Feature + "Queries/GetBrandByName/GetBrandByNameQueryHandler.cs"));
 
         string claims = solution.Read(Feature + "Constants/BrandsOperationClaims.cs");
         Assert.Contains("public const string SyncBrand = \"brands.sync-brand\";", claims);
@@ -354,4 +369,8 @@ public sealed class CrudGeneratorTests
 
         Assert.Throws<GeneratorException>(() => FeatureGenerator.PlanCommand(layout, "Nope", "X"));
     }
+
+    /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
+    private static string ReadWithHandler(TestSolution solution, string requestPath) =>
+        solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");
 }

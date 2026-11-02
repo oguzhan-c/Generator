@@ -9,6 +9,23 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+### Eklendi
+
+- Şablon: veritabanı seçimi (`--Database postgresql | sqlserver | sqlite`); paket, sağlayıcı satırı, yerel bağlantı
+  dizesi ve docker-compose servisi seçime göre hazır gelir.
+- Şablon: `Database:StartupMode` (`Migrate` / `Recreate` / `None`); Development'ta `Recreate` ve örnek veri seed'i.
+- Şablon: geliştirme servisleri (CanFx.DevServices): veritabanı vb. bilgisayarda çalışmıyorsa docker-compose'dan başlatılır.
+- Şablon: uygulama `Dockerfile`'ı ve `docker compose --profile app` servisi.
+- Şablon: Postman eşitleme (`--Postman`, varsayılan açık; anahtar user-secrets'ta).
+
+### Değişti
+
+- Şablon: `AppUser` yalnızca alan taşır (taban sınıf seçenekleri yorumda); kayıt, profil ve rol işlemleri
+  `Application/Services/Users/AppUserService.cs`'te.
+- Dosya başına tek tip: şablondaki ve canfxgen'in ürettiği handler'lar `{İstek}Handler.cs`'te; diğer çok tipli
+  dosyalar da bölündü. Doğrulama bu kuralı denetler.
+- CanFx paketleri 0.2.0.
+
 ## [0.3.3] - 2026-11-02
 
 ### Düzeltildi

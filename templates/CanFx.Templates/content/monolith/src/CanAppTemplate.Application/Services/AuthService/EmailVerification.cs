@@ -1,26 +1,11 @@
-using CanFx.Application;
-using CanFx.Domain.Results;
 using CanFx.Mailing;
-using CanFx.Mediator;
 using CanFx.Persistence.Repositories;
 using CanFx.Security.Entities;
-using CanFx.Security.Events;
-using CanFx.Security.Hashing;
-using CanFx.Security.Sessions;
 using CanFx.Security.VerificationCodes;
-using FluentValidation;
-using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Domain.Entities;
 using CanAppTemplate.Application.Services.Users;
 
 namespace CanAppTemplate.Application.Services.AuthService;
-
-public enum VerificationPurpose
-{
-    ConfirmEmail = 0,
-    SignIn = 1,
-    ResetPassword = 2,
-}
 
 /// <summary>
 /// E-postaya gönderilen 6 haneli kodlar (doğrulama, iki adımlı giriş, şifre sıfırlama). Kod HMAC'lenmiş olarak

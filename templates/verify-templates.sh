@@ -166,7 +166,8 @@ generate My-Shop.Api
 # ---------------------------------------------------------------- standart
 # Şablonla gelen (Auth, Account, Roles ...) ve canfxgen'in ürettiği (Brands ...) özellikler aynı kurala uyar:
 #   Features/{Özellik}/Constants/ + Rules/  (mesajlar, yetkiler, iş kuralları)
-#   Commands|Queries/{İstek}/  {İstek}.cs (istek + handler), {İstek}Validator.cs, {...}Response.cs / {...}Dto.cs
+#   Commands|Queries/{İstek}/  {İstek}.cs, {İstek}Handler.cs, {İstek}Validator.cs, {...}Response.cs / {...}Dto.cs
+#   dosya başına tek tip ve dosya adı = tip adı (Domain hariç: entity dosyaları kullanıcının).
 #   hatalar exception (Rules) ile; istekler Result<T> dönmez.
 standards() {
   local name="$1"
@@ -186,6 +187,18 @@ standards() {
     grep -qE '(record|class) [A-Za-z0-9_]+(Response|Dto)\b' "$f" && problems+=$'\n  Yanıt/DTO istek dosyasında (ayrı dosya olmalı): '"$f"
   done
 
+  # Dosya başına tek tip, dosya adı = tip adı (şablon ve canfxgen kodu; Domain'deki entity'ler kullanıcının)
+  local src="$OUT/$name/src" n t
+  while IFS= read -r f; do
+    n="$(grep -cE '^(public|internal) ([a-z]+ )*(class|record|interface|enum|struct) ' "$f" || true)"
+    t="$(grep -oE '^(public|internal) ([a-z]+ )*(class|record|interface|enum|struct) [A-Za-z0-9_]+' "$f" | head -1 | awk '{print $NF}')"
+    if [[ "$n" -gt 1 ]]; then
+      problems+=$'\n  Dosyada birden çok tip (her tip kendi dosyasında olmalı): '"$f"
+    elif [[ "$n" -eq 1 && "$t" != "$(basename "$f" .cs)" ]]; then
+      problems+=$'\n  Dosya adı tip adıyla aynı değil ('"$t"'): '"$f"
+    fi
+  done < <(find "$src" -name '*.cs' -not -path '*/obj/*' -not -path '*/bin/*' -not -path '*.Domain/*')
+
   for d in "$features"/*/; do
     [[ -d "$d/Constants" && -d "$d/Rules" ]] || problems+=$'\n  Constants/ ya da Rules/ eksik: '"$d"
   done
@@ -195,7 +208,7 @@ standards() {
     echo "$problems" | tee -a "$LOG"
     failed=1
   else
-    step "TAMAM: $name standarda uygun (Constants/Rules, ayrı validator ve yanıt dosyaları, Result yok)"
+    step "TAMAM: $name standarda uygun (Constants/Rules, dosya başına tek tip, ayrı handler/validator/yanıt, Result yok)"
   fi
 }
 standards Minimal

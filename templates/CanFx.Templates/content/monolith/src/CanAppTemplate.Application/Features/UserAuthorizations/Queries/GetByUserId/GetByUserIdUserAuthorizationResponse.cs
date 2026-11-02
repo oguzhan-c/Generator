@@ -1,3 +1,5 @@
+
+
 namespace CanAppTemplate.Application.Features.UserAuthorizations.Queries.GetByUserId;
 
 public sealed record GetByUserIdUserAuthorizationResponse(
@@ -6,5 +8,3 @@ public sealed record GetByUserIdUserAuthorizationResponse(
     IReadOnlyList<UserAuthorizationItemDto> Roles,
     IReadOnlyList<UserAuthorizationItemDto> DirectPermissions,
     IReadOnlyList<string> EffectivePermissions);
-
-public sealed record UserAuthorizationItemDto(IdentityKey Id, string Name);

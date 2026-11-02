@@ -1,11 +1,5 @@
 using CanFx.Application;
 using CanFx.Persistence.Context;
-#if (AuditTrail)
-using CanFx.Persistence.AuditTrail;
-#endif
-#if (EventBus)
-using CanFx.Persistence.Outbox;
-#endif
 using CanFx.Persistence.RequestLogging;
 #if (Reporting)
 using CanFx.Reporting.EntityFrameworkCore;
@@ -84,13 +78,4 @@ public sealed class BaseDbContext : CanDbContext
         //     modelBuilder.Entity<Product>().Property<uint>("xmin").HasColumnType("xid").ValueGeneratedOnAddOrUpdate().IsConcurrencyToken();
         // SQL Server: entity'ye [Timestamp] byte[] RowVersion.
     }
-}
-
-internal static class Schemas
-{
-    public const string Identity = "identity";
-    public const string Infrastructure = "infra";
-
-    /// <summary>Uygulama tabloları. TODO(canfxgen): Modül başına ayrı şema istiyorsan buraya ekle.</summary>
-    public const string App = "app";
 }

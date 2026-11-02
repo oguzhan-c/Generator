@@ -44,8 +44,8 @@ ve ProblemDetails yanıtına çevrilir.
 Entity'yi `CanAppTemplate.Domain/Entities` içinde yaz, ardından Rider'da entity dosyasına sağ tıkla → **CanFx → Generate
 CRUD** (ya da terminalde `canfxgen generate crud Brand`; komut/sorgu eklemek için `canfxgen generate command|query`). Üretilen dosyalar:
 
-- `Application/Features/Brands/Commands/{Create,Update,Delete}/` — komut + handler, validator, `Created/Updated/DeletedBrandResponse`
-- `Application/Features/Brands/Queries/{GetById,GetList,GetListByDynamic}/` — sorgu + handler, `GetByIdBrandResponse`, `GetListBrandListItemDto`
+- `Application/Features/Brands/Commands/{Create,Update,Delete}/` — komut, handler (`...CommandHandler.cs`), validator, `Created/Updated/DeletedBrandResponse`
+- `Application/Features/Brands/Queries/{GetById,GetList,GetListByDynamic}/` — sorgu, handler (`...QueryHandler.cs`), `GetByIdBrandResponse`, `GetListBrandListItemDto`
 - `Application/Features/Brands/{Constants,Profiles,Rules}/` — `BrandsMessages`, `BrandsOperationClaims`, `MappingProfiles`, `BrandBusinessRules`
 - `Application/Services/Repositories/IBrandRepository.cs`, `Persistence/Repositories/BrandRepository.cs`
 - `Persistence/EntityConfigurations/BrandConfiguration.cs`
