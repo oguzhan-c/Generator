@@ -61,7 +61,7 @@ pack() {
 
 templates() {
   log "şablon doğrulama"
-  if ! ./templates/verify-templates.sh; then
+  if ! bash ./templates/verify-templates.sh; then   # bash ile: çalıştırma izni düşse de çalışır
     tail -n 80 templates.log >&2
     exit 1
   fi
