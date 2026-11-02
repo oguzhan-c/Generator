@@ -20,6 +20,9 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 - canfxgen: `generate entity <Ad> [--folder <klasör>] [--id Guid|int|long]`: Domain'de yeni entity; taban sınıf
   seçenekleri (Entity, AuditedEntity, FullAuditedEntity, AggregateRoot ...) ve her birinin eklediği alanlar dosyada
   yorum olarak durur, seçim sınıf satırında yapılır.
+- canfxgen: `rate-limit <politika> <uç>`: uca (istek, `Controller.Action`, controller ya da özellik)
+  `[EnableRateLimiting("ad")]` bağlar; politika appsettings'te yoksa `RateLimiting:Policies` altına eklenir
+  (`--permit`, `--window`, `--partition-by`). Hazır politikalar `auth` ve `sensitive`; `--remove` bağı kaldırır.
 - canfxgen: `enable` / `disable <mekanizma...> <hedef>`: önbellek, log, transaction, yetki ve dinamik sorgu sonradan
   açılıp kapatılır. Hedef bir istek (`CreateBrandCommand`), özellik (`Brands`) ya da entity (`Brand`, özelliğin tüm
   istekleri). İstek sınıfına arayüz ve üyeleri (Permissions, CacheKey/CacheTags ...) eklenir ya da çıkarılır; dosyanın

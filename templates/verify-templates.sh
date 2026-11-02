@@ -189,6 +189,8 @@ CS
   run_cangen disable caching dynamic-query Brand              # mekanizmaları sonradan kapat / aç
   run_cangen enable caching logging Tag
   run_cangen disable secured GetByIdTagQuery
+  run_cangen rate-limit reports GetListBrandQuery --permit 20 --partition-by Tenant   # politikayı uca bağla
+  run_cangen rate-limit sensitive TagsController.Delete
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands
   if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then

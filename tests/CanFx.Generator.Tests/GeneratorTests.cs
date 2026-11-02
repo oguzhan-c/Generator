@@ -572,6 +572,58 @@ public sealed class CrudGeneratorTests
         Assert.Contains("GetListByDynamic", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
     }
 
+    [Fact]
+    public void Rate_limit_policy_is_bound_to_endpoints_and_added_to_settings()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", "namespace Shop.Domain.Entities; public class Brand : Entity<Guid> { public string Name { get; set; } = \"\"; }");
+        solution.Write("src/Shop.WebAPI/appsettings.json", """
+            {
+              "RateLimiting": {
+                "Enabled": true,
+                // Uygulamanın kendi sınırları
+                "Policies": {
+                }
+              }
+            }
+            """);
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand")).Apply();
+        string controller = "src/Shop.WebAPI/Controllers/BrandsController.cs";
+
+        // İsteğe bağla: onu gönderen action'a attribute, appsettings'e politika.
+        RateLimitBinder.Plan(layout, "reports", "CreateBrandCommand", new RateLimitOptions { PermitLimit = 20, PartitionBy = "Tenant" }, []).Apply();
+        string code = solution.Read(controller).ReplaceLineEndings("\n");
+        Assert.Contains("    [HttpPost]\n    [EnableRateLimiting(\"reports\")]\n    public async Task<IActionResult> Add(", code);
+        Assert.Contains("using Microsoft.AspNetCore.RateLimiting;", code);
+        Assert.Single(code.Split("EnableRateLimiting(")[1..]);
+
+        string settings = solution.Read("src/Shop.WebAPI/appsettings.json");
+        Assert.Contains("\"reports\": { \"PermitLimit\": 20, \"Window\": \"00:01:00\", \"SegmentsPerWindow\": 1, \"PartitionBy\": \"Tenant\" }", settings);
+        using (System.Text.Json.JsonDocument.Parse(settings, new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip })) { }
+
+        // İkinci politika: virgülle eklenir, JSON geçerli kalır; aynı uca başka politika verilince değiştirilir.
+        RateLimitBinder.Plan(layout, "heavy", "BrandsController.Update", new RateLimitOptions(), []).Apply();
+        RateLimitBinder.Plan(layout, "heavy", "CreateBrandCommand", new RateLimitOptions(), []).Apply();
+        code = solution.Read(controller);
+        Assert.DoesNotContain("EnableRateLimiting(\"reports\")", code);
+        Assert.Equal(2, code.Split("EnableRateLimiting(\"heavy\")").Length - 1);
+        settings = solution.Read("src/Shop.WebAPI/appsettings.json");
+        Assert.Contains("\"heavy\"", settings);
+        using (System.Text.Json.JsonDocument.Parse(settings, new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip })) { }
+
+        // Hazır politika sabitle; controller'ın tamamına; kaldırma.
+        RateLimitBinder.Plan(layout, "sensitive", "Brand", new RateLimitOptions(), []).Apply();
+        code = solution.Read(controller);
+        Assert.Contains("[ApiController]\n[EnableRateLimiting(CanRateLimitPolicies.Sensitive)]\npublic class BrandsController", code.ReplaceLineEndings("\n"));
+        Assert.Contains("using CanFx.WebApi.RateLimiting;", code);
+
+        RateLimitBinder.Plan(layout, "heavy", "CreateBrandCommand", new RateLimitOptions { Remove = true }, []).Apply();
+        Assert.Single(solution.Read(controller).Split("EnableRateLimiting(\"heavy\")")[1..]);
+
+        Assert.Throws<GeneratorException>(() => RateLimitBinder.Plan(layout, "Bad Name", "CreateBrandCommand", new RateLimitOptions(), []));
+    }
+
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
     private static string ReadWithHandler(TestSolution solution, string requestPath) =>
         solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");

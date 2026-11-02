@@ -28,6 +28,7 @@ try
         "new" => New(arguments),
         "generate" or "g" => Generate(arguments),
         "crud" => Crud(arguments, entityIndex: 1),
+        "rate-limit" => RateLimit(arguments),
         "enable" => Toggle(arguments, enable: true),
         "disable" => Toggle(arguments, enable: false),
         "entities" => Entities(arguments),
@@ -253,6 +254,34 @@ int Toggle(Arguments a, bool enable)
     return Report(a, layout, plan.Apply(), title, warnings, new { Target = target, Enable = enable, Mechanisms = mechanisms.Distinct() });
 }
 
+// ================================================================ rate-limit
+
+int RateLimit(Arguments a)
+{
+    if (!a.Json)
+        Banner();
+    SolutionLayout layout = Layout(a);
+    string policy = a.Positional(1) ?? Text($"Hız sınırı {G("politikası")} (ör. reports; hazır: auth, sensitive)");
+    string target = a.Positional(2) ?? Text($"Hangi {G("uç")}: istek (CreateReportCommand), Controller.Action ya da controller/özellik");
+
+    int permit = a.Option("permit") is { } p ? int.TryParse(p, out int value) ? value : throw new GeneratorException($"--permit sayı olmalı: {p}") : 60;
+    var options = new RateLimitOptions
+    {
+        Remove = a.Flag("remove"),
+        PermitLimit = permit,
+        Window = a.Option("window") ?? "00:01:00",
+        PartitionBy = a.Option("partition-by") ?? "UserOrIp",
+    };
+
+    var warnings = new List<string>();
+    GenerationPlan plan = RateLimitBinder.Plan(layout, policy, target, options, warnings);
+    string title = options.Remove ? $"{target}: hız sınırı kaldırıldı" : $"{target}: '{policy}' hız sınırı";
+    if (a.Flag("preview") || a.Flag("dry-run"))
+        return PrintPreview(a, layout, plan, title, warnings);
+
+    return Report(a, layout, plan.Apply(), title, warnings, new { Policy = policy, Target = target, options.Remove });
+}
+
 int PrintPreview(Arguments a, SolutionLayout layout, GenerationPlan plan, string title, IReadOnlyList<string> warnings)
 {
     List<FilePreview> previews = plan.Preview().Where(p => p.Kind is ChangeKind.Created or ChangeKind.Overwritten or ChangeKind.Updated or ChangeKind.Deleted or ChangeKind.Failed).ToList();
@@ -457,12 +486,17 @@ static string Help() => """
         canfxgen generate command SyncBrand Brands
         canfxgen generate query GetBrandByName Brands
         canfxgen generate dynamic-query Brand
+        canfxgen rate-limit reports GetBrandReportQuery --permit 20 --partition-by Tenant
         canfxgen enable caching Brand --preview
         canfxgen disable secured logging CreateBrandCommand
 
     KOMUTLAR:
         new [Ad]                  CanFx şablonuyla yeni çözüm (veritabanı ve özellikler sorulur)
         generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
+        rate-limit <Politika> <Uç> Uca hız sınırı bağlar ([EnableRateLimiting]); politika appsettings'te yoksa eklenir.
+                                  Uç: istek (CreateReportCommand), Controller.Action, controller ya da özellik.
+                                  --permit 60 --window 00:01:00 --partition-by UserOrIp|Ip|Tenant, --remove, --preview
+                                  Hazır politikalar: auth (giriş/kayıt), sensitive (kod gönderme, şifre)
         enable / disable          Mekanizmayı sonradan aç / kapat: caching, logging, transaction, secured, dynamic-query
                                   Hedef: istek (CreateBrandCommand), özellik (Brands), entity (Brand) ya da dosya yolu.
                                   --preview: değişiklikleri göster, dosyalara yazma

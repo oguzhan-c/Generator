@@ -66,6 +66,20 @@ canfxgen disable dynamic-query Brand             # GetListByDynamic dosyaları, 
 Mekanizmalar: `caching`, `logging`, `transaction`, `secured`, `dynamic-query`. Yalnızca istek sınıfının arayüzleri ve
 ilgili üyeleri değişir; handler ve kendi eklediklerin olduğu gibi kalır (transaction kapatılırken handler kaydetmiyorsa uyarılır).
 
+## Hız sınırı
+
+Genel sınır (Global), giriş/kayıt (`auth`) ve hassas işlemler (`sensitive`) hazır; uygulamanın kendi sınırları
+appsettings'te `RateLimiting:Policies` altında. Bir uca bağlamak:
+
+```bash
+canfxgen rate-limit reports GetSalesReportQuery --permit 20 --window 00:01:00 --partition-by Tenant
+canfxgen rate-limit sensitive OrdersController.Cancel
+canfxgen rate-limit reports GetSalesReportQuery --remove
+```
+
+Uca `[EnableRateLimiting("reports")]` eklenir; politika appsettings'te yoksa yazılır. Tanımsız politika kullanan uç
+uygulamayı açılışta durdurur.
+
 ## Başlangıç verisi (seed)
 
 ```bash
