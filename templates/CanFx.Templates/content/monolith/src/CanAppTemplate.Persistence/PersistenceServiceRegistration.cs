@@ -83,7 +83,7 @@ public static class PersistenceServiceRegistration
                 //   1) Directory.Packages.props ve bu projenin .csproj'unda sağlayıcı paketi
                 //   2) aşağıdaki satırlardan biri ve "throw" satırının silinmesi
                 //   3) docker-compose.yml'deki servisi (postgres / sqlserver) ve volume'u
-                //   4) appsettings.Development.json'daki bağlantı dizesi
+                //   4) appsettings.Development.json'daki bağlantı dizesi ve DevServices → "Database" satırı
                 // Uygulama Development'ta açılırken veritabanı bilgisayarında yoksa docker'dan kendiliğinden başlatılır.
                 //
                 // options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());        // PostgreSQL

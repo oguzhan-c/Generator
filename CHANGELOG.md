@@ -9,6 +9,15 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
+### Değişti
+
+- Şablon: `Development/DevServicesSetup.cs` kaldırıldı. Geliştirme servisleri yalnızca `appsettings.Development.json`'dan
+  okunur: servis başına docker-compose adı (`Compose`) ve adresin okunduğu ayar (`AddressFrom`); `Program.cs`'te tek
+  satır (`AddCanDevServices(config)`). Veritabanı satırı PostgreSQL / SQL Server için yorumda hazır.
+- CanFx paketleri 0.3.0.
+
 ## [0.4.0] - 2026-11-03
 
 ### Düzeltildi

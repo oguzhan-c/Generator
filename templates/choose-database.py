@@ -55,6 +55,8 @@ if provider in packages:
     edit(registration, lambda t: THROW.sub("", t.replace("// options." + method + "(", "options." + method + "(")))
     marker = "Host=" if provider == "postgres" else "Server="
     edit(development, lambda t: re.sub(r'\n[ \t]*"[^"]+": ""', "", re.sub(r'// ("[^"]+": "' + marker + ')', r"\1", t), count=1))
+    compose = "postgres" if provider == "postgres" else "sqlserver"
+    edit(development, lambda t: t.replace('// "Database": { "Compose": "' + compose + '"', '"Database": { "Compose": "' + compose + '"', 1))
 elif provider == "sqlite":
     edit(props, lambda t: t.replace('    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design"',
                                     '    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />\n'

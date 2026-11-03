@@ -28,11 +28,12 @@ ve ProblemDetails yanıtına çevrilir.
    - `src/CanAppTemplate.Persistence/PersistenceServiceRegistration.cs` → "Veritabanı": `UseNpgsql` / `UseSqlServer`
      satırı (ve `throw` satırını sil)
    - `docker-compose.yml`: `postgres` / `sqlserver` servisi ve volume'u
-   - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi
+   - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi ve `DevServices` → `"Database"` satırı
 
    Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch / RabbitMQ) bilgisayarında
    çalışıyorsa onu kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı).
-   Ayar: `appsettings.Development.json` → `DevServices` (servis başına `Auto` / `Docker` / `Local` / `Off`).
+   Ayar: `appsettings.Development.json` → `DevServices`: servisin docker-compose'daki adı (`Compose`), adresinin okunduğu
+   ayar (`AddressFrom`) ve modu (`Auto` / `Docker` / `Local` / `Off`). Kod gerekmez; yalnızca Development'ta çalışır.
 3. Gizli değerler (appsettings'e YAZMA):
 
    ```bash

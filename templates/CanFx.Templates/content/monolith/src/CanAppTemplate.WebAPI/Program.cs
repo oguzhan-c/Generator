@@ -55,7 +55,6 @@ using CanAppTemplate.Domain.Constants;
 using CanAppTemplate.Persistence;
 using CanAppTemplate.Persistence.Contexts;
 using CanAppTemplate.Infrastructure;
-using CanAppTemplate.WebAPI.Development;
 using CanAppTemplate.WebAPI.Localization;
 using CanAppTemplate.WebAPI.Security;
 
@@ -96,7 +95,8 @@ builder.Services.AddCanLocalization(o =>
 });
 
 // Geliştirme servisleri (yalnızca Development): veritabanı vb. bilgisayarda yoksa docker-compose'dan başlatılır.
-builder.Services.AddDevServices(config);
+// Servisler ve adreslerinin okunduğu ayarlar appsettings.Development.json → "DevServices".
+builder.Services.AddCanDevServices(config);
 
 // Katmanlar
 builder.Services.AddApplicationServices();
