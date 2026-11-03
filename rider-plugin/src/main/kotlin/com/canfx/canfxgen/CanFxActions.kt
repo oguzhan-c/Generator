@@ -1,6 +1,8 @@
 package com.canfx.canfxgen
 
 import com.intellij.icons.AllIcons
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -71,78 +73,42 @@ class NewEntityAction : CanFxAction() {
     }
 }
 
-// ====================================================================== Add Seed Data (Not 13)
-
-class SeedOptions {
-    var required = true
-    var sample = true
-    var count = 20
-    var hasData = false
-}
-
-class SeedDataDialog(project: Project, private val entity: String, private val options: SeedOptions) : DialogWrapper(project) {
-    init {
-        title = "Add Seed Data: $entity"
-        setOKButtonText("Generate")
-        init()
-    }
-
-    override fun createCenterPanel(): JComponent = panel {
-        row {
-            checkBox("Required data (every environment)").bindSelected(options::required)
-                .comment("Persistence/Seeding/Data/*.json → ${entity}Seeder adds the missing records on startup.")
-        }
-        row {
-            checkBox("Sample data (Development only)").bindSelected(options::sample)
-                .comment("${entity}SampleSeeder fills screens with sample values (SampleData), related records are picked from existing ones.")
-        }
-        row("Sample count:") { intTextField(1..10_000).bindIntText(options::count) }
-        row {
-            checkBox("HasData (EF Core migration)").bindSelected(options::hasData)
-                .comment("Records are written into the migration; Ids must be fixed. For rarely changing fixed lists.")
-        }
-    }
-
-    override fun doValidate(): ValidationInfo? =
-        if (!options.required && !options.sample && !options.hasData) ValidationInfo("Choose at least one.") else null
-}
-
-class SeedDataAction : CanFxAction() {
-    override fun update(e: AnActionEvent) {
-        val entity = e.getData(CommonDataKeys.VIRTUAL_FILE)?.let(EntityDetector::entityName)
-        e.presentation.isEnabledAndVisible = e.project != null && entity != null
-        if (entity != null) e.presentation.text = "Add Seed Data for $entity..."
-    }
-
-    override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        val file = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
-        val entity = EntityDetector.entityName(file) ?: return
-        val options = SeedOptions()
-        if (!SeedDataDialog(project, entity, options).showAndGet()) return
-        if (!options.required && !options.sample && !options.hasData) return
-
-        val arguments = buildList {
-            addAll(listOf("generate", "seeder", file.path))
-            if (!options.sample) add("--required-only")
-            if (!options.required) add("--sample-only")
-            if (options.sample) addAll(listOf("--count", options.count.toString()))
-            if (options.hasData) add("--has-data")
-        }
-        CanFxFlow.run(project, "Seed data for $entity", CanFxTargets.directoryOf(file), arguments, preview = false,
-            open = { changes -> changes.firstOrNull { it.path.endsWith("${entity}Seeder.cs") }?.path })
-    }
-}
-
 // ====================================================================== Mechanisms (Not 5)
 
-private val toggleChoices = listOf("Keep", "Enable", "Disable")
+/** Bir mekanizmanın hedefteki durumu (canfxgen mechanisms --json). */
+data class MechanismState(val name: String, val enabled: Int, val total: Int) {
+    val state: String get() = when {
+        total == 0 -> NOT_APPLICABLE
+        enabled == 0 -> OFF
+        enabled == total -> ON
+        else -> MIXED
+    }
 
+    companion object {
+        const val ON = "On"
+        const val OFF = "Off"
+        const val MIXED = "Mixed (keep)"
+        const val NOT_APPLICABLE = "n/a"
+    }
+}
+
+private val mechanismLabels = linkedMapOf(
+    "caching" to "Caching (queries cached; commands clear the cache)",
+    "logging" to "Logging",
+    "transaction" to "Transaction",
+    "secured" to "Secured operation (permissions)",
+    "dynamic-query" to "Dynamic query (GetListByDynamic)",
+)
+
+/**
+ * Mekanizmalar mevcut durumlarıyla açılır (açık / kapalı / karışık); yalnızca değiştirilen satırlar uygulanır.
+ */
 class MechanismsDialog(
     project: Project,
     private val target: String,
-    private val current: Set<String>?,
-    private val allowDynamic: Boolean,
+    private val singleRequest: Boolean,
+    private val requests: Int,
+    private val states: List<MechanismState>,
     val choices: MutableMap<String, String>,
 ) : DialogWrapper(project) {
     init {
@@ -154,59 +120,72 @@ class MechanismsDialog(
     override fun createCenterPanel(): JComponent = panel {
         row {
             label(
-                "<html>Turns mechanisms on or off for <b>$target</b>" +
-                    (if (current == null) " (all requests of the feature)" else "") +
-                    ".<br/>Only the request class changes (interfaces and their members); the changes are shown before they are applied.</html>"
+                "<html>Mechanisms of <b>$target</b>" +
+                    (if (singleRequest) "" else " ($requests requests)") +
+                    ", as they are now. Change a row to turn it on or off;<br/>" +
+                    "only changed rows are applied and the changes are shown before they are applied.</html>"
             )
         }
-        val names = linkedMapOf(
-            "caching" to "Caching (queries cached; commands clear the cache)",
-            "logging" to "Logging",
-            "transaction" to "Transaction",
-            "secured" to "Secured operation (permissions)",
-        )
-        if (allowDynamic) names["dynamic-query"] = "Dynamic query (GetListByDynamic)"
-        for ((key, label) in names) {
-            choices[key] = "Keep"
-            val state = current?.let { if (key in it) "  — currently on" else "  — currently off" } ?: ""
-            row("$label$state:") {
-                comboBox(toggleChoices).bindItem({ choices[key] ?: "Keep" }, { choices[key] = it ?: "Keep" })
+        for (state in states) {
+            val label = mechanismLabels[state.name] ?: state.name
+            if (state.total == 0) {
+                row("$label:") { label("not applicable") }
+                continue
+            }
+            choices[state.name] = state.state
+            val options = if (state.state == MechanismState.MIXED) listOf(MechanismState.MIXED, MechanismState.ON, MechanismState.OFF) else listOf(MechanismState.ON, MechanismState.OFF)
+            val detail = if (state.state == MechanismState.MIXED) "  (on in ${state.enabled} of ${state.total})" else ""
+            row("$label$detail:") {
+                comboBox(options).bindItem({ choices[state.name] ?: state.state }, { choices[state.name] = it ?: state.state })
             }
         }
     }
 }
 
 class MechanismsAction : CanFxAction() {
-    private data class Target(val name: String, val current: Set<String>?, val dynamic: Boolean)
-
-    private fun target(file: VirtualFile): Target? {
-        CanFxTargets.featureFolder(file)?.let { return Target(it, null, true) }
-        EntityDetector.entityName(file)?.let { return Target(it, null, true) }
-        CanFxTargets.requestName(file)?.let { return Target(it, CanFxTargets.enabledMechanisms(file), false) }
-        return null
-    }
+    private fun target(file: VirtualFile): String? =
+        CanFxTargets.featureFolder(file) ?: EntityDetector.entityName(file) ?: CanFxTargets.requestName(file)
 
     override fun update(e: AnActionEvent) {
         val target = e.getData(CommonDataKeys.VIRTUAL_FILE)?.let(::target)
         e.presentation.isEnabledAndVisible = e.project != null && target != null
-        if (target != null) e.presentation.text = "Mechanisms of ${target.name}..."
+        if (target != null) e.presentation.text = "Mechanisms of $target..."
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
         val target = target(file) ?: return
-        val choices = linkedMapOf<String, String>()
-        if (!MechanismsDialog(project, target.name, target.current, target.dynamic, choices).showAndGet()) return
-
-        val enable = choices.filterValues { it == "Enable" }.keys.toList()
-        val disable = choices.filterValues { it == "Disable" }.keys.toList()
         val directory = CanFxTargets.directoryOf(file)
-        val steps = buildList {
-            if (enable.isNotEmpty()) add(listOf("enable") + enable + target.name)
-            if (disable.isNotEmpty()) add(listOf("disable") + disable + target.name)
+
+        // Mevcut durum (Roslyn ile canfxgen okur).
+        val result = ProgressManager.getInstance().runProcessWithProgressSynchronously<CanGenResult, RuntimeException>(
+            { CanGenRunner.run(directory, "mechanisms", target) }, "Reading mechanisms of $target", true, project
+        )
+        if (!result.ok) {
+            Messages.showErrorDialog(project, result.error ?: "canfxgen failed.", "Mechanisms: $target")
+            return
         }
-        runSteps(project, target.name, directory, steps)
+        val states = result.json["mechanisms"].arr().map { it.obj() }.map {
+            MechanismState(it.str("name") ?: "", (it["enabled"] as? Double)?.toInt() ?: 0, (it["total"] as? Double)?.toInt() ?: 0)
+        }
+        val name = result.json.str("target") ?: target
+        val requests = (result.json["requests"] as? Double)?.toInt() ?: 0
+        val choices = linkedMapOf<String, String>()
+        if (!MechanismsDialog(project, name, result.json.bool("singleRequest"), requests, states, choices).showAndGet()) return
+
+        val before = states.associate { it.name to it.state }
+        val enable = choices.filter { (key, value) -> value == MechanismState.ON && before[key] != MechanismState.ON }.keys.toList()
+        val disable = choices.filter { (key, value) -> value == MechanismState.OFF && before[key] != MechanismState.OFF }.keys.toList()
+        if (enable.isEmpty() && disable.isEmpty()) {
+            CanFxFlow.notify(project, "Mechanisms: $name", "Nothing changed.", NotificationType.INFORMATION)
+            return
+        }
+        val steps = buildList {
+            if (enable.isNotEmpty()) add(listOf("enable") + enable + target)
+            if (disable.isNotEmpty()) add(listOf("disable") + disable + target)
+        }
+        runSteps(project, name, directory, steps)
     }
 }
 
@@ -289,18 +268,15 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
 
     override fun createCenterPanel(): JComponent = panel {
         row {
-            label("<html>Adds or removes template features: package, registration, appsettings and docker-compose together.<br/>" +
-                "Each change is previewed before it is applied (the template is generated twice for comparison, this takes a few seconds).</html>")
+            label("<html>Template features of this solution, as they are now. Change a row to add or remove the feature<br/>" +
+                "(package, registration, appsettings and docker-compose together); only changed rows are applied, each with a preview.</html>")
         }
         for ((key, label) in FEATURES) {
-            choices[key] = "Keep"
-            val state = when (current[FEATURE_OPTION.getValue(key)]) {
-                true -> "  — currently on"
-                false -> "  — currently off"
-                else -> ""
-            }
-            row("$label$state:") {
-                comboBox(listOf("Keep", "Add", "Remove")).bindItem({ choices[key] ?: "Keep" }, { choices[key] = it ?: "Keep" })
+            // Mevcut durum canfx.json'dan; bilinmiyorsa (eski proje) Off sayılır.
+            val on = current[FEATURE_OPTION.getValue(key)] == true
+            choices[key] = if (on) MechanismState.ON else MechanismState.OFF
+            row("$label:") {
+                comboBox(listOf(MechanismState.ON, MechanismState.OFF)).bindItem({ choices[key] }, { choices[key] = it ?: choices.getValue(key) })
             }
         }
     }
@@ -333,11 +309,17 @@ class FeaturesAction : CanFxAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val root = CanFxTargets.solutionRoot(e.getData(CommonDataKeys.VIRTUAL_FILE)) ?: CanFxTargets.solutionRoot(project.basePath) ?: return
+        val current = CanFxTargets.templateOptions(root)
         val choices = linkedMapOf<String, String>()
-        if (!FeaturesDialog(project, CanFxTargets.templateOptions(root), choices).showAndGet()) return
+        if (!FeaturesDialog(project, current, choices).showAndGet()) return
 
-        val steps = choices.filterValues { it != "Keep" }.map { (feature, choice) ->
-            listOf(if (choice == "Add") "add" else "remove", "feature", feature)
+        // Yalnızca değiştirilen satırlar.
+        val steps = choices.filter { (feature, choice) ->
+            (choice == MechanismState.ON) != (current[FeaturesDialog.FEATURE_OPTION.getValue(feature)] == true)
+        }.map { (feature, choice) -> listOf(if (choice == MechanismState.ON) "add" else "remove", "feature", feature) }
+        if (steps.isEmpty()) {
+            CanFxFlow.notify(project, "Features", "Nothing changed.", NotificationType.INFORMATION)
+            return
         }
         runSteps(project, "Features", root.path, steps)
     }

@@ -25,6 +25,12 @@ public enum Mechanism
     DynamicQuery,
 }
 
+/// <summary>Bir mekanizmanın hedefteki durumu: <paramref name="Enabled"/> / <paramref name="Total"/> istekte açık.</summary>
+public sealed record MechanismStatus(Mechanism Mechanism, int Enabled, int Total);
+
+/// <summary>Hedefin (istek ya da özellik) mekanizma durumu.</summary>
+public sealed record MechanismReport(string Target, bool SingleRequest, int Requests, IReadOnlyList<MechanismStatus> Mechanisms);
+
 /// <summary>
 /// Üretilmiş (ya da elle yazılmış) isteklerde mekanizmaları açar / kapatır: istek sınıfına arayüz ve üyelerini ekler ya
 /// da çıkarır. Dosyanın geri kalanına (biçim, yorumlar, senin eklediklerin) dokunulmaz. Hedef: tek istek (ad ya da
@@ -74,6 +80,52 @@ public static partial class MechanismEditor
         return plan;
     }
 
+    /// <summary>
+    /// Hedefteki mekanizmaların durumu: her biri kaç istekte açık / kaç istek için geçerli (önbellek dinamik sorguda
+    /// geçerli değil). Dinamik sorgu yalnızca entity / özellik hedefinde (GetListByDynamic var mı).
+    /// </summary>
+    public static MechanismReport Status(SolutionLayout layout, string target)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentException.ThrowIfNullOrWhiteSpace(target);
+
+        (string? feature, EntityModel? entity, List<RequestFile> requests) = Resolve(layout, target);
+        var states = new List<MechanismStatus>();
+        foreach (Mechanism mechanism in new[] { Mechanism.Caching, Mechanism.Logging, Mechanism.Transaction, Mechanism.Secured })
+        {
+            string[] names = Interfaces(mechanism);
+            List<RequestFile> applicable = mechanism == Mechanism.Caching ? requests.Where(r => !r.HasDynamicQuery).ToList() : requests;
+            states.Add(new MechanismStatus(mechanism, applicable.Count(r => r.Interfaces.Any(names.Contains)), applicable.Count));
+        }
+
+        bool single = target.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || requests.Any(r => r.Name == target);
+        if (!single && entity is not null && feature is not null)
+        {
+            bool exists = Directory.Exists(Path.Combine(layout.Application, "Features", feature, "Queries", "GetListByDynamic"));
+            states.Add(new MechanismStatus(Mechanism.DynamicQuery, exists ? 1 : 0, 1));
+        }
+
+        return new MechanismReport(single ? requests[0].Name : feature ?? target, single, requests.Count, states);
+    }
+
+    /// <summary>Komut satırındaki ad (<c>caching</c>, <c>dynamic-query</c> ...).</summary>
+    public static string CliName(Mechanism mechanism) => mechanism switch
+    {
+        Mechanism.Caching => "caching",
+        Mechanism.Logging => "logging",
+        Mechanism.Transaction => "transaction",
+        Mechanism.Secured => "secured",
+        _ => "dynamic-query",
+    };
+
+    private static string[] Interfaces(Mechanism mechanism) => mechanism switch
+    {
+        Mechanism.Caching => ["ICachableRequest", "ICacheRemoverRequest"],
+        Mechanism.Logging => ["ILoggableRequest"],
+        Mechanism.Transaction => ["ITransactionalRequest"],
+        _ => ["ISecuredRequest"],
+    };
+
     /// <summary>Komut satırındaki ad → mekanizma.</summary>
     public static Mechanism? Parse(string name) => name.ToLowerInvariant() switch
     {
@@ -96,7 +148,7 @@ public static partial class MechanismEditor
 
     // ------------------------------------------------------------------ hedef
 
-    private sealed record RequestFile(string Path, string Name, string Feature, bool IsCommand, bool HasDynamicQuery);
+    private sealed record RequestFile(string Path, string Name, string Feature, bool IsCommand, bool HasDynamicQuery, IReadOnlyList<string> Interfaces);
 
     private static (string? Feature, EntityModel? Entity, List<RequestFile> Requests) Resolve(SolutionLayout layout, string target)
     {
@@ -145,7 +197,8 @@ public static partial class MechanismEditor
                 continue;
 
             bool dynamic = cls.Members.OfType<PropertyDeclarationSyntax>().Any(p => p.Type.ToString().TrimEnd('?') == "DynamicQuery");
-            yield return new RequestFile(Path.GetFullPath(path), cls.Identifier.Text, feature ?? string.Empty, !cls.Identifier.Text.EndsWith("Query", StringComparison.Ordinal), dynamic);
+            yield return new RequestFile(Path.GetFullPath(path), cls.Identifier.Text, feature ?? string.Empty,
+                !cls.Identifier.Text.EndsWith("Query", StringComparison.Ordinal), dynamic, cls.BaseList.Types.Select(BaseName).ToList());
         }
     }
 

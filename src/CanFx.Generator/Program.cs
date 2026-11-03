@@ -33,6 +33,7 @@ try
         "remove" => Feature(arguments, enable: false),
         "enable" => Toggle(arguments, enable: true),
         "disable" => Toggle(arguments, enable: false),
+        "mechanisms" => MechanismStatusCommand(arguments),
         "entities" => Entities(arguments),
         "features" => Features(arguments),
         "version" => Print(Version()),
@@ -193,9 +194,35 @@ int Entity(Arguments a)
 
 int Seeder(Arguments a)
 {
-    Banner();
+    if (!a.Json)
+        Banner();
     (SolutionLayout layout, EntityModel entity) = SelectEntity(a, 2);
+
+    // IDE diyaloğu: mevcut durum (alanlar, kayıtlar, örnek veri).
+    if (a.Flag("describe"))
+    {
+        SeedDescription description = SeederGenerator.Describe(layout, entity, a.Option("plural"));
+        Console.WriteLine(JsonSerializer.Serialize(new { ok = true, solution = layout.Root, seed = description }, json));
+        return 0;
+    }
+
     int count = a.Option("count") is { } c ? int.TryParse(c, out int parsed) && parsed > 0 ? parsed : throw new GeneratorException($"--count pozitif bir sayı olmalı: {c}") : 20;
+    IReadOnlyList<IReadOnlyDictionary<string, string?>>? records = null;
+    if (a.Option("data") is { } dataFile)
+    {
+        if (!File.Exists(dataFile))
+            throw new GeneratorException($"--data dosyası bulunamadı: {dataFile}");
+        try
+        {
+            records = JsonSerializer.Deserialize<List<Dictionary<string, string?>>>(File.ReadAllText(dataFile))?
+                .Select(r => (IReadOnlyDictionary<string, string?>)r).ToList() ?? [];
+        }
+        catch (JsonException exception)
+        {
+            throw new GeneratorException($"--data dosyası okunamadı (alan → metin değer dizisi olmalı): {exception.Message}");
+        }
+    }
+
     var options = new SeederOptions
     {
         Required = !a.Flag("sample-only"),
@@ -203,11 +230,17 @@ int Seeder(Arguments a)
         HasData = a.Flag("has-data"),
         SampleCount = count,
         Plural = a.Option("plural"),
+        Records = records,
+        SampleKinds = a.Option("sample-kinds") is { } kinds ? SeederGenerator.ParseKinds(kinds) : null,
     };
 
     (int order, string reason) = SeederGenerator.SuggestedOrder(layout, entity);
-    IReadOnlyList<ChangeResult> results = SeederGenerator.Plan(layout, entity, options).Apply();
-    return Report(a, layout, results, $"{entity.Name}: seed (sıra {order})", [$"Sıra önerisi: {order}. {reason}"], new { entity.Name, Order = order });
+    GenerationPlan plan = SeederGenerator.Plan(layout, entity, options);
+    string title = $"{entity.Name}: seed (sıra {order})";
+    string[] warnings = [$"Sıra önerisi: {order}. {reason}"];
+    if (a.Flag("preview") || a.Flag("dry-run"))
+        return PrintPreview(a, layout, plan, title, [.. warnings]);
+    return Report(a, layout, plan.Apply(), title, warnings, new { entity.Name, Order = order });
 }
 
 // ================================================================ enable / disable
@@ -254,6 +287,35 @@ int Toggle(Arguments a, bool enable)
         return PrintPreview(a, layout, plan, title, warnings);
 
     return Report(a, layout, plan.Apply(), title, warnings, new { Target = target, Enable = enable, Mechanisms = mechanisms.Distinct() });
+}
+
+int MechanismStatusCommand(Arguments a)
+{
+    SolutionLayout layout = Layout(a);
+    string target = a.Positional(1) ?? throw new GeneratorException("Hedef gerekli: canfxgen mechanisms Brand (istek, özellik, entity ya da dosya yolu).");
+    MechanismReport report = MechanismEditor.Status(layout, target);
+    if (a.Json)
+    {
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            ok = true,
+            solution = layout.Root,
+            target = report.Target,
+            singleRequest = report.SingleRequest,
+            requests = report.Requests,
+            mechanisms = report.Mechanisms.Select(m => new { name = MechanismEditor.CliName(m.Mechanism), enabled = m.Enabled, total = m.Total }),
+        }, json));
+        return 0;
+    }
+
+    Console.WriteLine($"{report.Target} ({report.Requests} istek)");
+    foreach (MechanismStatus m in report.Mechanisms)
+    {
+        string state = m.Total == 0 ? "geçerli değil" : m.Enabled == 0 ? "kapalı" : m.Enabled == m.Total ? "açık" : $"karışık ({m.Enabled}/{m.Total})";
+        Console.WriteLine($"  {MechanismEditor.CliName(m.Mechanism),-15} {state}");
+    }
+
+    return 0;
 }
 
 // ================================================================ add / remove feature
@@ -574,6 +636,7 @@ static string Help() => """
         enable / disable          Mekanizmayı sonradan aç / kapat: caching, logging, transaction, secured, dynamic-query
                                   Hedef: istek (CreateBrandCommand), özellik (Brands), entity (Brand) ya da dosya yolu.
                                   --preview: değişiklikleri göster, dosyalara yazma
+        mechanisms <Hedef>        Hedefteki mekanizmaların durumu (açık / kapalı / karışık; --json)
         entities                  Domain'deki entity'leri listeler
         features                  Application/Features altındaki özellikleri listeler
         version                   Sürümü yazar
@@ -609,7 +672,10 @@ static string GenerateHelp() => """
                                           eksikler eklenir), {Entity}SampleSeeder (yalnızca geliştirmede, SampleData);
                                           sıra ilişkili entity'lerin seeder'larına göre önerilir
                                           --required-only | --sample-only, --count <N> (örnek sayısı, 20),
-                                          --has-data (EF Core HasData: migration'a yazılır, Id'ler sabit)
+                                          --has-data (zorunlu veri JSON yerine EF Core HasData ile migration'a),
+                                          --data <kayıtlar.json> (alan → değer dizisi; dosya bu kayıtlarla yazılır),
+                                          --sample-kinds "Name=City; Price=Price" (örnek değer türü), --describe
+                                          (mevcut durum, JSON), --preview
         command [Ad] [Özellik]            Özelliğe komut (+ yanıt, validator, yetki, controller ucu)
         query [Ad] [Özellik]              Özelliğe sorgu (+ yanıt, validator, yetki, controller ucu)
         dynamic-query [Entity]            CRUD'a sonradan dinamik filtre/sıralama sorgusu

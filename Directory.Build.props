@@ -18,7 +18,7 @@
       güncellenir ve şablon yeniden yayınlanır. Yayınlanmamış Core paketleriyle denemek için: CANFX_VERSION ve
       CANFX_FEED ortam değişkenleri (build/pack-local.sh, templates/verify-templates.sh).
     -->
-    <CanFxVersion>0.3.0</CanFxVersion>
+    <CanFxVersion>0.4.0</CanFxVersion>
 
     <!-- Paket bilgileri -->
     <Authors>Oğuzhan Can</Authors>

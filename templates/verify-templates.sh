@@ -191,7 +191,7 @@ CS
   run_cangen generate crud Tag -s                             # yalnızca yetki: transaction yok, önbellek yok, dinamik sorgu yok
   run_cangen generate dynamic-query Tag                       # dinamik sorgu sonradan
   run_cangen generate seeder Brand                            # zorunlu (JSON) + örnek veri
-  run_cangen generate seeder Color --has-data                 # oluşturulamayan entity: TODO'lu seeder + HasData
+  run_cangen generate seeder Color --has-data                 # zorunlu veri migration'a (HasData) + örnek veri
   run_cangen disable caching dynamic-query Brand              # mekanizmaları sonradan kapat / aç
   run_cangen enable caching logging Tag
   run_cangen disable secured GetByIdTagQuery

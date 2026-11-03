@@ -15,12 +15,21 @@ public sealed class SeederOptions
     public int SampleCount { get; init; } = 20;
 
     /// <summary>
-    /// EF Core <c>HasData</c>: veri migration'a yazılır (Id'ler sabit olmalı). Kod ile değil migration ile dağıtılan,
-    /// nadiren değişen veriler için (ör. sabit durum listesi).
+    /// Zorunlu veri JSON + seeder yerine EF Core <c>HasData</c> ile migration'a yazılır (Id'ler sabit). Migration ile
+    /// dağıtılan, nadiren değişen veriler için (ör. sabit durum listesi).
     /// </summary>
     public bool HasData { get; init; }
 
     public string? Plural { get; init; }
+
+    /// <summary>
+    /// Zorunlu verinin kayıtları (alan adı → metin değer; IDE'deki tablodan). Verilirse veri dosyası (ya da
+    /// <see cref="HasData"/>'da migration verisi) bunlarla yazılır; verilmezse boş bir dosya oluşturulur.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyDictionary<string, string?>>? Records { get; init; }
+
+    /// <summary>Örnek veride alan başına değer türü (alan → tür, ör. <c>Name=City</c>; türler <see cref="SeederGenerator.Describe"/>'da); yazılmayanlar tahmin edilir.</summary>
+    public IReadOnlyDictionary<string, string>? SampleKinds { get; init; }
 }
 
 /// <summary>
@@ -54,19 +63,26 @@ public static partial class SeederGenerator
         string fileName = Names.Kebab(n.Plural);
 
         var plan = new GenerationPlan();
-        if (options.Required)
+        if (options.Required && !options.HasData)
         {
-            plan.AddFile(Path.Combine(seeding, "Data", fileName + ".json"), DataFile(n, creation, fileName));
+            string data = Path.Combine(seeding, "Data", fileName + ".json");
+            Write(plan, data, DataFile(n, creation, options.Records), "zorunlu veri kayıtları", overwrite: options.Records is not null);
             plan.AddFile(Path.Combine(seeding, $"{n.Entity}Seeder.cs"), RequiredSeeder(n, creation, order, reason, fileName));
             plan.Edit(Path.Combine(layout.Persistence, Path.GetFileName(layout.Persistence) + ".csproj"), "seed dosyaları çıktıya kopyalanır", CopySeedFiles);
         }
 
         if (options.Sample)
-            plan.AddFile(Path.Combine(seeding, $"{n.Entity}SampleSeeder.cs"), SampleSeeder(n, creation, order + 1, options.SampleCount, relations, relatedNamespaces));
+        {
+            Dictionary<string, string> kinds = SampleKindsFor(n, creation, relations, options.SampleKinds);
+            Write(plan, Path.Combine(seeding, $"{n.Entity}SampleSeeder.cs"),
+                SampleSeeder(n, creation, order + 1, options.SampleCount, relations, relatedNamespaces, kinds), "örnek veri", overwrite: options.SampleKinds is not null);
+        }
 
         if (options.HasData)
         {
-            plan.AddFile(Path.Combine(layout.Persistence, "EntityConfigurations", $"{n.Entity}SeedData.cs"), HasDataFile(n));
+            string seedData = Path.Combine(layout.Persistence, "EntityConfigurations", $"{n.Entity}SeedData.cs");
+            IReadOnlyList<IReadOnlyDictionary<string, string?>>? records = options.Records;
+            Write(plan, seedData, HasDataFile(n, creation, records ?? ReadHasData(seedData)), "migration verisi (HasData)", overwrite: records is not null);
             string configuration = Path.Combine(layout.Persistence, "EntityConfigurations", $"{n.Entity}Configuration.cs");
             plan.Edit(configuration, $"builder.HasData({n.Entity}SeedData.Items)", text => AddHasData(text, n.Entity));
         }
@@ -177,16 +193,21 @@ public static partial class SeederGenerator
 
     // ------------------------------------------------------------------ zorunlu veri
 
-    private static string DataFile(CrudNames n, Creation creation, string fileName)
+    private static string DataFile(CrudNames n, Creation creation, IReadOnlyList<IReadOnlyDictionary<string, string?>>? records)
     {
         string shape = string.Join(", ", creation.Fields.Select(f => $"\"{Names.Camel(f.Name)}\": {JsonExample(n, f)}"));
+        string items = records is { Count: > 0 }
+            ? string.Join(",\n", records.Select((r, i) => "  " + JsonRecord(n, creation, r, i + 1))) + "\n"
+            : string.Empty;
+        string todo = records is null
+            ? "\n// TODO(canfxgen): Kayıtları ekle (Rider: entity'ye sağ tık → CanFx → Add Seed Data) ya da buraya yaz."
+            : string.Empty;
         return $$"""
             // {{n.Words}} başlangıç verisi: HER ORTAMDA eklenir ({{n.Entity}}Seeder). Var olan kayıtlara dokunulmaz, yalnızca eksikler eklenir.
-            // Bir kayıt: { {{shape}} }
-            // TODO(canfxgen): Kayıtları ekle (uygulamanın çalışması için gerekenler: para birimleri, durumlar ...). Örnek/sahte
-            // veri buraya değil, {{n.Entity}}SampleSeeder'a (yalnızca geliştirmede).
+            // Bir kayıt: { {{shape}} }{{todo}}
+            // Örnek/sahte veri buraya değil, {{n.Entity}}SampleSeeder'a (yalnızca geliştirmede).
             [
-            ]
+            {{items}}]
 
             """;
     }
@@ -198,8 +219,11 @@ public static partial class SeederGenerator
             .Select(k => creation.Fields.FirstOrDefault(f => f.Name == k && f.IsString))
             .FirstOrDefault(f => f is not null);
 
-        string create = Create(n, creation, creation.Fields.Select(f => $"item.{f.Name}").ToList());
-        string record = string.Join(", ", creation.Fields.Select(f => $"{f.Type} {f.Name}"));
+        // Enum'lar JSON'da adıyla yazılır ("Active"): kayıtta metin, oluştururken çevrilir.
+        string create = Create(n, creation, creation.Fields
+            .Select(f => IsEnum(n, f) ? $"Enum.Parse<{f.BareType}>(item.{f.Name})" : $"item.{f.Name}")
+            .ToList());
+        string record = string.Join(", ", creation.Fields.Select(f => $"{(IsEnum(n, f) ? "string" : f.Type)} {f.Name}"));
         string filter = n.Model.IsSoftDeletable || n.Model.IsMultiTenant ? ".IgnoreQueryFilters()" : string.Empty;
 
         string body = key is not null
@@ -258,7 +282,8 @@ public static partial class SeederGenerator
     // ------------------------------------------------------------------ örnek veri
 
     private static string SampleSeeder(
-        CrudNames n, Creation creation, int order, int count, List<(EntityProperty Property, string Related)> relations, List<string> relatedNamespaces)
+        CrudNames n, Creation creation, int order, int count, List<(EntityProperty Property, string Related)> relations, List<string> relatedNamespaces,
+        IReadOnlyDictionary<string, string> kinds)
     {
         string E = n.Entity;
         var preload = new List<string>();
@@ -268,7 +293,8 @@ public static partial class SeederGenerator
         foreach (MethodParameter field in creation.Fields)
         {
             int index = relations.FindIndex(r => r.Property.Name == field.Name);
-            if (index >= 0)
+            string kind = kinds.GetValueOrDefault(field.Name) ?? GuessKind(n, field, index >= 0);
+            if (index >= 0 && kind == "Related")
             {
                 (EntityProperty _, string related) = relations[index];
                 string list = Names.Camel(related) + "Ids";
@@ -278,7 +304,7 @@ public static partial class SeederGenerator
                 continue;
             }
 
-            string value = SampleValue(n, field);
+            string value = KindExpression(n, field, kind);
             if (field.IsString && n.Model.MaxLengthConstant(field.Name) is { } max)
             {
                 value = $"Fit({value}, {E}.{max})";
@@ -322,7 +348,7 @@ public static partial class SeederGenerator
                     if (await db.Set<{{E}}>(){{filter}}.CountAsync(cancellationToken) >= Count)
                         return;
             {{loads}}
-                    // TODO(canfxgen): Değerleri alanların anlamına göre düzenle (SampleData: FullName, Email, City, ProductName, Price ...).
+                    // Değer türleri (Rider: Add Seed Data → Sample data): {{KindMarker(kinds)}}
                     var sample = new SampleData(seed: {{Math.Abs(StableHash(E)) % 1000}});
                     for (int i = 0; i < Count; i++)
                         db.Set<{{E}}>().Add({{create}});
@@ -334,47 +360,6 @@ public static partial class SeederGenerator
             """;
     }
 
-    /// <summary>Alanın adına ve tipine göre örnek değer.</summary>
-    internal static string SampleValue(CrudNames n, MethodParameter field)
-    {
-        string name = field.Name.ToLowerInvariant();
-        string type = field.BareType;
-
-        if (n.Model.Properties.FirstOrDefault(p => p.Name == field.Name) is { Kind: PropertyKind.Enum })
-            return $"sample.Pick(Enum.GetValues<{type}>())";
-
-        return type switch
-        {
-            "string" or "String" => name switch
-            {
-                _ when name.Contains("email", StringComparison.Ordinal) => "sample.Email()",
-                _ when name.Contains("phone", StringComparison.Ordinal) => "sample.Phone()",
-                "firstname" => "sample.FirstName()",
-                "lastname" or "surname" => "sample.LastName()",
-                "fullname" => "sample.FullName()",
-                _ when name.Contains("city", StringComparison.Ordinal) => "sample.City()",
-                _ when name.Contains("description", StringComparison.Ordinal) || name.Contains("note", StringComparison.Ordinal) || name.Contains("comment", StringComparison.Ordinal) => "sample.Sentence()",
-                _ when name.Contains("code", StringComparison.Ordinal) || name.Contains("sku", StringComparison.Ordinal) || name == "key" || name == "slug" => $"$\"{field.Name.ToUpperInvariant()}-{{i + 1:000}}\"",
-                _ when name.Contains("url", StringComparison.Ordinal) => "$\"https://example.com/{i + 1}\"",
-                _ when name.EndsWith("name", StringComparison.Ordinal) || name.Contains("title", StringComparison.Ordinal) => "$\"{sample.ProductName()} {i + 1}\"",
-                _ => "sample.Sentence(3)",
-            },
-            "decimal" or "Decimal" => "sample.Price()",
-            "double" or "Double" => "(double)sample.Price()",
-            "float" or "Single" => "(float)sample.Price()",
-            "int" or "Int32" => "sample.Number(1, 100)",
-            "long" or "Int64" => "(long)sample.Number(1, 100)",
-            "short" or "Int16" => "(short)sample.Number(1, 100)",
-            "byte" or "Byte" => "(byte)sample.Number(1, 100)",
-            "bool" or "Boolean" => "sample.Bool()",
-            "DateTimeOffset" => "sample.PastDate()",
-            "DateTime" => "sample.PastDate().UtcDateTime",
-            "DateOnly" => "DateOnly.FromDateTime(sample.PastDate().UtcDateTime)",
-            "TimeOnly" => "TimeOnly.FromDateTime(sample.PastDate().UtcDateTime)",
-            "Guid" => "Guid.CreateVersion7()",
-            _ => $"default! /* TODO(canfxgen): {field.Name} ({type}) için örnek değer */",
-        };
-    }
 
     private static string JsonExample(CrudNames n, MethodParameter field)
     {
@@ -401,26 +386,32 @@ public static partial class SeederGenerator
 
     // ------------------------------------------------------------------ HasData
 
-    private static string HasDataFile(CrudNames n) => $$"""
-        {{Header}}
-        namespace {{n.Root}}.Persistence.EntityConfigurations;
+    private static string HasDataFile(CrudNames n, Creation creation, IReadOnlyList<IReadOnlyDictionary<string, string?>> records)
+    {
+        string items = records.Count > 0
+            ? string.Join("\n", HasDataRecords(n, creation, records).Select(r => "        " + r + ","))
+            : $"        // TODO(canfxgen): Kayıtları ekle (Rider: Add Seed Data → Initial data → Migration), ör.:\n" +
+              $"        // new {{ {string.Join(", ", new[] { $"Id = {IdExample(n.IdType)}" }.Concat(n.CreateFields.Take(2).Select(f => $"{f.Name} = {JsonExample(n, f).Replace("\"...\"", "\"Örnek\"", StringComparison.Ordinal)}")))} }},";
+        return $$"""
+            {{Header}}
+            namespace {{n.Root}}.Persistence.EntityConfigurations;
 
-        /// <summary>
-        /// {{n.Words}} için EF Core <c>HasData</c>: kayıtlar migration'a yazılır ve migration'la birlikte her veritabanına gider
-        /// ({{n.Entity}}Configuration'da <c>builder.HasData(Items)</c>). Id'ler SABİT olmalı (her migration'da aynı); değişiklik
-        /// yeni bir migration gerektirir. Sık değişen ya da tenant'a özel veri için {{n.Entity}}Seeder'ı kullan.
-        /// Anonim nesne kullanılır: entity'nin setter'ları özel olsa da çalışır.
-        /// </summary>
-        internal static class {{n.Entity}}SeedData
-        {
-            public static readonly object[] Items =
-            [
-                // TODO(canfxgen): Kayıtları ekle, ör.:
-                // new { {{string.Join(", ", new[] { $"Id = {IdExample(n.IdType)}" }.Concat(n.CreateFields.Take(2).Select(f => $"{f.Name} = {JsonExample(n, f).Replace("\"...\"", "\"Örnek\"", StringComparison.Ordinal)}")))}} },
-            ];
-        }
+            /// <summary>
+            /// {{n.Words}} için EF Core <c>HasData</c>: kayıtlar migration'a yazılır ve migration'la birlikte her veritabanına gider
+            /// ({{n.Entity}}Configuration'da <c>builder.HasData(Items)</c>). Id'ler SABİT olmalı (her migration'da aynı); değişiklik
+            /// yeni bir migration gerektirir. Sık değişen ya da tenant'a özel veri için {{n.Entity}}Seeder'ı kullan.
+            /// Anonim nesne kullanılır: entity'nin setter'ları özel olsa da çalışır.
+            /// </summary>
+            internal static class {{n.Entity}}SeedData
+            {
+                public static readonly object[] Items =
+                [
+            {{items}}
+                ];
+            }
 
-        """;
+            """;
+    }
 
     private static string IdExample(string idType) => idType switch
     {

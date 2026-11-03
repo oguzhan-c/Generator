@@ -12,14 +12,6 @@ internal object CanFxTargets {
     private val controllerClass = Regex("""\bclass\s+(\w+Controller)\b""")
     private val publicMethod = Regex("""\bpublic\s+[^;{}=()]*?\b(\w+)\s*\(""")
 
-    /** Mekanizmaların durumu için aranan arayüzler. */
-    val mechanismInterfaces = linkedMapOf(
-        "caching" to listOf("ICachableRequest", "ICacheRemoverRequest"),
-        "logging" to listOf("ILoggableRequest"),
-        "transaction" to listOf("ITransactionalRequest"),
-        "secured" to listOf("ISecuredRequest"),
-    )
-
     fun text(file: VirtualFile): String? {
         if (file.isDirectory || file.extension != "cs" || file.length > MAX_SIZE) return null
         return FileDocumentManager.getInstance().getCachedDocument(file)?.text
@@ -28,13 +20,6 @@ internal object CanFxTargets {
 
     /** İstek sınıfının adı (IRequest uygulayan). */
     fun requestName(file: VirtualFile): String? = text(file)?.let { requestClass.find(it)?.groupValues?.get(1) }
-
-    /** İstek dosyasında açık olan mekanizmalar. */
-    fun enabledMechanisms(file: VirtualFile): Set<String> {
-        val text = text(file) ?: return emptySet()
-        val header = requestClass.find(text)?.let { text.substring(it.range.first, text.indexOf('{', it.range.first).takeIf { i -> i > 0 } ?: text.length) } ?: return emptySet()
-        return mechanismInterfaces.filter { (_, names) -> names.any { Regex("""\b$it\b""").containsMatchIn(header) } }.keys
-    }
 
     /**
      * Controller dosyasında hedef: imleç bir action'ın içindeyse <c>Controller.Action</c>, değilse controller'ın tamamı.

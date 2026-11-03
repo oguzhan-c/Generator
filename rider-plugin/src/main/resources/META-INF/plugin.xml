@@ -9,7 +9,7 @@
       <li><b>Add → CanFx Entity</b> (Domain project): only the name is asked; the base class options (Entity,
           AuditedEntity, FullAuditedEntity, AggregateRoot ...) and the fields they add are listed in the file.</li>
       <li><b>Generate CRUD</b> (entity): commands, queries, validators, responses, rules, permissions, EF configuration, endpoints.</li>
-      <li><b>Add Seed Data</b> (entity): required data from JSON in every environment, sample data in Development, HasData.</li>
+      <li><b>Seed Data</b> (entity): opens with the current seed data; enter initial records in a table (JSON or migration), pick count and value kind per field for Development sample data.</li>
       <li><b>Mechanisms</b> (request, entity or feature folder): turn caching, logging, transaction, secured operation
           or dynamic query on or off later.</li>
       <li><b>Rate Limit</b> (request or controller action): bind a rate limit policy; missing policies are added to appsettings.</li>
@@ -48,9 +48,9 @@
       <action id="CanGen.GenerateCrud" class="com.canfx.canfxgen.GenerateCrudAction"
               text="Generate CRUD..." description="Generates CRUD code for the selected entity (canfxgen crud)"/>
       <action id="CanFx.SeedData" class="com.canfx.canfxgen.SeedDataAction"
-              text="Add Seed Data..." description="Required (JSON) and Development sample data for the entity (canfxgen generate seeder)"/>
+              text="Seed Data..." description="Initial records (table) and Development sample data for the entity, with preview"/>
       <action id="CanFx.Mechanisms" class="com.canfx.canfxgen.MechanismsAction"
-              text="Mechanisms..." description="Turns caching, logging, transaction, secured operation or dynamic query on or off, with preview"/>
+              text="Mechanisms..." description="Shows caching, logging, transaction, secured operation and dynamic query as they are now; changed ones are applied with preview"/>
       <action id="CanFx.RateLimit" class="com.canfx.canfxgen.RateLimitAction"
               text="Rate Limit..." description="Binds a rate limit policy to an endpoint, with preview (canfxgen rate-limit)"/>
       <separator/>

@@ -6,8 +6,8 @@ CanFx çözümünde sağ tık (Solution Explorer ya da editör) → **CanFx** al
 | --- | --- | --- |
 | Add → **CanFx Entity** | Domain projesi (klasör ya da dosya) | `generate entity <Ad> --folder <klasör>` |
 | **Generate CRUD** | Entity dosyası | `crud` |
-| **Add Seed Data** | Entity dosyası | `generate seeder` |
-| **Mechanisms** | İstek dosyası, entity ya da `Features/{Özellik}` klasörü | `enable` / `disable` (önizlemeli) |
+| **Seed Data** | Entity dosyası | `generate seeder` (mevcut durumla açılır: başlangıç kayıtları tabloda, örnek veri türleri; önizlemeli) |
+| **Mechanisms** | İstek dosyası, entity ya da `Features/{Özellik}` klasörü | `mechanisms` ile mevcut durum (açık / kapalı / karışık), değişenler `enable` / `disable` (önizlemeli) |
 | **Rate Limit** | İstek dosyası ya da controller (imleç bir action'daysa o action) | `rate-limit` (önizlemeli) |
 | **Features** | Çözümün herhangi bir yeri | `add` / `remove feature` (önizlemeli) |
 

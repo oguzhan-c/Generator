@@ -9,6 +9,24 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+### Eklendi
+
+- canfxgen: `mechanisms <Hedef>`: hedefteki mekanizmaların durumu (açık / kapalı / karışık; `--json`).
+- canfxgen: `generate seeder --describe` (mevcut seed durumu), `--data <kayıtlar.json>` (başlangıç kayıtları dosyaya
+  ya da HasData'ya yazılır), `--sample-kinds "Name=City"` (örnek değer türü), `--preview`.
+
+### Değişti
+
+- Rider: Mechanisms, Features ve Seed Data diyalogları projenin mevcut durumuyla açılır (Keep yerine On / Off /
+  Mixed); yalnızca değiştirilen satırlar uygulanır. Generate CRUD son seçilen mekanizmaları hatırlar.
+- Rider: Seed Data: başlangıç kayıtları diyalogdaki tabloda girilir (JSON ya da migration), var olanlar tabloda
+  gelir; örnek veride kayıt sayısı ve alan başına değer türü (örnekli) seçilir. TODO'lu boş dosya kalmaz.
+- canfxgen: `--has-data` artık zorunlu veriyi JSON + seeder yerine migration'a yazar (ikisi birden değil). Enum
+  alanları JSON'da adıyla yazılır (`"tone": "Warm"`).
+- Şablon: geliştirme servisleri (veritabanı, Redis, Elasticsearch, RabbitMQ, mailpit) varsayılan portlarıyla başlar;
+  port doluysa (bilgisayardaki PostgreSQL, başka bir proje) sıradaki boş port kullanılır ve uygulama o porta bağlanır.
+  `Program.cs`: `AddCanDevServices(config, builder.Environment)`. CanFx 0.4.0.
+
 ## [0.5.0] - 2026-11-03
 
 ### Değişti

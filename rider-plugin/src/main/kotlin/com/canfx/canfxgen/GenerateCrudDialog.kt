@@ -1,5 +1,6 @@
 package com.canfx.canfxgen
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.dsl.builder.AlignX
@@ -18,6 +19,29 @@ class GenerateCrudOptions {
     var transaction: Boolean = true
     var secured: Boolean = true
     var dynamicQuery: Boolean = true
+
+    /** Son seçilen mekanizmalar (proje başına): bir sonraki CRUD'da aynılarıyla açılır. */
+    fun load(project: Project): GenerateCrudOptions = apply {
+        val p = PropertiesComponent.getInstance(project)
+        caching = p.getBoolean(KEY + "caching", true)
+        logging = p.getBoolean(KEY + "logging", true)
+        transaction = p.getBoolean(KEY + "transaction", true)
+        secured = p.getBoolean(KEY + "secured", true)
+        dynamicQuery = p.getBoolean(KEY + "dynamicQuery", true)
+    }
+
+    fun save(project: Project) {
+        val p = PropertiesComponent.getInstance(project)
+        p.setValue(KEY + "caching", caching, true)
+        p.setValue(KEY + "logging", logging, true)
+        p.setValue(KEY + "transaction", transaction, true)
+        p.setValue(KEY + "secured", secured, true)
+        p.setValue(KEY + "dynamicQuery", dynamicQuery, true)
+    }
+
+    private companion object {
+        const val KEY = "canfx.crud."
+    }
 }
 
 class GenerateCrudDialog(project: Project, private val entity: String, val options: GenerateCrudOptions) : DialogWrapper(project) {

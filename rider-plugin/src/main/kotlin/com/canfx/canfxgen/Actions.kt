@@ -69,8 +69,9 @@ internal object EntityDetector {
 internal object CanGenActions {
     /** Seçenek penceresini gösterir; onaylanırsa kaydedilmemiş belgeleri yazar ve üretimi başlatır. */
     fun generateFor(project: Project, entity: String, entityPath: String, workingDirectory: String) {
-        val options = GenerateCrudOptions()
+        val options = GenerateCrudOptions().load(project)
         if (!GenerateCrudDialog(project, entity, options).showAndGet()) return
+        options.save(project)
 
         // Entity dosyasındaki son değişiklikler diskte olsun (canfxgen dosyadan okur).
         ApplicationManager.getApplication().runWriteAction { FileDocumentManager.getInstance().saveAllDocuments() }

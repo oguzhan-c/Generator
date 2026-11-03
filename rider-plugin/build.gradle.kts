@@ -43,7 +43,9 @@ intellijPlatform {
             """
             <p><b>$version</b></p>
             <ul>
-              <li>Right-click → <b>CanFx</b> menu: Generate CRUD, Add Seed Data, Mechanisms, Rate Limit, Features.</li>
+              <li>Right-click → <b>CanFx</b> menu: Generate CRUD, Seed Data, Mechanisms, Rate Limit, Features.</li>
+              <li>Mechanisms, Features and Seed Data open with the current state of the project; only changes are applied.</li>
+              <li>Seed Data: initial records are entered in a table; sample data count and value kind per field.</li>
               <li><b>Add → CanFx Entity</b> in the Domain project: only the name is asked, base class options are in the file.</li>
               <li>Changes to existing files are previewed as a diff before they are applied.</li>
             </ul>

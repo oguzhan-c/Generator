@@ -483,7 +483,8 @@ public sealed class CrudGeneratorTests
         SeederGenerator.Plan(layout, EntityReader.Read(layout, "Product")).Apply();
         string product = solution.Read("src/Shop.Persistence/Seeding/ProductSeeder.cs");
         Assert.Contains("public int Order => 110;", product);
-        Assert.Contains("Product.Create(item.Name, item.Price, item.CategoryId, item.Status)", product);
+        Assert.Contains("Product.Create(item.Name, item.Price, item.CategoryId, Enum.Parse<ProductStatus>(item.Status))", product);
+        Assert.Contains("public sealed record ProductSeed(string Name, decimal Price, Guid CategoryId, string Status);", solution.Read("src/Shop.Persistence/Seeding/ProductSeed.cs"));
         Assert.Contains(".IgnoreQueryFilters()", product); // soft delete: silinmiş kayıt tekrar eklenmesin
 
         string sample = solution.Read("src/Shop.Persistence/Seeding/ProductSampleSeeder.cs");
@@ -491,6 +492,82 @@ public sealed class CrudGeneratorTests
         Assert.Contains("public int Order => 111;", sample);
         Assert.Contains("List<Guid> categoryIds = await db.Set<Category>().Select(x => x.Id).ToListAsync(cancellationToken);", sample);
         Assert.Contains("Fit($\"{sample.ProductName()} {i + 1}\", Product.NameMaxLength), sample.Price(), sample.Pick(categoryIds), sample.Pick(Enum.GetValues<ProductStatus>())", sample);
+    }
+
+    [Fact]
+    public void Seed_dialog_records_and_sample_kinds_are_written_and_read_back()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Color.cs", """
+            namespace Shop.Domain.Entities;
+
+            public enum ColorTone { Warm, Cold }
+
+            public class Color : Entity<int>
+            {
+                private Color() { }
+
+                public string Name { get; private set; } = "";
+                public string? Hex { get; private set; }
+                public ColorTone Tone { get; private set; }
+
+                public static Color Create(string name, string? hex, ColorTone tone) => new() { Name = name, Hex = hex, Tone = tone };
+            }
+            """);
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        EntityModel color = EntityReader.Read(layout, "Color");
+
+        SeedDescription empty = SeederGenerator.Describe(layout, color);
+        Assert.Equal("none", empty.RequiredStorage);
+        Assert.Equal(new[] { "Warm", "Cold" }, empty.Fields.Single(f => f.Name == "Tone").EnumValues);
+        Assert.Equal("NumberedName", empty.Fields.Single(f => f.Name == "Name").SampleKind);
+
+        // Tablodaki kayıtlar JSON'a; örnek veri seçilen türlerle.
+        Dictionary<string, string?>[] records =
+        [
+            new() { ["Name"] = "Kırmızı", ["Hex"] = "#ff0000", ["Tone"] = "Warm" },
+            new() { ["Name"] = "Mavi", ["Hex"] = "", ["Tone"] = "Cold" },
+        ];
+        SeederGenerator.Plan(layout, color, new SeederOptions
+        {
+            Records = records, SampleCount = 5, SampleKinds = new Dictionary<string, string> { ["Name"] = "City" },
+        }).Apply();
+
+        string json = solution.Read("src/Shop.Persistence/Seeding/Data/colors.json");
+        Assert.Contains("{ \"name\": \"Kırmızı\", \"hex\": \"#ff0000\", \"tone\": \"Warm\" }", json);
+        Assert.Contains("\"hex\": null", json);
+        Assert.DoesNotContain("TODO", json);
+        string sample = solution.Read("src/Shop.Persistence/Seeding/ColorSampleSeeder.cs");
+        Assert.Contains("private const int Count = 5;", sample);
+        Assert.Contains("Color.Create(sample.City(),", sample);
+
+        SeedDescription described = SeederGenerator.Describe(layout, color);
+        Assert.Equal("json", described.RequiredStorage);
+        Assert.Equal(2, described.Records.Count);
+        Assert.Equal("Mavi", described.Records[1]["Name"]);
+        Assert.True(described.SampleExists);
+        Assert.Equal(5, described.SampleCount);
+        Assert.Equal("City", described.SampleKinds["Name"]);
+
+        // Kayıt değişince dosya güncellenir (önizlemede fark görünür).
+        SeederGenerator.Plan(layout, color, new SeederOptions { Sample = false, Records = [records[0]] }).Apply();
+        Assert.DoesNotContain("Mavi", solution.Read("src/Shop.Persistence/Seeding/Data/colors.json"));
+
+        // Migration (HasData): sabit Id'ler, kayıtlar okunabilir.
+        SeederGenerator.Plan(layout, color, new SeederOptions { Sample = false, HasData = true, Records = records }).Apply();
+        string seedData = solution.Read("src/Shop.Persistence/EntityConfigurations/ColorSeedData.cs");
+        Assert.Contains("new { Id = 1, Name = \"Kırmızı\", Hex = \"#ff0000\", Tone = ColorTone.Warm },", seedData);
+        Assert.Contains("new { Id = 2, Name = \"Mavi\", Hex = (string?)null, Tone = ColorTone.Cold },", seedData);
+        SeedDescription migration = SeederGenerator.Describe(layout, color);
+        Assert.Equal("migration", migration.RequiredStorage);
+        Assert.Equal("2", migration.Records[1]["Id"]);
+        Assert.Null(migration.Records[1]["Hex"]);
+        Assert.Equal("Cold", migration.Records[1]["Tone"]);
+
+        Assert.Throws<GeneratorException>(() => SeederGenerator.Plan(layout, color, new SeederOptions
+        {
+            Sample = false, Records = [new Dictionary<string, string?> { ["Name"] = "X", ["Tone"] = "" }],
+        }));
     }
 
     [Fact]
@@ -506,6 +583,29 @@ public sealed class CrudGeneratorTests
         Assert.Contains("internal static class BrandSeedData", solution.Read("src/Shop.Persistence/EntityConfigurations/BrandSeedData.cs"));
         Assert.Contains("builder.HasData(BrandSeedData.Items);", solution.Read("src/Shop.Persistence/EntityConfigurations/BrandConfiguration.cs"));
         Assert.False(solution.Exists("src/Shop.Persistence/Seeding/BrandSeeder.cs"));
+    }
+
+    [Fact]
+    public void Mechanism_status_shows_on_off_and_mixed_per_target()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Domain/Entities/Brand.cs", "namespace Shop.Domain.Entities; public class Brand : Entity<Guid> { public string Name { get; set; } = \"\"; }");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        CrudGenerator.Plan(layout, EntityReader.Read(layout, "Brand"), new CrudOptions { Caching = false, DynamicQuery = false }).Apply();
+        MechanismEditor.Plan(layout, "GetByIdBrandQuery", [Mechanism.Caching], enable: true, []).Apply();
+
+        MechanismReport feature = MechanismEditor.Status(layout, "Brand");
+        Assert.False(feature.SingleRequest);
+        MechanismStatus caching = feature.Mechanisms.Single(m => m.Mechanism == Mechanism.Caching);
+        Assert.Equal(1, caching.Enabled);                     // yalnızca GetById
+        Assert.True(caching.Total > 1);                       // karışık
+        Assert.True(feature.Mechanisms.Single(m => m.Mechanism == Mechanism.Logging).Enabled > 0);
+        Assert.Equal(0, feature.Mechanisms.Single(m => m.Mechanism == Mechanism.DynamicQuery).Enabled);
+
+        MechanismReport single = MechanismEditor.Status(layout, "GetByIdBrandQuery");
+        Assert.True(single.SingleRequest);
+        Assert.Equal(new MechanismStatus(Mechanism.Caching, 1, 1), single.Mechanisms.Single(m => m.Mechanism == Mechanism.Caching));
+        Assert.DoesNotContain(single.Mechanisms, m => m.Mechanism == Mechanism.DynamicQuery);
     }
 
     [Fact]

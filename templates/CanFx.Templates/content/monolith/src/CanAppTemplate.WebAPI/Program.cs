@@ -94,9 +94,10 @@ builder.Services.AddCanLocalization(o =>
     o.ResourceAssemblies.Add(typeof(ApplicationServiceRegistration).Assembly);
 });
 
-// Geliştirme servisleri (yalnızca Development): veritabanı vb. bilgisayarda yoksa docker-compose'dan başlatılır.
-// Servisler ve adreslerinin okunduğu ayarlar appsettings.Development.json → "DevServices".
-builder.Services.AddCanDevServices(config);
+// Geliştirme servisleri (yalnızca Development): veritabanı vb. docker-compose'dan başlatılır; port doluysa sıradaki boş
+// port kullanılır ve adres ona göre ayarlanır. Ayarlar appsettings.Development.json → "DevServices". Adresleri okuyan
+// kayıtlardan önce kalmalı.
+builder.Services.AddCanDevServices(config, builder.Environment);
 
 // Katmanlar
 builder.Services.AddApplicationServices();
