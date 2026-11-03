@@ -1,6 +1,17 @@
 # canfxgen Rider eklentisi
 
-Rider'da entity dosyasına sağ tık (Solution Explorer ya da editör) → **CanFx: Generate CRUD...**
+CanFx çözümünde sağ tık (Solution Explorer ya da editör) → **CanFx** alt menüsü; dosyaya göre yalnızca uygun eylemler görünür:
+
+| Eylem | Nerede | canfxgen |
+| --- | --- | --- |
+| Add → **CanFx Entity** | Domain projesi (klasör ya da dosya) | `generate entity <Ad> --folder <klasör>` |
+| **Generate CRUD** | Entity dosyası | `crud` |
+| **Add Seed Data** | Entity dosyası | `generate seeder` |
+| **Mechanisms** | İstek dosyası, entity ya da `Features/{Özellik}` klasörü | `enable` / `disable` (önizlemeli) |
+| **Rate Limit** | İstek dosyası ya da controller (imleç bir action'daysa o action) | `rate-limit` (önizlemeli) |
+| **Features** | Çözümün herhangi bir yeri | `add` / `remove feature` (önizlemeli) |
+
+Var olan dosyaları değiştiren eylemler önce değişiklikleri (+/− satır farkı ve uyarılar) gösterir; **Apply** ile uygulanır.
 
 Eklenti yalnızca arayüzdür: kodu `canfxgen` komut satırı aracı üretir (`--json` ile çağrılır). Önce aracı kur:
 

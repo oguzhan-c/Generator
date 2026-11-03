@@ -68,16 +68,13 @@
     <PackageVersion Include="CanFx.Observability.OpenTelemetry" Version="$(CanFxVersion)" />
 <!--#endif-->
 
-    <!-- Veritabanı sağlayıcısı (başka sağlayıcıya geçiş: PersistenceServiceRegistration.cs'teki açıklama) -->
-<!--#if (Postgres)-->
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-<!--#elif (SqlServer)-->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
-    <!-- SqlServer sağlayıcısının getirdiği eski sürümdeki güvenlik açığı için -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-<!--#else-->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
-<!--#endif-->
+    <!--
+      Veritabanı sağlayıcısı: birini aç (yorumdan çıkar), Persistence projesinde de aynısını aç. Ayrıntı:
+      Persistence/PersistenceServiceRegistration.cs → "Veritabanı".
+    -->
+    <!-- <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" /> -->
+    <!-- <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" /> -->
+    <!-- <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" /> (SQL Server ile: getirdiği eski sürümdeki güvenlik açığı için) -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
 <!--#if (Hangfire)-->

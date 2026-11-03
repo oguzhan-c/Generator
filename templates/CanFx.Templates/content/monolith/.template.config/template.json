@@ -40,40 +40,6 @@
     }
   },
   "symbols": {
-    "Database": {
-      "type": "parameter",
-      "displayName": "Veritabanı",
-      "description": "Veritabanı sağlayıcısı. Paket, bağlantı dizesi ve docker-compose servisi buna göre hazırlanır.",
-      "datatype": "choice",
-      "defaultValue": "postgresql",
-      "choices": [
-        {
-          "choice": "postgresql",
-          "description": "PostgreSQL"
-        },
-        {
-          "choice": "sqlserver",
-          "description": "SQL Server"
-        },
-        {
-          "choice": "sqlite",
-          "description": "SQLite (dosya; docker gerekmez)"
-        }
-      ],
-      "replaces": "CANFX_OPT_DATABASE"
-    },
-    "Postgres": {
-      "type": "computed",
-      "value": "(Database == \"postgresql\")"
-    },
-    "SqlServer": {
-      "type": "computed",
-      "value": "(Database == \"sqlserver\")"
-    },
-    "Sqlite": {
-      "type": "computed",
-      "value": "(Database == \"sqlite\")"
-    },
     "MultiTenancy": {
       "type": "parameter",
       "displayName": "Tenancy: Multi-tenancy",

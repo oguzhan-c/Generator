@@ -49,8 +49,8 @@ public static class PersistenceServiceRegistration
     /// <remarks>appsettings: <c>ConnectionStrings:CanAppTemplate</c>, <c>Seed</c>, <c>QueryDiagnostics</c>, <c>DataRetention</c>.</remarks>
     public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Geliştirmede appsettings.Development.json'daki yerel (docker) bağlantı dizesi kullanılır. Gerçek ortamın bağlantı
-        // dizesi appsettings'e YAZILMAZ: ortam değişkeni (ConnectionStrings__CanAppTemplate) ya da user-secrets.
+        // Geliştirmede appsettings.Development.json'daki yerel (docker) bağlantı dizesi kullanılır (yorumdan çıkar). Gerçek
+        // ortamın bağlantı dizesi appsettings'e YAZILMAZ: ortam değişkeni (ConnectionStrings__CanAppTemplate) ya da user-secrets.
         string connectionString =
             configuration.GetConnectionString("CanAppTemplate") ?? throw new InvalidOperationException("ConnectionStrings:CanAppTemplate ayarı eksik.");
 #if (MultiTenancy)
@@ -78,19 +78,20 @@ public static class PersistenceServiceRegistration
                 // Aggregate'ler arası ilişkiler navigation'sız olabilir; filtreli zorunlu ilişki uyarısı burada geçersiz.
                 options.ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
 
-#if (Postgres)
-                options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());
-#elif (SqlServer)
-                options.UseSqlServer(tenantConnectionString, sql => sql.EnableRetryOnFailure());
-#else
-                options.UseSqlite(tenantConnectionString);
-#endif
-                // Başka bir veritabanına geçmek için: paketi Directory.Packages.props'ta ve Persistence projesinde değiştir,
-                // yukarıdaki satırı değiştir, docker-compose.yml'deki servisi ve appsettings.Development.json'daki
-                // bağlantı dizesini güncelle, eski migration'ları sil (sağlayıcıya özeldir).
-                //   PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL)    : options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());
-                //   SQL Server (Microsoft.EntityFrameworkCore.SqlServer)  : options.UseSqlServer(tenantConnectionString, sql => sql.EnableRetryOnFailure());
-                //   SQLite     (Microsoft.EntityFrameworkCore.Sqlite)     : options.UseSqlite(tenantConnectionString);
+                // ======================================================================================== Veritabanı
+                // Sağlayıcını seç (4 adım; PostgreSQL ve SQL Server için her şey hazır, yalnızca yorumdan çıkar):
+                //   1) Directory.Packages.props ve bu projenin .csproj'unda sağlayıcı paketi
+                //   2) aşağıdaki satırlardan biri ve "throw" satırının silinmesi
+                //   3) docker-compose.yml'deki servisi (postgres / sqlserver) ve volume'u
+                //   4) appsettings.Development.json'daki bağlantı dizesi
+                // Uygulama Development'ta açılırken veritabanı bilgisayarında yoksa docker'dan kendiliğinden başlatılır.
+                //
+                // options.UseNpgsql(tenantConnectionString, npgsql => npgsql.EnableRetryOnFailure());        // PostgreSQL
+                // options.UseSqlServer(tenantConnectionString, sql => sql.EnableRetryOnFailure());           // SQL Server
+                // TODO(canfxgen): Veritabanı sağlayıcısını seç (yukarıdaki adımlar) ve bu satırı sil.
+                throw new InvalidOperationException(
+                    $"Veritabanı ayarlanmadı (bağlantı dizesi uzunluğu: {tenantConnectionString.Length}). " +
+                    "Persistence/PersistenceServiceRegistration.cs içindeki \"Veritabanı\" açıklamasına bak.");
             }
         );
 

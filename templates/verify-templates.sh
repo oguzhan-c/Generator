@@ -56,13 +56,19 @@ PY
 # Şablonun kod adı kuralı (AppCodeName): harf, rakam, nokta ve alt çizgi dışı → "_" (My-Shop → My_Shop).
 code_name() { printf '%s' "${1//[^A-Za-z0-9_.]/_}"; }
 
+# variant <ad> <veritabanı: postgres | sqlserver | sqlite | none> <şablon seçenekleri...>
+# Şablon veritabanı seçmez (sağlayıcılar yorum satırı olarak hazır); kullanıcının seçimi choose-database.py ile taklit
+# edilir: postgres / sqlserver hazır yorumları açar, sqlite docker'sız açılış testi içindir, none hiç dokunmaz.
 variant() {
-  local name="$1"; shift
-  step "Çözüm: $name ($*)"
+  local name="$1" database="$2"; shift 2
+  step "Çözüm: $name (veritabanı: $database; $*)"
   if ! dotnet new canfx-monolith -n "$name" -o "$OUT/$name" "$@" >>"$LOG" 2>&1; then
     step "HATA: $name üretilemedi"; failed=1; return
   fi
   [[ -n "${CANFX_FEED:-}" ]] && add_local_feed "$OUT/$name/nuget.config"
+  if [[ "$database" != "none" ]] && ! python3 "$ROOT/templates/choose-database.py" "$OUT/$name" "$database" >>"$LOG" 2>&1; then
+    step "HATA: $name veritabanı seçilemedi ($database)"; failed=1; return
+  fi
   if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then
     step "TAMAM: $name derlendi"
   else
@@ -72,12 +78,12 @@ variant() {
   echo "    TODO(canfxgen): $(grep -r --include=*.cs --include=*.json --include=*.config 'TODO(canfxgen)' "$OUT/$name" | wc -l | tr -d ' ')" | tee -a "$LOG"
 }
 
-variant Minimal --IdKeyType int --Otp false --EmailTwoFactor false --Passkey false --AuditTrail false --Postman false --Database sqlite
-variant Full --MultiTenancy true --ExternalLogin true --Redis true --EventBus true --Hangfire true \
+variant Minimal sqlite --IdKeyType int --Otp false --EmailTwoFactor false --Passkey false --AuditTrail false --Postman false
+variant Full postgres --MultiTenancy true --ExternalLogin true --Redis true --EventBus true --Hangfire true \
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
-variant Tenant --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true --Database sqlserver
+variant Tenant sqlserver --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true
 # Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
-variant My-Shop.Api --IdKeyType int --Redis true --FileStorage true
+variant My-Shop.Api none --IdKeyType int --Redis true --FileStorage true
 
 # ---------------------------------------------------------------- açılış
 # Derlenen uygulama gerçekten açılıyor mu (DI kayıtları, ayarların okunması, veritabanı hazırlığı)? SQLite'lı Minimal

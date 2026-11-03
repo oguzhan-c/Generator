@@ -43,10 +43,9 @@ intellijPlatform {
             """
             <p><b>$version</b></p>
             <ul>
-              <li>First Marketplace release.</li>
-              <li>Right-click an entity in the Domain project → <b>CanFx: Generate CRUD</b>: commands, queries,
-                  validators, responses, rules, permissions, EF configuration and endpoints.</li>
-              <li>Options: plural name, caching, logging, transaction, secured operation, dynamic query.</li>
+              <li>Right-click → <b>CanFx</b> menu: Generate CRUD, Add Seed Data, Mechanisms, Rate Limit, Features.</li>
+              <li><b>Add → CanFx Entity</b> in the Domain project: only the name is asked, base class options are in the file.</li>
+              <li>Changes to existing files are previewed as a diff before they are applied.</li>
             </ul>
             """.trimIndent()
         }

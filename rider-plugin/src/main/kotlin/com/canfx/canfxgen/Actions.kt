@@ -21,7 +21,7 @@ class GenerateCrudAction : AnAction() {
     override fun update(e: AnActionEvent) {
         val entity = if (e.project != null) e.getData(CommonDataKeys.VIRTUAL_FILE)?.let(EntityDetector::entityName) else null
         e.presentation.isEnabledAndVisible = entity != null
-        if (entity != null) e.presentation.text = "CanFx: Generate CRUD for $entity..."
+        if (entity != null) e.presentation.text = "Generate CRUD for $entity..."
     }
 
     override fun actionPerformed(e: AnActionEvent) {
@@ -55,7 +55,7 @@ internal object EntityDetector {
     }
 
     /** Dosyanın yukarısında adı ".Domain" ile biten bir proje klasörü (ya da .csproj) var mı. */
-    private fun isInDomainProject(file: VirtualFile): Boolean {
+    fun isInDomainProject(file: VirtualFile): Boolean {
         var dir = file.parent
         while (dir != null) {
             if (dir.name.endsWith(".Domain", ignoreCase = true)) return true

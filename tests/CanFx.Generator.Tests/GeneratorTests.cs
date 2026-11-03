@@ -708,6 +708,25 @@ public sealed class CrudGeneratorTests
         Assert.Single(warnings);
     }
 
+    [Fact]
+    public void Feature_patch_ignores_whitespace_differences_and_removed_options()
+    {
+        // Rider'ın yeniden biçimlendirdiği satır ("/>" bitişik, farklı girinti) zaten eklenmiş sayılmalı (NU1008).
+        string[] baseLines = ["<ItemGroup>", "  <PackageReference Include=\"CanFx.Core\" />", "</ItemGroup>"];
+        string[] targetLines = ["<ItemGroup>", "  <PackageReference Include=\"CanFx.Core\" />", "  <PackageReference Include=\"CanFx.EventBus\" />", "</ItemGroup>"];
+        string project = "<ItemGroup>\n        <PackageReference Include=\"CanFx.Core\"/>\n        <PackageReference Include=\"CanFx.EventBus\"/>\n</ItemGroup>\n";
+        (string text, List<string> failed) = FeaturePatcher.ApplyHunks(project, FeaturePatcher.Hunks(baseLines, targetLines), baseLines.Length);
+        Assert.Empty(failed);
+        Assert.Single(text.Split("CanFx.EventBus")[1..]);
+
+        // Şablondan kaldırılan seçenek (eski canfx.json'daki "Database") şablona verilmez.
+        using var solution = new TestSolution();
+        solution.Write("canfx.json", "{ \"options\": { \"Database\": \"postgresql\", \"Redis\": true } }");
+        Dictionary<string, string> options = FeaturePatcher.ReadOptions(SolutionLayout.Find(solution.Root), []);
+        Assert.False(options.ContainsKey("Database"));
+        Assert.Equal("true", options["Redis"]);
+    }
+
     /// <summary>İstek ve handler'ı birlikte okur (handler <c>{İstek}Handler.cs</c>'te).</summary>
     private static string ReadWithHandler(TestSolution solution, string requestPath) =>
         solution.Read(requestPath) + "\n" + solution.Read(requestPath[..^3] + "Handler.cs");

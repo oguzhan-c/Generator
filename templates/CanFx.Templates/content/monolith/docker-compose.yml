@@ -8,35 +8,35 @@
 name: canapptemplate
 
 services:
-#if (Postgres)
-  postgres:
-    image: postgres:18-alpine
-    ports: ["5432:5432"]
-    environment:
-      POSTGRES_DB: canapptemplate
-      POSTGRES_USER: canapptemplate
-      POSTGRES_PASSWORD: canapptemplate
-    volumes: ["db-data:/var/lib/postgresql"]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U canapptemplate"]
-      interval: 5s
-      retries: 10
+  # Veritabanı: kullandığın sağlayıcının servisini aç (satır başındaki "# " işaretlerini kaldır) ve en alttaki
+  # volumes'ta db-data'yı aç. Uygulama Development'ta açılırken bu servisi gerekirse kendisi başlatır.
+  # Konteyner şifreleri yalnızca yerel geliştirme içindir (appsettings.Development.json'daki bağlantı dizesiyle aynı).
+  # postgres:
+  #   image: postgres:18-alpine
+  #   ports: ["5432:5432"]
+  #   environment:
+  #     POSTGRES_DB: canapptemplate
+  #     POSTGRES_USER: canapptemplate
+  #     POSTGRES_PASSWORD: canapptemplate
+  #   volumes: ["db-data:/var/lib/postgresql"]
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U canapptemplate"]
+  #     interval: 5s
+  #     retries: 10
 
-#elif (SqlServer)
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2025-latest
-    ports: ["1433:1433"]
-    environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: CanAppTemplate_Dev_123
-    volumes: ["db-data:/var/opt/mssql"]
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P CanAppTemplate_Dev_123 -Q 'SELECT 1' || exit 1"]
-      interval: 10s
-      retries: 10
-      start_period: 20s
+  # sqlserver:
+  #   image: mcr.microsoft.com/mssql/server:2025-latest
+  #   ports: ["1433:1433"]
+  #   environment:
+  #     ACCEPT_EULA: "Y"
+  #     MSSQL_SA_PASSWORD: CanAppTemplate_Dev_123
+  #   volumes: ["db-data:/var/opt/mssql"]
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P CanAppTemplate_Dev_123 -Q 'SELECT 1' || exit 1"]
+  #     interval: 10s
+  #     retries: 10
+  #     start_period: 20s
 
-#endif
   # Uygulama: yalnızca "--profile app" ile. Gizli ayarlar (JWT anahtarı vb.) .env dosyasından okunur (git'e girmez):
   #   Security__Jwt__SigningKey=...
   #   Security__VerificationCodeKey=...
@@ -51,18 +51,11 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       DevServices__Enabled: "false"
       Database__StartupMode: Migrate
-#if (Postgres)
-      ConnectionStrings__CanAppTemplate: Host=postgres;Port=5432;Database=canapptemplate;Username=canapptemplate;Password=canapptemplate
-    depends_on:
-      postgres: { condition: service_healthy }
-#elif (SqlServer)
-      ConnectionStrings__CanAppTemplate: Server=sqlserver,1433;Database=CanAppTemplate;User Id=sa;Password=CanAppTemplate_Dev_123;TrustServerCertificate=True
-    depends_on:
-      sqlserver: { condition: service_healthy }
-#else
-      ConnectionStrings__CanAppTemplate: Data Source=/data/canapptemplate.db
-    volumes: ["app-data:/data"]
-#endif
+      # Veritabanı servisini açtıysan bağlantı dizesini ve bağımlılığı da aç:
+      # ConnectionStrings__CanAppTemplate: Host=postgres;Port=5432;Database=canapptemplate;Username=canapptemplate;Password=canapptemplate
+      # ConnectionStrings__CanAppTemplate: Server=sqlserver,1433;Database=CanAppTemplate;User Id=sa;Password=CanAppTemplate_Dev_123;TrustServerCertificate=True
+    # depends_on:
+    #   postgres: { condition: service_healthy }      # ya da sqlserver
 
   mailpit:
     profiles: [mail, all]
@@ -121,11 +114,8 @@ services:
 #endif
 
 volumes:
-#if (Postgres || SqlServer)
-  db-data:
-#else
+  # db-data:
   app-data:
-#endif
 #if (Search)
   es-data:
 #endif

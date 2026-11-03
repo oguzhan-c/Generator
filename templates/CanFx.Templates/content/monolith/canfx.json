@@ -3,7 +3,6 @@
   "template": "canfx-monolith",
   "templateVersion": "TEMPLATE_PACKAGE_VERSION",
   "options": {
-    "Database": "CANFX_OPT_DATABASE",
     "IdKeyType": "CANFX_OPT_IDKEY",
 //#if (MultiTenancy)
     "MultiTenancy": true,

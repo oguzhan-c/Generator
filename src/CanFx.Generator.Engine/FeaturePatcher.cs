@@ -16,7 +16,10 @@ public static partial class FeaturePatcher
     public static readonly IReadOnlyList<string> Supported = ["Redis", "Search", "EventBus", "Hangfire", "FileStorage", "Realtime", "Sms", "OpenTelemetry", "Postman"];
 
     /// <summary>Şema ya da kimlik akışını değiştirdiği için sonradan eklenmeyenler.</summary>
-    public static readonly IReadOnlyList<string> Unsupported = ["MultiTenancy", "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "AuditTrail", "Settings", "Reporting", "Database", "IdKeyType"];
+    public static readonly IReadOnlyList<string> Unsupported = ["MultiTenancy", "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "AuditTrail", "Settings", "Reporting", "IdKeyType"];
+
+    /// <summary>Şablondan kaldırılmış seçenekler: eski projelerin canfx.json'unda olabilir, şablona verilmez.</summary>
+    private static readonly IReadOnlyList<string> Removed = ["Database"];
 
     private const string OptionsFile = "canfx.json";
     private const int Context = 3;
@@ -51,7 +54,8 @@ public static partial class FeaturePatcher
         {
             JsonNode? options = JsonNode.Parse(File.ReadAllText(file), documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true })?["options"];
             if (options is JsonObject values)
-                return values.ToDictionary(p => p.Key, p => p.Value?.ToString().ToLowerInvariant() ?? string.Empty, StringComparer.Ordinal);
+                return values.Where(p => !Removed.Contains(p.Key, StringComparer.Ordinal))
+                    .ToDictionary(p => p.Key, p => p.Value?.ToString().ToLowerInvariant() ?? string.Empty, StringComparer.Ordinal);
         }
 
         warnings.Add($"{OptionsFile} yok (eski proje): seçenekler proje dosyalarından çıkarıldı.");
@@ -62,7 +66,6 @@ public static partial class FeaturePatcher
     {
         static string ReadIf(string path) => File.Exists(path) ? File.ReadAllText(path) : string.Empty;
         string packages = ReadIf(Path.Combine(layout.Root, "Directory.Packages.props"));
-        string persistence = ReadIf(Path.Combine(layout.Persistence, Path.GetFileName(layout.Persistence) + ".csproj"));
         string props = ReadIf(Path.Combine(layout.Root, "Directory.Build.props"));
         string account = ReadIf(Path.Combine(layout.WebApi, "Controllers", "AccountController.cs"));
         string registration = ReadIf(Path.Combine(layout.Persistence, "PersistenceServiceRegistration.cs"));
@@ -71,7 +74,6 @@ public static partial class FeaturePatcher
 
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Database"] = persistence.Contains("SqlServer", StringComparison.Ordinal) ? "sqlserver" : persistence.Contains("Sqlite", StringComparison.Ordinal) ? "sqlite" : "postgresql",
             ["IdKeyType"] = props.Contains("System.Int32", StringComparison.Ordinal) ? "int" : props.Contains("System.Int64", StringComparison.Ordinal) ? "long" : "guid",
             ["MultiTenancy"] = Flag(File.Exists(Path.Combine(layout.Persistence, "Repositories", "CrossTenantReader.cs"))),
             ["Otp"] = Flag(account.Contains("EnableOtp", StringComparison.Ordinal)),
@@ -190,7 +192,7 @@ public static partial class FeaturePatcher
     }
 
     private static bool Same(string a, string b) =>
-        string.Join('\n', Lines(a).Select(l => l.Trim())) == string.Join('\n', Lines(b).Select(l => l.Trim()));
+        string.Join('\n', Lines(a).Select(Key).Where(l => l.Length > 0)) == string.Join('\n', Lines(b).Select(Key).Where(l => l.Length > 0));
 
     private static string[] Lines(string text) => text.ReplaceLineEndings("\n").Split('\n');
 
@@ -291,9 +293,9 @@ public static partial class FeaturePatcher
             if (position < 0)
             {
                 // Silinecekler yok, eklenecekler var: zaten uygulanmış (bağlam değişmiş olsa da).
-                var present = lines.Select(l => l.Trim()).ToHashSet(StringComparer.Ordinal);
-                bool removedGone = hunk.Removed.Where(l => l.Trim().Length > 0).All(l => !present.Contains(l.Trim()));
-                bool addedThere = hunk.Added.Where(l => l.Trim().Length > 0).All(l => present.Contains(l.Trim()));
+                var present = lines.Select(Key).ToHashSet(StringComparer.Ordinal);
+                bool removedGone = hunk.Removed.Where(l => l.Trim().Length > 0).All(l => !present.Contains(Key(l)));
+                bool addedThere = hunk.Added.Where(l => l.Trim().Length > 0).All(l => present.Contains(Key(l)));
                 if (removedGone && addedThere)
                     continue;
 
@@ -331,6 +333,12 @@ public static partial class FeaturePatcher
         }
     }
 
+    /// <summary>
+    /// Satırın karşılaştırma anahtarı: tüm boşluklar yok sayılır (IDE'nin biçimlendirmesi: <c>"/&gt;</c> ile <c>" /&gt;</c>,
+    /// girinti farkı aynı satırdır).
+    /// </summary>
+    private static string Key(string line) => WhiteSpace().Replace(line, string.Empty);
+
     /// <summary>Deseni (boşluklar yok sayılarak) arar; birden çok eşleşmede beklenen konuma en yakını.</summary>
     private static int Find(List<string> lines, string[] pattern, int expected, int before)
     {
@@ -342,7 +350,7 @@ public static partial class FeaturePatcher
         {
             bool match = true;
             for (int j = 0; j < pattern.Length && match; j++)
-                match = lines[i + j].Trim() == pattern[j].Trim();
+                match = Key(lines[i + j]) == Key(pattern[j]);
 
             if (match && (best < 0 || Math.Abs(i + before - expected) < Math.Abs(best + before - expected)))
                 best = i;
@@ -357,6 +365,9 @@ public static partial class FeaturePatcher
         static string Mark(string[] items, string mark) => string.Join(string.Empty, items.Where(l => l.Trim().Length > 0).Select(l => $"\n      {mark} {l.Trim()}"));
         return $"'{anchor}' satırından sonra:{Mark(hunk.Removed, "-")}{Mark(hunk.Added, "+")}";
     }
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhiteSpace();
 
     [GeneratedRegex(@"<UserSecretsId>[^<]*</UserSecretsId>")]
     private static partial Regex UserSecrets();

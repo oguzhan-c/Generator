@@ -13,14 +13,10 @@
 <!--#if (Settings)-->
     <PackageReference Include="CanFx.Settings.EntityFrameworkCore" />
 <!--#endif-->
-<!--#if (Postgres)-->
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-<!--#elif (SqlServer)-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
-    <PackageReference Include="System.Security.Cryptography.Pkcs" />
-<!--#else-->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-<!--#endif-->
+    <!-- Veritabanı sağlayıcısı: birini aç (Directory.Packages.props'ta da). -->
+    <!-- <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" /> -->
+    <!-- <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" /> -->
+    <!-- <PackageReference Include="System.Security.Cryptography.Pkcs" /> -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>
 

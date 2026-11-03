@@ -12,11 +12,11 @@ import java.nio.charset.StandardCharsets
 data class CanGenResult(val ok: Boolean, val json: Map<String, Any?>, val error: String?)
 
 /** Bir dosya değişikliği (canfxgen --json çıktısındaki "changes" öğesi). */
-data class CanGenChange(val path: String, val kind: String, val note: String?)
+data class CanGenChange(val path: String, val kind: String, val note: String?, val diff: String? = null)
 
 /** canfxgen komut satırı aracını çalıştırır. Uzun sürebilir: arka plan iş parçacığında çağır. */
 object CanGenRunner {
-    private const val TIMEOUT_MS = 120_000
+    private const val TIMEOUT_MS = 300_000 // add feature şablonu iki kez üretir
 
     fun run(workingDirectory: String, vararg arguments: String): CanGenResult {
         val command = resolveCommand()
@@ -55,7 +55,7 @@ object CanGenRunner {
 
     fun changes(result: CanGenResult): List<CanGenChange> =
         result.json["changes"].arr().map { it.obj() }.map {
-            CanGenChange(it.str("path") ?: "", it.str("kind") ?: "", it.str("note"))
+            CanGenChange(it.str("path") ?: "", it.str("kind") ?: "", it.str("note"), it.str("diff"))
         }
 
     /** Ayardaki komut; boşsa PATH ya da ~/.dotnet/tools/canfxgen. Dock'tan açılan IDE'nin PATH'i kısa olabilir. */

@@ -1,6 +1,4 @@
-#if (Postgres || SqlServer)
 using System.Data.Common;
-#endif
 using CanFx.DevServices;
 
 namespace CanAppTemplate.WebAPI.Development;
@@ -18,11 +16,8 @@ public static class DevServicesSetup
         return services.AddCanDevServices(o =>
         {
             config.GetSection("DevServices").Bind(o, b => b.ErrorOnUnknownConfiguration = true);
-#if (Postgres)
-            AddFromConnectionString(o, "Database", "postgres", config.GetConnectionString("CanAppTemplate"), defaultPort: 5432);
-#elif (SqlServer)
-            AddFromConnectionString(o, "Database", "sqlserver", config.GetConnectionString("CanAppTemplate"), defaultPort: 1433);
-#endif
+            // Veritabanı: bağlantı dizesinden (Host=... → docker-compose'daki "postgres", Server=... → "sqlserver").
+            AddDatabase(o, config.GetConnectionString("CanAppTemplate"));
 
             // Yalnızca appsettings'te açılmış servisler (adres boşsa uygulama yerel karşılığını kullanır, docker gerekmez).
             if (string.Equals(config["Mail:Provider"], "Smtp", StringComparison.OrdinalIgnoreCase))
@@ -41,18 +36,31 @@ public static class DevServicesSetup
 #endif
         });
     }
-#if (Postgres || SqlServer)
 
-    /// <summary>Bağlantı dizesindeki sunucu yerelse (localhost) servis tanımlanır; uzak sunucuya docker başlatılmaz.</summary>
-    private static void AddFromConnectionString(DevServicesOptions options, string name, string composeService, string? connectionString, int defaultPort)
+    /// <summary>
+    /// Bağlantı dizesindeki sunucu bu bilgisayarsa (localhost) veritabanı servisi tanımlanır: <c>Host=</c> PostgreSQL
+    /// (docker-compose: postgres, 5432), <c>Server=</c> SQL Server (sqlserver, 1433). Uzak sunucuya docker başlatılmaz.
+    /// </summary>
+    private static void AddDatabase(DevServicesOptions options, string? connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             return;
 
-        var builder = new DbConnectionStringBuilder { ConnectionString = connectionString };
-        string? server = builder.TryGetValue("Host", out object? host) ? host as string
-            : builder.TryGetValue("Server", out object? srv) ? srv as string
-            : null;
+        var builder = new DbConnectionStringBuilder();
+        try
+        {
+            builder.ConnectionString = connectionString;
+        }
+        catch (ArgumentException)
+        {
+            return; // bağlantı dizesi değil (ör. dosya yolu)
+        }
+
+        (string service, string? server, int port) = builder.TryGetValue("Host", out object? host)
+            ? ("postgres", host as string, 5432)
+            : builder.TryGetValue("Server", out object? srv) || builder.TryGetValue("Data Source", out srv)
+                ? ("sqlserver", srv as string, 1433)
+                : (string.Empty, null, 0);
         if (string.IsNullOrWhiteSpace(server))
             return;
 
@@ -60,12 +68,12 @@ public static class DevServicesSetup
         server = server.Replace("tcp:", "", StringComparison.OrdinalIgnoreCase);
         string[] parts = server.Split(',', 2);
         string hostName = parts[0].Trim();
-        int port = parts.Length > 1 && int.TryParse(parts[1], out int p) ? p
-            : builder.TryGetValue("Port", out object? portValue) && int.TryParse(portValue?.ToString(), out int p2) ? p2
-            : defaultPort;
+        if (parts.Length > 1 && int.TryParse(parts[1], out int p))
+            port = p;
+        else if (builder.TryGetValue("Port", out object? portValue) && int.TryParse(portValue?.ToString(), out int p2))
+            port = p2;
 
         if (hostName is "localhost" or "127.0.0.1" or "::1" or ".")
-            options.Add(name, composeService, $"{(hostName == "." ? "localhost" : hostName)}:{port}");
+            options.Add("Database", service, $"{(hostName == "." ? "localhost" : hostName)}:{port}");
     }
-#endif
 }

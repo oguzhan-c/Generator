@@ -17,6 +17,10 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Eklendi
 
+- Rider eklentisi: sağ tık → **CanFx** alt menüsü (Generate CRUD, Add Seed Data, Mechanisms, Rate Limit, Features) ve
+  Domain projesinde **Add → CanFx Entity** (yalnızca ad sorulur). Var olan dosyaları değiştiren eylemler önce satır
+  farkı olarak gösterilir, onayla uygulanır.
+
 - canfxgen: `generate entity <Ad> [--folder <klasör>] [--id Guid|int|long]`: Domain'de yeni entity; taban sınıf
   seçenekleri (Entity, AuditedEntity, FullAuditedEntity, AggregateRoot ...) ve her birinin eklediği alanlar dosyada
   yorum olarak durur, seçim sınıf satırında yapılır.
@@ -39,12 +43,19 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
   EF Core `HasData` (migration'a yazılır), `--required-only`, `--sample-only`, `--count`.
 - canfxgen: yanıtlarda eklenmeyen denetim alanları yorum olarak (`// public string? CreatedBy ...`) ve soft delete
   açıklaması; `Created...Response`'ta `UpdatedAt` yok.
-- Şablon: veritabanı seçimi (`--Database postgresql | sqlserver | sqlite`); paket, sağlayıcı satırı, yerel bağlantı
-  dizesi ve docker-compose servisi seçime göre hazır gelir.
+- Şablon: veritabanını şablon seçmez; PostgreSQL ve SQL Server için her şey yorum satırı olarak hazır gelir
+  (`Directory.Packages.props` ve Persistence `.csproj`'ta paket, `PersistenceServiceRegistration.cs` → "Veritabanı"
+  bölümünde sağlayıcı satırı, `docker-compose.yml`'de servis ve volume, `appsettings.Development.json`'da yerel bağlantı
+  dizesi). Sağlayıcı seçilmeden açılan uygulama ne yapılacağını söyleyen bir hatayla durur.
+- Şablon: `appsettings.Development.json` seçilen özelliklere göre hazır gelir: `DevServices` (servis başına mod),
+  `Postman` ve seçilen Redis / Elasticsearch / RabbitMQ için docker-compose adresleri (açılışta docker'da başlatılır).
+  `canfxgen add/remove feature` bu dosyayı da günceller. `DevServices` ve `Postman` artık `appsettings.json`'da yok.
 - Şablon: `Database:StartupMode` (`Migrate` / `Recreate` / `None`); Development'ta `Recreate` ve örnek veri seed'i.
 - Şablon: geliştirme servisleri (CanFx.DevServices): veritabanı vb. bilgisayarda çalışmıyorsa docker-compose'dan başlatılır.
 - Şablon: uygulama `Dockerfile`'ı ve `docker compose --profile app` servisi.
 - Şablon: Postman eşitleme (`--Postman`, varsayılan açık; anahtar user-secrets'ta).
+- canfxgen: `add/remove feature`'da Rider'ın biçimlendirdiği satırlar (boşluk farkı) zaten var sayılır; aynı
+  `PackageReference` iki kez eklenmez (NU1008).
 
 ### Değişti
 

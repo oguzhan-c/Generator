@@ -23,9 +23,15 @@ ve ProblemDetails yanıtına çevrilir.
 ## İlk çalıştırma
 
 1. CanFx paketleri nuget.org'dan gelir; ek ayar gerekmez (yerel / özel kaynak için `nuget.config`'teki nota bak).
-2. Veritabanı hazır: sağlayıcı oluştururken seçildi (`--Database postgresql | sqlserver | sqlite`), yerel bağlantı
-   dizesi `appsettings.Development.json`'da. Uygulama Development'ta açılırken veritabanı bilgisayarında çalışıyorsa onu
-   kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı; SQLite'ta docker gerekmez).
+2. Veritabanını seç (PostgreSQL ve SQL Server için her şey yorum satırı olarak hazır; yalnızca birini aç):
+   - `Directory.Packages.props` ve `src/CanAppTemplate.Persistence/CanAppTemplate.Persistence.csproj`: sağlayıcı paketi
+   - `src/CanAppTemplate.Persistence/PersistenceServiceRegistration.cs` → "Veritabanı": `UseNpgsql` / `UseSqlServer`
+     satırı (ve `throw` satırını sil)
+   - `docker-compose.yml`: `postgres` / `sqlserver` servisi ve volume'u
+   - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi
+
+   Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch / RabbitMQ) bilgisayarında
+   çalışıyorsa onu kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı).
    Ayar: `appsettings.Development.json` → `DevServices` (servis başına `Auto` / `Docker` / `Local` / `Off`).
 3. Gizli değerler (appsettings'e YAZMA):
 
