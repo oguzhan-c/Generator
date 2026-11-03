@@ -9,6 +9,8 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-03
+
 ### Düzeltildi
 
 - Şablon: `--Passkey false` ile oluşturulan proje açılmıyordu (passkey komutları `IPasskeyService` istiyordu ama servis
