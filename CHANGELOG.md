@@ -9,6 +9,8 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
 ### Eklendi
 
 - canfxgen: `mechanisms <Hedef>`: hedefteki mekanizmaların durumu (açık / kapalı / karışık; `--json`).
