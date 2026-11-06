@@ -9,6 +9,23 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+### Eklendi
+
+- canfxgen: `migration add <Ad> | remove | list | update`: `dotnet ef`'i Persistence (migration'lar) ve WebAPI (ayarlar)
+  projeleriyle çalıştırır; önce `dotnet tool restore`. `add --startup-mode Migrate`: Development açılışını Migrate yapar.
+- canfxgen: `database [postgres|sqlserver]`: veritabanını seçer; sağlayıcı satırı, docker-compose servisi ve volume'u,
+  uygulama konteynerinin bağlantısı, Development bağlantı dizesi ve DevServices satırı yorumdan açılır, diğer sağlayıcı
+  yorumlanır (`--preview`). Paket eklenmez; eksikse `dotnet add package` komutu verilir. Elle ayarlanmış başka bir
+  sağlayıcıya (SQLite, MySQL ...) dokunulmaz. Rider: CanFx → **Database...**
+- Rider: CanFx → **Migrations** → Add Migration / Update Database / Remove Last Migration.
+- Şablon: `.config/dotnet-tools.json` ile `dotnet-ef` EF Core sürümüne sabitlendi (`dotnet tool restore`); migration
+  komutu (Persistence + WebAPI) README'de ve `appsettings.Development.json`'da tam haliyle.
+
+### Değişti
+
+- Şablon: veritabanı sağlayıcısının paketleri (Npgsql, SqlServer, Pkcs) ve Hangfire depo paketleri sabit sürümle
+  yorumda verilmez; kullanıcı güncel sürümü `dotnet add package` ile ekler (komutlar açıklamalarda ve README'de).
+
 ## [0.6.0] - 2026-11-04
 
 ### Eklendi

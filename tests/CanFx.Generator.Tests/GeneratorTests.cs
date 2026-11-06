@@ -586,6 +586,77 @@ public sealed class CrudGeneratorTests
     }
 
     [Fact]
+    public void Database_is_chosen_from_the_template_comments_and_can_be_switched()
+    {
+        using var solution = new TestSolution();
+        // Şablonun gerçek dosyaları (ad: CanAppTemplate → Shop).
+        string template = TemplateFolder();
+        void Copy(string from, string to) => solution.Write(to, File.ReadAllText(Path.Combine(template, from))
+            .Replace("CanAppTemplate", "Shop", StringComparison.Ordinal).Replace("canapptemplate", "shop", StringComparison.Ordinal));
+        Copy("Directory.Packages.props", "Directory.Packages.props");
+        Copy("docker-compose.yml", "docker-compose.yml");
+        Copy("src/CanAppTemplate.Persistence/CanAppTemplate.Persistence.csproj", "src/Shop.Persistence/Shop.Persistence.csproj");
+        Copy("src/CanAppTemplate.Persistence/PersistenceServiceRegistration.cs", "src/Shop.Persistence/PersistenceServiceRegistration.cs");
+        Copy("src/CanAppTemplate.WebAPI/appsettings.Development.json", "src/Shop.WebAPI/appsettings.Development.json");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        Assert.Equal(DatabaseProvider.None, DatabaseSelector.Current(layout));
+
+        string packages = solution.Read("Directory.Packages.props");
+        var warnings = new List<string>();
+        IReadOnlyList<ChangeResult> results = DatabaseSelector.Plan(layout, DatabaseProvider.PostgreSql, warnings).Apply();
+        Assert.DoesNotContain(results, r => r.Kind == ChangeKind.Failed);
+        Assert.Equal(DatabaseProvider.PostgreSql, DatabaseSelector.Current(layout));
+        // Paket eklenmez (sürümü kullanıcı seçer); komut verilir.
+        Assert.Equal(packages, solution.Read("Directory.Packages.props"));
+        Assert.Contains(warnings, w => w.Contains("dotnet add src/Shop.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal));
+        Assert.DoesNotContain("Npgsql", solution.Read("src/Shop.Persistence/Shop.Persistence.csproj"));
+        string registration = solution.Read("src/Shop.Persistence/PersistenceServiceRegistration.cs");
+        Assert.DoesNotContain("Veritabanı ayarlanmadı", registration);
+        Assert.Contains("// options.UseSqlServer(", registration);
+        string compose = solution.Read("docker-compose.yml").ReplaceLineEndings("\n");
+        Assert.Contains("\n  postgres:\n    image: postgres:", compose);
+        Assert.Contains("\n  # sqlserver:", compose);
+        Assert.Contains("\n  db-data:", compose);
+        Assert.Contains("\n      postgres: { condition: service_healthy }", compose);
+        string development = solution.Read("src/Shop.WebAPI/appsettings.Development.json");
+        Assert.Contains("\n    \"Shop\": \"Host=localhost", development.ReplaceLineEndings("\n"));
+        Assert.DoesNotContain("\"Shop\": \"\"", development);
+        Assert.Contains("\n      \"Database\": { \"Compose\": \"postgres\"", development.ReplaceLineEndings("\n"));
+
+        // SQL Server'a geçiş: PostgreSQL yorumlanır.
+        string csproj = solution.Read("src/Shop.Persistence/Shop.Persistence.csproj");
+        solution.Write("src/Shop.Persistence/Shop.Persistence.csproj", csproj.Replace("<ItemGroup>", "<ItemGroup>\n    <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" />", StringComparison.Ordinal));
+        var switching = new List<string>();
+        DatabaseSelector.Plan(layout, DatabaseProvider.SqlServer, switching).Apply();
+        Assert.Equal(DatabaseProvider.SqlServer, DatabaseSelector.Current(layout));
+        Assert.Contains(switching, w => w.Contains("dotnet remove src/Shop.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal));
+        compose = solution.Read("docker-compose.yml").ReplaceLineEndings("\n");
+        Assert.Contains("\n  # postgres:\n  #   image: postgres:", compose);
+        Assert.Contains("\n  sqlserver:\n    image:", compose);
+        Assert.Contains("\n      sqlserver: { condition: service_healthy }", compose);
+        development = solution.Read("src/Shop.WebAPI/appsettings.Development.json").ReplaceLineEndings("\n");
+        Assert.Contains("\n    // \"Shop\": \"Host=localhost", development);
+        Assert.Contains("\n    \"Shop\": \"Server=localhost", development);
+
+        // Elle ayarlanmış başka bir sağlayıcıya dokunulmaz.
+        solution.Write("src/Shop.Persistence/PersistenceServiceRegistration.cs", "options.UseSqlite(tenantConnectionString);\n");
+        Assert.Equal(DatabaseProvider.Custom, DatabaseSelector.Current(layout));
+        Assert.Throws<GeneratorException>(() => DatabaseSelector.Plan(layout, DatabaseProvider.PostgreSql, []));
+    }
+
+    private static string TemplateFolder()
+    {
+        for (DirectoryInfo? dir = new(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            string candidate = Path.Combine(dir.FullName, "templates", "CanFx.Templates", "content", "monolith");
+            if (Directory.Exists(candidate))
+                return candidate;
+        }
+
+        throw new InvalidOperationException("Şablon klasörü bulunamadı.");
+    }
+
+    [Fact]
     public void Mechanism_status_shows_on_off_and_mixed_per_target()
     {
         using var solution = new TestSolution();

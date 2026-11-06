@@ -69,16 +69,19 @@
 <!--#endif-->
 
     <!--
-      Veritabanı sağlayıcısı: birini aç (yorumdan çıkar), Persistence projesinde de aynısını aç. Ayrıntı:
-      Persistence/PersistenceServiceRegistration.cs → "Veritabanı".
+      Veritabanı sağlayıcısının paketi burada yok: sürümünü sen seç (güncel sürüm için). Çözüm klasöründe:
+        PostgreSQL : dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL
+        SQL Server : dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer
+                     dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs
+      (SQL Server paketi güvenlik açığı olan eski bir Pkcs getiriyor; güncelini eklemezsen NU1903 derlemeyi durdurur.)
+      Komut sürümü bu dosyaya (PackageVersion), paketi Persistence projesine ekler. Sürümü EF Core'unkiyle
+      (Microsoft.EntityFrameworkCore.Design) uyumlu tut.
+      Ayrıntı: Persistence/PersistenceServiceRegistration.cs → "Veritabanı".
     -->
-    <!-- <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" /> -->
-    <!-- <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" /> -->
-    <!-- <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" /> (SQL Server ile: getirdiği eski sürümdeki güvenlik açığı için) -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
 <!--#if (Hangfire)-->
-    <!-- Hangfire deposu: başlangıçta bellek içi. Kalıcı depo için Hangfire.PostgreSql 1.21.1 ya da Hangfire.SqlServer 1.8.25 ekle. -->
+    <!-- Hangfire deposu: başlangıçta bellek içi. Kalıcı depo için Hangfire.PostgreSql ya da Hangfire.SqlServer ekle (dotnet add src/CanAppTemplate.Infrastructure package ...). -->
     <PackageVersion Include="Hangfire.InMemory" Version="1.0.0" />
 <!--#endif-->
   </ItemGroup>

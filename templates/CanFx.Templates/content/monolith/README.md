@@ -23,12 +23,36 @@ ve ProblemDetails yanıtına çevrilir.
 ## İlk çalıştırma
 
 1. CanFx paketleri nuget.org'dan gelir; ek ayar gerekmez (yerel / özel kaynak için `nuget.config`'teki nota bak).
-2. Veritabanını seç (PostgreSQL ve SQL Server için her şey yorum satırı olarak hazır; yalnızca birini aç):
-   - `Directory.Packages.props` ve `src/CanAppTemplate.Persistence/CanAppTemplate.Persistence.csproj`: sağlayıcı paketi
-   - `src/CanAppTemplate.Persistence/PersistenceServiceRegistration.cs` → "Veritabanı": `UseNpgsql` / `UseSqlServer`
-     satırı (ve `throw` satırını sil)
-   - `docker-compose.yml`: `postgres` / `sqlserver` servisi ve volume'u
-   - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi ve `DevServices` → `"Database"` satırı
+2. Veritabanını seç:
+   1. Sağlayıcının paketini ekle; sürümünü sen seçersin (şablon sabit bir sürüm vermez). Çözüm klasöründe:
+
+      ```bash
+      dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL     # PostgreSQL
+      dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer   # SQL Server
+      dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs         # SQL Server ile (*)
+      ```
+
+      (*) SQL Server paketi güvenlik açığı olan eski bir `System.Security.Cryptography.Pkcs` getiriyor; güncelini
+      eklemezsen derleme NU1903 ile durur.
+
+      Sürüm `Directory.Packages.props`'a, paket Persistence projesine yazılır. EF Core sürümüyle uyumlu olsun.
+      Başka bir veritabanı seçersen paketini ve `options.UseXxx(...)` satırını sen eklersin, ör.:
+
+      | Veritabanı | NuGet paketi | Sağlayıcı satırı |
+      | --- | --- | --- |
+      | PostgreSQL | `Npgsql.EntityFrameworkCore.PostgreSQL` | `options.UseNpgsql(...)` |
+      | SQL Server | `Microsoft.EntityFrameworkCore.SqlServer` (+ `System.Security.Cryptography.Pkcs`) | `options.UseSqlServer(...)` |
+      | SQLite | `Microsoft.EntityFrameworkCore.Sqlite` | `options.UseSqlite(...)` |
+      | MySQL / MariaDB | `Pomelo.EntityFrameworkCore.MySql` | `options.UseMySql(..., ServerVersion.AutoDetect(...))` |
+      | Oracle | `Oracle.EntityFrameworkCore` | `options.UseOracle(...)` |
+   2. Gerisi PostgreSQL / SQL Server için tek adım: Rider'da sağ tık → **CanFx → Database...** ya da
+      `canfxgen database postgres` (veya `sqlserver`); önce önizleme gösterilir. Elle yapmak ya da başka bir veritabanı
+      (SQLite, MySQL ...) kullanmak istersen her şey yorum satırı olarak hazır (YAML'da satır başındaki `# `'yi
+      boşluğuyla birlikte sil):
+      - `src/CanAppTemplate.Persistence/PersistenceServiceRegistration.cs` → "Veritabanı": `UseNpgsql` / `UseSqlServer`
+        satırı (ve `throw` satırını sil)
+      - `docker-compose.yml`: `postgres` / `sqlserver` servisi ve volume'u
+      - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi ve `DevServices` → `"Database"` satırı
 
    Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch / RabbitMQ) bilgisayarında
    çalışıyorsa onu kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı).
@@ -164,9 +188,16 @@ anahtarı bundan bağımsızdır, her entity kendi tipini seçer.
 
 ## Migration
 
+Çözüm klasöründe çalıştır. `dotnet tool restore`, `dotnet-ef`'i projenin sabitlediği sürümle kurar
+(`.config/dotnet-tools.json`; EF Core sürümüyle aynı). Migration'lar Persistence projesinde durur, uygulama ayarları
+WebAPI'den okunur; ikisi de verilmezse "migrations assembly" hatası alınır.
+
 ```bash
+dotnet tool restore
 dotnet ef migrations add Initial --project src/CanAppTemplate.Persistence --startup-project src/CanAppTemplate.WebAPI
 ```
+
+Rider'da: Persistence projesine sağ tık → Entity Framework Core → Add Migration (Startup project: WebAPI).
 
 Açılışta veritabanına ne yapılacağı `Database:StartupMode` ile belirlenir:
 

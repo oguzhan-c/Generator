@@ -13,6 +13,8 @@
       <li><b>Mechanisms</b> (request, entity or feature folder): turn caching, logging, transaction, secured operation
           or dynamic query on or off later.</li>
       <li><b>Rate Limit</b> (request or controller action): bind a rate limit policy; missing policies are added to appsettings.</li>
+      <li><b>Database</b> (anywhere in the solution): PostgreSQL or SQL Server is enabled from the ready comments at once (you add the NuGet package with the version you want); another database can still be set up by hand.</li>
+      <li><b>Migrations</b> (anywhere in the solution): add a migration, update the database or remove the last migration; the Persistence and WebAPI projects are passed automatically.</li>
       <li><b>Features</b> (anywhere in the solution): add or remove Redis, search, event bus, Hangfire, file storage,
           SignalR, SMS, OpenTelemetry, Postman sync.</li>
     </ul>
@@ -53,6 +55,16 @@
               text="Mechanisms..." description="Shows caching, logging, transaction, secured operation and dynamic query as they are now; changed ones are applied with preview"/>
       <action id="CanFx.RateLimit" class="com.canfx.canfxgen.RateLimitAction"
               text="Rate Limit..." description="Binds a rate limit policy to an endpoint, with preview (canfxgen rate-limit)"/>
+      <action id="CanFx.Database" class="com.canfx.canfxgen.DatabaseAction"
+              text="Database..." description="Chooses PostgreSQL or SQL Server from the ready comments (or shows how to set up another database by hand)"/>
+      <group id="CanFx.Migrations" text="Migrations" popup="true">
+        <action id="CanFx.AddMigration" class="com.canfx.canfxgen.AddMigrationAction"
+                text="Add Migration..." description="dotnet ef migrations add in the Persistence project (WebAPI settings)"/>
+        <action id="CanFx.UpdateDatabase" class="com.canfx.canfxgen.UpdateDatabaseAction"
+                text="Update Database" description="Applies pending migrations (dotnet ef database update)"/>
+        <action id="CanFx.RemoveMigration" class="com.canfx.canfxgen.RemoveMigrationAction"
+                text="Remove Last Migration" description="Removes the last migration (dotnet ef migrations remove)"/>
+      </group>
       <separator/>
       <reference ref="CanFx.NewEntity"/>
       <action id="CanFx.Features" class="com.canfx.canfxgen.FeaturesAction"

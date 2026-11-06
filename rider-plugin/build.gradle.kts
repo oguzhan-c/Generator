@@ -46,6 +46,8 @@ intellijPlatform {
               <li>Right-click → <b>CanFx</b> menu: Generate CRUD, Seed Data, Mechanisms, Rate Limit, Features.</li>
               <li>Mechanisms, Features and Seed Data open with the current state of the project; only changes are applied.</li>
               <li>Seed Data: initial records are entered in a table; sample data count and value kind per field.</li>
+              <li>Database: PostgreSQL or SQL Server is enabled from the ready comments in one step.</li>
+              <li>Migrations: add a migration, update the database or remove the last migration from the CanFx menu.</li>
               <li><b>Add → CanFx Entity</b> in the Domain project: only the name is asked, base class options are in the file.</li>
               <li>Changes to existing files are previewed as a diff before they are applied.</li>
             </ul>

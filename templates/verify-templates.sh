@@ -57,8 +57,8 @@ PY
 code_name() { printf '%s' "${1//[^A-Za-z0-9_.]/_}"; }
 
 # variant <ad> <veritabanı: postgres | sqlserver | sqlite | none> <şablon seçenekleri...>
-# Şablon veritabanı seçmez (sağlayıcılar yorum satırı olarak hazır); kullanıcının seçimi choose-database.py ile taklit
-# edilir: postgres / sqlserver hazır yorumları açar, sqlite docker'sız açılış testi içindir, none hiç dokunmaz.
+# Şablon veritabanı seçmez (sağlayıcılar yorum satırı olarak hazır, paket yok); kullanıcının seçimi taklit edilir:
+# postgres / sqlserver paket + canfxgen database, sqlite docker'sız açılış testi içindir, none hiç dokunmaz.
 variant() {
   local name="$1" database="$2"; shift 2
   step "Çözüm: $name (veritabanı: $database; $*)"
@@ -66,8 +66,21 @@ variant() {
     step "HATA: $name üretilemedi"; failed=1; return
   fi
   [[ -n "${CANFX_FEED:-}" ]] && add_local_feed "$OUT/$name/nuget.config"
-  if [[ "$database" != "none" ]] && ! python3 "$ROOT/templates/choose-database.py" "$OUT/$name" "$database" >>"$LOG" 2>&1; then
-    step "HATA: $name veritabanı seçilemedi ($database)"; failed=1; return
+  # Kullanıcının yapacağı gibi: paketi dotnet add package (güncel sürüm), gerisi kurulu canfxgen'in "database" komutu
+  # (Rider: CanFx → Database); sqlite yalnızca açılış testi için (choose-database.py).
+  if [[ "$database" != "none" ]]; then
+    local package chooser=("$HOME/.dotnet/tools/canfxgen" database "$database")
+    case "$database" in
+      postgres) package=Npgsql.EntityFrameworkCore.PostgreSQL ;;
+      sqlserver) package=Microsoft.EntityFrameworkCore.SqlServer ;;   # + Pkcs (aşağıda; README'deki adım)
+      sqlite) package=Microsoft.EntityFrameworkCore.Sqlite; chooser=(python3 "$ROOT/templates/choose-database.py" "$OUT/$name" sqlite) ;;
+    esac
+    local project="src/$(code_name "$name").Persistence"
+    if ! (cd "$OUT/$name" && dotnet add "$project" package "$package" \
+          && { [[ "$database" != "sqlserver" ]] || dotnet add "$project" package System.Security.Cryptography.Pkcs; } \
+          && "${chooser[@]}") >>"$LOG" 2>&1; then
+      step "HATA: $name veritabanı seçilemedi ($database)"; failed=1; return
+    fi
   fi
   if dotnet build "$OUT/$name/$(code_name "$name").slnx" -c Debug >>"$LOG" 2>&1; then
     step "TAMAM: $name derlendi"

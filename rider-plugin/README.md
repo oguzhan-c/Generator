@@ -9,6 +9,8 @@ CanFx çözümünde sağ tık (Solution Explorer ya da editör) → **CanFx** al
 | **Seed Data** | Entity dosyası | `generate seeder` (mevcut durumla açılır: başlangıç kayıtları tabloda, örnek veri türleri; önizlemeli) |
 | **Mechanisms** | İstek dosyası, entity ya da `Features/{Özellik}` klasörü | `mechanisms` ile mevcut durum (açık / kapalı / karışık), değişenler `enable` / `disable` (önizlemeli) |
 | **Rate Limit** | İstek dosyası ya da controller (imleç bir action'daysa o action) | `rate-limit` (önizlemeli) |
+| **Database** | Çözümün herhangi bir yeri | `database postgres \| sqlserver` (5 dosyadaki hazır yorumlar açılır, diğeri kapanır; başka veritabanı elle) |
+| **Migrations** → Add Migration / Update Database / Remove Last Migration | Çözümün herhangi bir yeri | `migration add` / `update` / `remove` (Persistence + WebAPI kendiliğinden; ilk migration'da StartupMode = Migrate seçeneği) |
 | **Features** | Çözümün herhangi bir yeri | `add` / `remove feature` (önizlemeli) |
 
 Var olan dosyaları değiştiren eylemler önce değişiklikleri (+/− satır farkı ve uyarılar) gösterir; **Apply** ile uygulanır.

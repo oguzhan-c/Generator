@@ -34,6 +34,8 @@ try
         "enable" => Toggle(arguments, enable: true),
         "disable" => Toggle(arguments, enable: false),
         "mechanisms" => MechanismStatusCommand(arguments),
+        "migration" or "migrations" => Migration(arguments),
+        "database" or "db" => Database(arguments),
         "entities" => Entities(arguments),
         "features" => Features(arguments),
         "version" => Print(Version()),
@@ -316,6 +318,157 @@ int MechanismStatusCommand(Arguments a)
     }
 
     return 0;
+}
+
+// ================================================================ database
+
+int Database(Arguments a)
+{
+    SolutionLayout layout = Layout(a);
+    DatabaseProvider current = DatabaseSelector.Current(layout);
+    if (a.Positional(1) is not { } name)
+    {
+        if (a.Json)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(new { ok = true, solution = layout.Root, provider = DatabaseSelector.CliName(current) }, json));
+            return 0;
+        }
+
+        Console.WriteLine(current switch
+        {
+            DatabaseProvider.PostgreSql => "PostgreSQL",
+            DatabaseProvider.SqlServer => "SQL Server",
+            DatabaseProvider.Custom => "Elle ayarlanmış başka bir sağlayıcı",
+            _ => "Seçilmedi (canfxgen database postgres | sqlserver; ya da elle: PersistenceServiceRegistration.cs → \"Veritabanı\")",
+        });
+        return 0;
+    }
+
+    DatabaseProvider provider = DatabaseSelector.Parse(name)
+        ?? throw new GeneratorException($"Bilinmeyen veritabanı: {name} (postgres | sqlserver). Başka bir veritabanını elle ayarla: PersistenceServiceRegistration.cs → \"Veritabanı\".");
+    var warnings = new List<string>();
+    GenerationPlan plan = DatabaseSelector.Plan(layout, provider, warnings);
+    string title = $"Veritabanı: {DatabaseSelector.CliName(provider)}";
+    if (current != DatabaseProvider.None && current != provider)
+        warnings.Add("Sağlayıcı değişti: var olan migration'lar eski sağlayıcıya göre; Migrations klasörünü silip yeni bir ilk migration ekle.");
+    if (a.Flag("preview") || a.Flag("dry-run"))
+        return PrintPreview(a, layout, plan, title, warnings);
+    return Report(a, layout, plan.Apply(), title, warnings, new { Provider = DatabaseSelector.CliName(provider) });
+}
+
+// ================================================================ migration
+
+int Migration(Arguments a)
+{
+    SolutionLayout layout = Layout(a);
+    string action = a.Positional(1) ?? throw new GeneratorException("Ne yapılacak: canfxgen migration add <Ad> | remove | list | update [<Migration>]");
+    string persistence = Path.Combine(layout.Persistence, Path.GetFileName(layout.Persistence) + ".csproj");
+    string webApi = Path.Combine(layout.WebApi, Path.GetFileName(layout.WebApi) + ".csproj");
+    string[] projects = ["--project", persistence, "--startup-project", webApi];
+    string migrations = Path.Combine(layout.Persistence, "Migrations");
+    var warnings = new List<string>();
+    var results = new List<ChangeResult>();
+
+    // dotnet-ef projenin sabitlediği sürümle (.config/dotnet-tools.json); yoksa genel kurulum kullanılır.
+    if (File.Exists(Path.Combine(layout.Root, ".config", "dotnet-tools.json")))
+        RunDotnet(layout.Root, ["tool", "restore"], quiet: true);
+
+    switch (action)
+    {
+        case "add":
+        {
+            string name = a.Positional(2) ?? throw new GeneratorException("Migration adı gerekli: canfxgen migration add Initial");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z_][A-Za-z0-9_]*$"))
+                throw new GeneratorException($"Migration adı harf, rakam ve '_' olmalı (ör. AddBrandCode): {name}");
+            HashSet<string> before = Directory.Exists(migrations) ? Directory.EnumerateFiles(migrations, "*.cs").ToHashSet() : [];
+            Ef(["migrations", "add", name, .. projects]);
+            results.AddRange(Directory.EnumerateFiles(migrations, "*.cs").Where(f => !before.Contains(f)).Order()
+                .Select(f => new ChangeResult(f, ChangeKind.Created, null)));
+
+            // İlk migration: Development açılışı Recreate'ten Migrate'e (veri korunur).
+            if (a.Option("startup-mode") is { } mode)
+            {
+                string settings = Path.Combine(layout.WebApi, "appsettings.Development.json");
+                string text = File.ReadAllText(settings);
+                string updated = System.Text.RegularExpressions.Regex.Replace(text, "\"StartupMode\"\\s*:\\s*\"\\w+\"", $"\"StartupMode\": \"{mode}\"");
+                if (updated != text)
+                {
+                    File.WriteAllText(settings, updated);
+                    results.Add(new ChangeResult(settings, ChangeKind.Updated, $"Database:StartupMode = {mode}"));
+                }
+            }
+
+            break;
+        }
+        case "remove":
+        {
+            HashSet<string> before = Directory.Exists(migrations) ? Directory.EnumerateFiles(migrations, "*.cs").ToHashSet() : [];
+            Ef(["migrations", "remove", .. projects, .. a.Flag("force") ? new[] { "--force" } : []]);
+            HashSet<string> after = Directory.Exists(migrations) ? Directory.EnumerateFiles(migrations, "*.cs").ToHashSet() : [];
+            results.AddRange(before.Where(f => !after.Contains(f)).Order().Select(f => new ChangeResult(f, ChangeKind.Deleted, null)));
+            results.AddRange(after.Where(f => f.EndsWith("ModelSnapshot.cs", StringComparison.Ordinal)).Select(f => new ChangeResult(f, ChangeKind.Updated, null)));
+            break;
+        }
+        case "list":
+        {
+            string output = Ef(["migrations", "list", .. projects, "--no-connect"]);
+            List<string> names = output.Split('\n').Select(l => l.Trim()).Where(l => System.Text.RegularExpressions.Regex.IsMatch(l, "^\\d{14}_\\w+")).ToList();
+            if (a.Json)
+            {
+                Console.WriteLine(JsonSerializer.Serialize(new { ok = true, solution = layout.Root, migrations = names }, json));
+                return 0;
+            }
+
+            Console.WriteLine(names.Count == 0 ? "Migration yok." : string.Join('\n', names));
+            return 0;
+        }
+        case "update":
+        {
+            string[] target = a.Positional(2) is { } t ? [t] : [];
+            Ef(["database", "update", .. target, .. projects]);
+            warnings.Add("Veritabanı güncellendi" + (target.Length > 0 ? $" ({target[0]})." : " (son migration)."));
+            break;
+        }
+        default:
+            throw new GeneratorException($"Bilinmeyen işlem: {action} (add | remove | list | update)");
+    }
+
+    return Report(a, layout, results, $"migration {action}", warnings, new { Action = action });
+
+    string Ef(string[] arguments)
+    {
+        (int exit, string output) = RunDotnet(layout.Root, ["ef", .. arguments, "--no-color"], quiet: true); // hata metni aşağıda bir kez yazılır
+        string tail = string.Join('\n', output.Split('\n').Select(l => l.TrimEnd()).Where(l => l.Length > 0).TakeLast(15));
+        if (exit != 0)
+        {
+            string hint = output.Contains("dotnet-ef", StringComparison.Ordinal) && output.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? "\ndotnet-ef kurulu değil: dotnet tool install -g dotnet-ef (ya da çözüm klasöründe dotnet tool restore)."
+                : output.Contains("Failed to connect", StringComparison.OrdinalIgnoreCase) || output.Contains("Connection refused", StringComparison.OrdinalIgnoreCase)
+                  || output.Contains("network-related or instance-specific", StringComparison.OrdinalIgnoreCase)
+                    ? "\nVeritabanına bağlanılamadı: uygulamayı bir kez çalıştır (DevServices veritabanını başlatır) ya da docker compose up -d."
+                    : string.Empty;
+            throw new GeneratorException($"dotnet ef {string.Join(' ', arguments.Take(2))} başarısız:\n{tail}{hint}");
+        }
+
+        if (!a.Json)
+            Console.WriteLine(tail);
+        return output;
+    }
+}
+
+static (int ExitCode, string Output) RunDotnet(string directory, string[] arguments, bool quiet)
+{
+    var info = new ProcessStartInfo("dotnet") { WorkingDirectory = directory, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+    foreach (string argument in arguments)
+        info.ArgumentList.Add(argument);
+    using Process process = Process.Start(info) ?? throw new GeneratorException("dotnet çalıştırılamadı.");
+    Task<string> output = process.StandardOutput.ReadToEndAsync();
+    Task<string> error = process.StandardError.ReadToEndAsync();
+    process.WaitForExit();
+    string text = output.Result + error.Result;
+    if (!quiet && process.ExitCode != 0)
+        Console.Error.WriteLine(text);
+    return (process.ExitCode, text);
 }
 
 // ================================================================ add / remove feature
@@ -637,6 +790,12 @@ static string Help() => """
                                   Hedef: istek (CreateBrandCommand), özellik (Brands), entity (Brand) ya da dosya yolu.
                                   --preview: değişiklikleri göster, dosyalara yazma
         mechanisms <Hedef>        Hedefteki mekanizmaların durumu (açık / kapalı / karışık; --json)
+        database [postgres|sqlserver]  Veritabanını seçer: sağlayıcı satırı, docker-compose servisi, bağlantı dizesi ve
+                                  DevServices yorumdan açılır (diğeri kapanır). Paketi sen eklersin (dotnet add
+                                  package; eksikse komut yazılır). Argümansız: mevcut seçim.
+                                  Başka bir veritabanı elle ayarlanabilir; canfxgen ona dokunmaz. --preview
+        migration <İşlem>         EF Core migration (Persistence + WebAPI kendiliğinden): add <Ad> [--startup-mode
+                                  Migrate], remove [--force], list, update [<Migration>]
         entities                  Domain'deki entity'leri listeler
         features                  Application/Features altındaki özellikleri listeler
         version                   Sürümü yazar

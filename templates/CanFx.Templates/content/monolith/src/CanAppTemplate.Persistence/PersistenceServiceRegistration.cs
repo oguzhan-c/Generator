@@ -79,8 +79,13 @@ public static class PersistenceServiceRegistration
                 options.ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
 
                 // ======================================================================================== Veritabanı
-                // Sağlayıcını seç (4 adım; PostgreSQL ve SQL Server için her şey hazır, yalnızca yorumdan çıkar):
-                //   1) Directory.Packages.props ve bu projenin .csproj'unda sağlayıcı paketi
+                // Sağlayıcını seç (4 adım). PostgreSQL / SQL Server için 2–4: Rider → CanFx → Database... ya da
+                // 'canfxgen database postgres' hepsini birden yapar. Başka bir veritabanı (SQLite, MySQL ...) elle.
+                //   1) sağlayıcı paketi (sürümünü sen seçersin), çözüm klasöründe:
+                //        dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL     (PostgreSQL)
+                //        dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer   (SQL Server,
+                //        dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs        + bu: NU1903)
+                //      Başka veritabanları (SQLite, MySQL, Oracle ...): paketleri README → "İlk çalıştırma".
                 //   2) aşağıdaki satırlardan biri ve "throw" satırının silinmesi
                 //   3) docker-compose.yml'deki servisi (postgres / sqlserver) ve volume'u
                 //   4) appsettings.Development.json'daki bağlantı dizesi ve DevServices → "Database" satırı
