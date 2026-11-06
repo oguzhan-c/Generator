@@ -1,18 +1,26 @@
+#if (Passkey)
 using System.Text.Json;
+#endif
 using CanFx.Application.Exceptions;
 using CanFx.Domain.Results;
+#if (Passkey)
 using CanFx.Security.Passkeys;
+#endif
 using CanFx.WebApi;
 using CanFx.WebApi.Caching;
 using CanFx.WebApi.Controllers;
 using CanFx.WebApi.DependencyInjection;
 using CanFx.WebApi.RateLimiting;
 using CanFx.WebApi.Security;
+#if (Passkey)
 using Fido2NetLib;
+#endif
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+#if (Passkey)
 using Microsoft.Extensions.DependencyInjection;
+#endif
 using CanAppTemplate.Application.Features.Auth.Commands.ForgotPassword;
 using CanAppTemplate.Application.Features.Auth.Commands.Login;
 using CanAppTemplate.Application.Features.Auth.Commands.Logout;
@@ -26,6 +34,8 @@ using CanAppTemplate.Application.Features.Auth.Commands.ResetPassword;
 using CanAppTemplate.Application.Features.Auth.Commands.VerifyEmail;
 #if (TwoFactor)
 using CanAppTemplate.Application.Features.Auth.Commands.CompleteTwoFactorLogin;
+#endif
+#if (EmailTwoFactor)
 using CanAppTemplate.Application.Features.Auth.Commands.ResendTwoFactorCode;
 #endif
 using CanAppTemplate.Application.Features.Auth.Constants;
@@ -45,6 +55,7 @@ public class AuthController : BaseController
 {
     private readonly ClientInfoFactory _clients;
     private readonly IAuthCookieService _cookies;
+#if (TwoFactor)
     private readonly TwoFactorCookie _twoFactor;
 
     public AuthController(ClientInfoFactory clients, IAuthCookieService cookies, TwoFactorCookie twoFactor)
@@ -53,6 +64,14 @@ public class AuthController : BaseController
         _cookies = cookies;
         _twoFactor = twoFactor;
     }
+#else
+
+    public AuthController(ClientInfoFactory clients, IAuthCookieService cookies)
+    {
+        _clients = clients;
+        _cookies = cookies;
+    }
+#endif
 
     /// <param name="DeviceId">Mobil uygulamanın cihaz kimliği (tarayıcıda boş: sunucu cookie ile tanır).</param>
     /// <param name="DeviceName">Mobil uygulamanın cihaz adı ("Ayşe'nin iPhone'u").</param>
@@ -66,18 +85,31 @@ public class AuthController : BaseController
 
     public sealed record ResetPasswordRequest(string Email, string Code, string NewPassword);
 
+#if (TwoFactor)
     /// <param name="IsRecoveryCode">Kod, authenticator yerine kurtarma kodlarından biri mi.</param>
     public sealed record TwoFactorRequest(string Code, bool IsRecoveryCode = false);
 
+#endif
+#if (Passkey)
     /// <param name="Credential">Tarayıcının <c>navigator.credentials.get()</c> yanıtı (JSON).</param>
     public sealed record PasskeyLoginRequest(JsonElement Credential);
 
+#endif
+#if (TwoFactor)
     /// <summary>Şifreli giriş yanıtı: ya kullanıcı (oturum açıldı) ya da ikinci adım bilgisi.</summary>
     public sealed record LoginResponse(UserProfileDto? User, TwoFactorPrompt? TwoFactor);
+#else
+    /// <summary>Şifreli giriş yanıtı: oturumu açılan kullanıcı.</summary>
+    public sealed record LoginResponse(UserProfileDto User);
+#endif
 
     public sealed record AuthFeatures(bool Passkeys);
 
+#if (TwoFactor)
     /// <summary>E-posta ve şifre ile giriş. İki adımlı doğrulama açıksa ikinci adım istenir; değilse token'lar cookie'ye yazılır.</summary>
+#else
+    /// <summary>E-posta ve şifre ile giriş; token'lar cookie'ye yazılır.</summary>
+#endif
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting(CanRateLimitPolicies.Auth)]
@@ -85,6 +117,7 @@ public class AuthController : BaseController
     {
         LoggedResponse login = await Mediator.Send(new LoginCommand(body.Email, body.Password, _clients.Create(HttpContext, body.DeviceId, body.DeviceName)), ct);
 
+#if (TwoFactor)
         if (login.Challenge is { } challenge)
         {
             // Oturum henüz açılmadı: bekleyen giriş şifreli HttpOnly cookie'de, istemciye yalnızca yöntem bilgisi.
@@ -95,6 +128,10 @@ public class AuthController : BaseController
         _twoFactor.Clear(Response);
         _cookies.SetTokens(Response, login.Session!.AccessToken, login.Session.RefreshToken);
         return TypedResults.Ok(new LoginResponse(login.Session.User, null));
+#else
+        _cookies.SetTokens(Response, login.Session.AccessToken, login.Session.RefreshToken);
+        return TypedResults.Ok(new LoginResponse(login.Session.User));
+#endif
     }
 #if (TwoFactor)
 
@@ -124,6 +161,7 @@ public class AuthController : BaseController
         _cookies.SetTokens(Response, session.AccessToken, session.RefreshToken);
         return TypedResults.Ok(session.User);
     }
+#if (EmailTwoFactor)
 
     /// <summary>İkinci adım e-posta ile yapılıyorsa yeni kod gönderir.</summary>
     [HttpPost("login/two-factor/resend")]
@@ -137,6 +175,7 @@ public class AuthController : BaseController
         await Mediator.Send(new ResendTwoFactorCodeCommand(challenge), ct);
         return TypedResults.NoContent();
     }
+#endif
 
     private static UnauthorizedException TwoFactorExpired() =>
         new(AuthBusinessMessages.TwoFactorExpired) { Code = AuthBusinessMessages.TwoFactorExpired };
@@ -145,7 +184,11 @@ public class AuthController : BaseController
     /// <summary>Sunucuda açık olan giriş yöntemleri.</summary>
     [HttpGet("features")]
     [AllowAnonymous]
+#if (Passkey)
     public IResult Features() => TypedResults.Ok(new AuthFeatures(HttpContext.RequestServices.GetService<IPasskeyService>() is not null));
+#else
+    public IResult Features() => TypedResults.Ok(new AuthFeatures(Passkeys: false));
+#endif
 #if (Passkey)
 
     /// <summary>Passkey ile girişin ilk adımı: tarayıcıya verilecek seçenekler (challenge).</summary>
@@ -268,6 +311,7 @@ public class AuthController : BaseController
     [NoStoreResponse]
     public async Task<IResult> Me(CancellationToken ct) => TypedResults.Ok(await Mediator.Send(new GetProfileQuery(), ct));
 
+#if (Passkey)
     /// <summary>
     /// Tarayıcının WebAuthn yanıtını Fido2 tipine çevirir. Uygulamanın JSON ayarları yerine Fido2'nin kendi
     /// öznitelikleri geçerli olsun diye varsayılan ayarlarla okunur.
@@ -289,4 +333,5 @@ public class AuthController : BaseController
             Code = AuthBusinessMessages.PasskeyInvalidResponse,
         };
     }
+#endif
 }

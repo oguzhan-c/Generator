@@ -21,6 +21,7 @@ public sealed class AccountBusinessRules : BaseBusinessRules
             throw new ValidationException("CurrentPassword", AccountBusinessMessages.CurrentPasswordInvalid) { Code = AccountBusinessMessages.CurrentPasswordInvalid };
     }
 
+#if (Otp)
     public void OtpShouldNotBeEnabled(AppUser user)
     {
         if (user.AuthenticatorType == AuthenticatorType.Otp)
@@ -32,20 +33,26 @@ public sealed class AccountBusinessRules : BaseBusinessRules
         if (!valid)
             throw new BusinessException(AccountBusinessMessages.OtpCodeInvalid) { Code = AccountBusinessMessages.OtpCodeInvalid };
     }
+#endif
 
+#if (EmailTwoFactor)
     /// <summary>E-postayla iki adımlı doğrulama için adres doğrulanmış olmalı.</summary>
     public void EmailShouldBeConfirmedForTwoFactor(AppUser user)
     {
         if (!user.EmailConfirmed)
             throw new BusinessException(AccountBusinessMessages.EmailNotConfirmed) { Code = AccountBusinessMessages.EmailNotConfirmed };
     }
+#endif
 
+#if (TwoFactor)
     public void TwoFactorShouldBeEnabled(AppUser user)
     {
         if (user.AuthenticatorType == AuthenticatorType.None)
             throw new BusinessException(AccountBusinessMessages.TwoFactorDisabled) { Code = AccountBusinessMessages.TwoFactorDisabled };
     }
+#endif
 
+#if (Passkey)
     public void PasskeyShouldExist([DoesNotReturnIf(false)] bool exists)
     {
         if (!exists)
@@ -79,17 +86,22 @@ public sealed class AccountBusinessRules : BaseBusinessRules
         if (!exists)
             throw new BusinessException(AccountBusinessMessages.PasskeyRegistrationExpired) { Code = AccountBusinessMessages.PasskeyRegistrationExpired };
     }
+#endif
 
+#if (ExternalLogin)
     public void ExternalLoginShouldExist(bool exists)
     {
         if (!exists)
             throw new NotFoundException(AccountBusinessMessages.ExternalLoginNotFound) { Code = AccountBusinessMessages.ExternalLoginNotFound };
     }
+#endif
 
+#if (Passkey || ExternalLogin)
     /// <summary>Kaldırılan yöntem hesaba girmenin tek yolu olmamalı (şifre, başka passkey ya da dış hesap kalmalı).</summary>
     public void SignInMethodShouldRemain(bool hasOtherWay)
     {
         if (!hasOtherWay)
             throw new ConflictException(AccountBusinessMessages.LastSignInMethod) { Code = AccountBusinessMessages.LastSignInMethod };
     }
+#endif
 }

@@ -25,7 +25,9 @@ using CanFx.Search;
 #endif
 using CanFx.Security.DependencyInjection;
 using CanFx.Security.Events;
+#if (Passkey)
 using CanFx.Security.Passkeys;
+#endif
 #if (Reporting)
 using CanFx.Reporting.AspNetCore;
 #endif
@@ -111,6 +113,7 @@ builder.Services.AddCanSecurity(o =>
 {
     config.GetSection("Security:Jwt").Bind(o.Jwt, b => b.ErrorOnUnknownConfiguration = true);
     o.VerificationCodeKey = config["Security:VerificationCodeKey"];
+#if (Passkey)
 
     // Passkey (WebAuthn): bölüm yoksa passkey uçları hiç açılmaz.
     if (config.GetSection("Security:Passkey").Exists())
@@ -118,6 +121,7 @@ builder.Services.AddCanSecurity(o =>
         o.Passkey = new PasskeyOptions();
         config.GetSection("Security:Passkey").Bind(o.Passkey, b => b.ErrorOnUnknownConfiguration = true);
     }
+#endif
 });
 builder.Services.AddCanSecretProtection();          // TOTP anahtarları veritabanında şifreli
 builder.Services.AddCanSecurityEvents();            // log + metrik (veritabanı kaydı Persistence'ta)
@@ -137,7 +141,9 @@ builder.Services.AddCanExternalLogin(o => o
 
 builder.Services.AddDataProtection();
 builder.Services.AddDistributedMemoryCache();       // Redis varsa AddCanRedisCache bunun yerine geçer
+#if (TwoFactor)
 builder.Services.AddSingleton<TwoFactorCookie>();
+#endif
 #if (Passkey)
 builder.Services.AddSingleton<PasskeyCeremonyStore>();
 #endif

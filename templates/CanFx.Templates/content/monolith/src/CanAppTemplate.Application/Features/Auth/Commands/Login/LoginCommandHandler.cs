@@ -15,7 +15,9 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
     private readonly IRepository<AppUser, IdentityKey> _users;
     private readonly IPasswordHasher _passwordHasher;
     private readonly AuthTokenIssuer _tokenIssuer;
+#if (EmailTwoFactor)
     private readonly EmailVerification _emailVerification;
+#endif
     private readonly IUserSessionService _sessions;
     private readonly ISecurityEvents _events;
     private readonly IUnitOfWork _unitOfWork;
@@ -26,7 +28,9 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
         IRepository<AppUser, IdentityKey> users,
         IPasswordHasher passwordHasher,
         AuthTokenIssuer tokenIssuer,
+#if (EmailTwoFactor)
         EmailVerification emailVerification,
+#endif
         IUserSessionService sessions,
         ISecurityEvents events,
         IUnitOfWork unitOfWork,
@@ -36,7 +40,9 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
         _users = users;
         _passwordHasher = passwordHasher;
         _tokenIssuer = tokenIssuer;
+#if (EmailTwoFactor)
         _emailVerification = emailVerification;
+#endif
         _sessions = sessions;
         _events = events;
         _unitOfWork = unitOfWork;
@@ -91,14 +97,17 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
 
         _authBusinessRules.EmailShouldBeConfirmed(user);
 
+#if (TwoFactor)
         if (user.AuthenticatorType != AuthenticatorType.None)
         {
             string? destination = null;
+#if (EmailTwoFactor)
             if (user.AuthenticatorType == AuthenticatorType.Email)
             {
                 await _emailVerification.SendCodeAsync(user, VerificationPurpose.SignIn, cancellationToken);
                 destination = EmailMask.Mask(user.Email);
             }
+#endif
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return LoggedResponse.RequiresTwoFactor(
@@ -106,6 +115,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
                 new TwoFactorPrompt(user.AuthenticatorType, destination)
             );
         }
+#endif
 
         AuthResult session = await AuthEvents.SignInAsync(user, request.Client, "password", _tokenIssuer, _sessions, _events, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

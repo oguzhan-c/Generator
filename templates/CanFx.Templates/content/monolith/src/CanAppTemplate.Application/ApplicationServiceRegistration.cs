@@ -38,8 +38,10 @@ public static class ApplicationServiceRegistration
         // Kimlik
         services.AddScoped<AuthTokenIssuer>();
         services.AddScoped<EmailVerification>();
+#if (TwoFactor)
         services.AddScoped<TwoFactorCodeVerifier>();
         services.AddScoped<RecoveryCodeIssuer>();
+#endif
 
         // canfxgen:services
         return services;

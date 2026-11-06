@@ -53,6 +53,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
             throw UnauthorizedError();
     }
 
+#if (TwoFactor)
     /// <summary>Bekleyen girişin kullanıcısını getirir; şifre / 2FA ayarı o arada değiştiyse geçersizdir.</summary>
     public async Task<AppUser> TwoFactorChallengeShouldBeValid(TwoFactorChallenge challenge, CancellationToken cancellationToken = default)
     {
@@ -61,6 +62,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
             throw TwoFactorExpiredError();
         return user;
     }
+#endif
 
     /// <summary>E-posta (silinmiş hesaplar dahil) kullanılmamış olmalı.</summary>
     public async Task EmailShouldNotBeTaken(string normalizedEmail, CancellationToken cancellationToken = default)
@@ -110,6 +112,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
             throw new BusinessException(AuthBusinessMessages.InvalidVerificationCode) { Code = AuthBusinessMessages.InvalidVerificationCode };
     }
 
+#if (TwoFactor)
     /// <summary>İkinci adım kodu doğru olmalı; hatalı denemeyle hesap kilitlendiyse "kilitlendi".</summary>
     public void TwoFactorCodeShouldBeValid(bool valid, AppUser user, DateTimeOffset now)
     {
@@ -127,12 +130,15 @@ public sealed class AuthBusinessRules : BaseBusinessRules
         if (!exists)
             throw TwoFactorExpiredError();
     }
+#endif
 
+#if (EmailTwoFactor)
     public void TwoFactorShouldUseEmail(AppUser user)
     {
         if (user.AuthenticatorType != AuthenticatorType.Email)
             throw new BusinessException(AuthBusinessMessages.TwoFactorNotEmail) { Code = AuthBusinessMessages.TwoFactorNotEmail };
     }
+#endif
 
     public void SessionShouldBeActive([DoesNotReturnIf(false)] bool active)
     {
@@ -140,6 +146,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
             throw new UnauthorizedException(AuthBusinessMessages.SessionExpired) { Code = AuthBusinessMessages.SessionExpired };
     }
 
+#if (Passkey)
     public void PasskeyShouldBeVerified([DoesNotReturnIf(false)] bool verified)
     {
         if (!verified)
@@ -151,6 +158,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
         if (!exists)
             throw new UnauthorizedException(AuthBusinessMessages.PasskeyExpired) { Code = AuthBusinessMessages.PasskeyExpired };
     }
+#endif
 
     /// <summary>Şifre doğru olmalı (hassas işlemlerde yeniden doğrulama).</summary>
     public void PasswordShouldMatch([DoesNotReturnIf(false)] bool matches, string field = "Password")
@@ -159,6 +167,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
             throw new ValidationException(field, AuthBusinessMessages.InvalidPassword) { Code = AuthBusinessMessages.InvalidPassword };
     }
 
+#if (ExternalLogin)
     public void ExternalEmailShouldBeVerified([DoesNotReturnIf(false)] bool verified)
     {
         if (!verified)
@@ -182,6 +191,7 @@ public sealed class AuthBusinessRules : BaseBusinessRules
             throw new ConflictException(AuthBusinessMessages.ExternalAlreadyLinked) { Code = AuthBusinessMessages.ExternalAlreadyLinked };
         }
     }
+#endif
 
     private static UnauthorizedException UnauthorizedError() =>
         new(AuthBusinessMessages.Unauthorized) { Code = AuthBusinessMessages.Unauthorized };
@@ -189,6 +199,8 @@ public sealed class AuthBusinessRules : BaseBusinessRules
     private static UnauthorizedException LockedOutError() =>
         new(AuthBusinessMessages.LockedOut) { Code = AuthBusinessMessages.LockedOut };
 
+#if (TwoFactor)
     private static UnauthorizedException TwoFactorExpiredError() =>
         new(AuthBusinessMessages.TwoFactorExpired) { Code = AuthBusinessMessages.TwoFactorExpired };
+#endif
 }

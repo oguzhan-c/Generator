@@ -19,7 +19,9 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
     private readonly IRepository<AppUser, IdentityKey> _users;
     private readonly IRepository<Role<IdentityKey>, IdentityKey> _roles;
     private readonly AuthTokenIssuer _tokenIssuer;
+#if (EmailTwoFactor)
     private readonly EmailVerification _emailVerification;
+#endif
     private readonly IUserSessionService _sessions;
     private readonly ISecurityEvents _events;
     private readonly TimeProvider _timeProvider;
@@ -30,7 +32,9 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
         IRepository<AppUser, IdentityKey> users,
         IRepository<Role<IdentityKey>, IdentityKey> roles,
         AuthTokenIssuer tokenIssuer,
+#if (EmailTwoFactor)
         EmailVerification emailVerification,
+#endif
         IUserSessionService sessions,
         ISecurityEvents events,
         TimeProvider timeProvider,
@@ -40,7 +44,9 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
         _users = users;
         _roles = roles;
         _tokenIssuer = tokenIssuer;
+#if (EmailTwoFactor)
         _emailVerification = emailVerification;
+#endif
         _sessions = sessions;
         _events = events;
         _timeProvider = timeProvider;
@@ -97,20 +103,24 @@ public sealed class ExternalLoginCommandHandler : IRequestHandler<ExternalLoginC
             user.ConfirmEmail();
         }
 
+#if (TwoFactor)
         if (user.AuthenticatorType != AuthenticatorType.None)
         {
             string? destination = null;
+#if (EmailTwoFactor)
             if (user.AuthenticatorType == AuthenticatorType.Email)
             {
                 await _emailVerification.SendCodeAsync(user, VerificationPurpose.SignIn, cancellationToken);
                 destination = EmailMask.Mask(user.Email);
             }
+#endif
 
             return LoggedResponse.RequiresTwoFactor(
                 new TwoFactorChallenge(user.Id, user.SecurityStamp, user.AuthenticatorType),
                 new TwoFactorPrompt(user.AuthenticatorType, destination)
             );
         }
+#endif
 
         AuthResult session = await AuthEvents.SignInAsync(user, request.Client, provider, _tokenIssuer, _sessions, _events, cancellationToken);
         return LoggedResponse.SignedIn(session);

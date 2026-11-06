@@ -1,16 +1,24 @@
+#if (Passkey)
 using System.Text.Json;
+#endif
 using CanFx.Application.Exceptions;
+#if (Passkey)
 using CanFx.Security.Passkeys;
+#endif
 using CanFx.WebApi;
 using CanFx.WebApi.Caching;
 using CanFx.WebApi.Controllers;
 using CanFx.WebApi.DependencyInjection;
 using CanFx.WebApi.RateLimiting;
+#if (Passkey)
 using Fido2NetLib;
+#endif
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+#if (Passkey)
 using Microsoft.Extensions.DependencyInjection;
+#endif
 using CanAppTemplate.Application.Features.Account.Commands.ChangePassword;
 using CanAppTemplate.Application.Features.Account.Commands.ReissueCurrentSession;
 using CanAppTemplate.Application.Features.Account.Commands.UpdateProfile;
@@ -62,20 +70,26 @@ public class AccountController : BaseController
         _cookies = cookies;
     }
 
+#if (Otp)
     public sealed record CodeRequest(string Code);
 
+#endif
+#if (TwoFactor)
     public sealed record PasswordRequest(string Password);
 
     public sealed record OptionalPasswordRequest(string? Password);
 
+#endif
     public sealed record ChangePasswordRequest(string? CurrentPassword, string NewPassword);
+
+    public sealed record ProfileRequest(string FirstName, string LastName, string? PhoneNumber, bool MarketingConsent);
+#if (Passkey)
 
     public sealed record NameRequest(string Name);
 
-    public sealed record ProfileRequest(string FirstName, string LastName, string? PhoneNumber, bool MarketingConsent);
-
     /// <param name="Credential">Tarayıcının <c>navigator.credentials.create()</c> yanıtı (JSON).</param>
     public sealed record AddPasskeyRequest(string? Name, JsonElement Credential);
+#endif
 
     /// <summary>Ad, soyad, telefon ve kampanya izni.</summary>
     [HttpPut("profile")]

@@ -67,6 +67,7 @@ internal static class ExternalLoginCallback
             return info.RedirectWithError(options, ErrorCodeOf(ex));
         }
 
+#if (TwoFactor)
         if (login.Challenge is { } challenge)
         {
             // İkinci adım: bekleyen giriş şifreli cookie'de; giriş sayfası kod adımını açar.
@@ -81,6 +82,7 @@ internal static class ExternalLoginCallback
         }
 
         services.GetRequiredService<TwoFactorCookie>().Clear(http.Response);
+#endif
         services.GetRequiredService<IAuthCookieService>().SetTokens(http.Response, login.Session!.AccessToken, login.Session.RefreshToken);
         return Results.Redirect(info.ReturnUrl);
     }

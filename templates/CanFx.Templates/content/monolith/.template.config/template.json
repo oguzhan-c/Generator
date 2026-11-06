@@ -251,7 +251,39 @@
             "src/CanAppTemplate.Application/Features/Account/Commands/DeletePasskey/**",
             "src/CanAppTemplate.Application/Features/Account/Commands/RenamePasskey/**",
             "src/CanAppTemplate.Application/Features/Auth/Commands/PasskeyLogin/**",
-            "src/CanAppTemplate.WebAPI/Security/PasskeyCeremonyStore.cs"
+            "src/CanAppTemplate.WebAPI/Security/PasskeyCeremonyStore.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/PasskeyDto.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/PasskeyLimits.cs"
+          ]
+        },
+        {
+          "condition": "(!Otp)",
+          "exclude": [
+            "src/CanAppTemplate.Application/Features/Account/Commands/BeginOtpSetup/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/EnableOtp/**",
+            "src/CanAppTemplate.Application/Services/AuthService/OtpSetupDto.cs"
+          ]
+        },
+        {
+          "condition": "(!EmailTwoFactor)",
+          "exclude": [
+            "src/CanAppTemplate.Application/Features/Account/Commands/EnableEmailTwoFactor/**",
+            "src/CanAppTemplate.Application/Features/Auth/Commands/ResendTwoFactorCode/**",
+            "src/CanAppTemplate.Application/Services/AuthService/EmailMask.cs"
+          ]
+        },
+        {
+          "condition": "(!TwoFactor)",
+          "exclude": [
+            "src/CanAppTemplate.Application/Features/Auth/Commands/CompleteTwoFactorLogin/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/DisableTwoFactor/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/RegenerateRecoveryCodes/**",
+            "src/CanAppTemplate.Application/Services/AuthService/TwoFactorChallenge.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/TwoFactorCodeVerifier.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/TwoFactorPrompt.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/RecoveryCodeIssuer.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/RecoveryCodesDto.cs",
+            "src/CanAppTemplate.WebAPI/Security/TwoFactorCookie.cs"
           ]
         },
         {
@@ -264,7 +296,12 @@
         {
           "condition": "(!ExternalLogin)",
           "exclude": [
-            "src/CanAppTemplate.WebAPI/Security/ExternalLoginCallback.cs"
+            "src/CanAppTemplate.WebAPI/Security/ExternalLoginCallback.cs",
+            "src/CanAppTemplate.Application/Features/Auth/Commands/ExternalLogin/**",
+            "src/CanAppTemplate.Application/Features/Auth/Commands/LinkExternalLogin/**",
+            "src/CanAppTemplate.Application/Features/Account/Commands/UnlinkExternalLogin/**",
+            "src/CanAppTemplate.Application/Services/AuthService/ExternalLoginDto.cs",
+            "src/CanAppTemplate.Application/Services/AuthService/ExternalNames.cs"
           ]
         },
         {

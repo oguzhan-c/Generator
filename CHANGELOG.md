@@ -30,6 +30,10 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Düzeltildi
 
+- Şablon: seçilmeyen kimlik özelliklerinin (OTP, e-posta 2FA, passkey, dış hesapla giriş) kodu artık üretilmez:
+  komutlar, servisler (TwoFactorCookie, TwoFactorCodeVerifier, RecoveryCodeIssuer ...), iş kuralları, hata kodları,
+  DTO'lar ve controller'lardaki istek tipleri. Hesap güvenliği yanıtı (`/api/auth/account/security`) yalnızca açık
+  özelliklerin alanlarını içerir. Doğrulamaya iki bileşim eklendi (yalnızca e-posta 2FA; yalnızca OTP + dış giriş).
 - canfxgen: `new` (etkileşimli) özellik listesinde Postman eşitleme yoktu (Rider'ın yeni proje ekranında vardı).
 
 ## [0.6.0] - 2026-11-04

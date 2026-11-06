@@ -8,14 +8,21 @@ public static class AccountBusinessMessages
 {
     public const string CurrentPasswordInvalid = "account.current_password_invalid";
 
+#if (Otp)
     public const string OtpAlreadyEnabled = "account.otp_already_enabled";
 
     public const string OtpCodeInvalid = "account.otp_code_invalid";
+#endif
 
+#if (EmailTwoFactor)
     public const string EmailNotConfirmed = "account.email_not_confirmed";
+#endif
 
+#if (TwoFactor)
     public const string TwoFactorDisabled = "account.two_factor_disabled";
+#endif
 
+#if (Passkey)
     public const string PasskeyNotFound = "account.passkey_not_found";
 
     public const string PasskeyWrongUser = "account.passkey_wrong_user";
@@ -25,8 +32,13 @@ public static class AccountBusinessMessages
     public const string PasskeyRegistrationFailed = "account.passkey_registration_failed";
 
     public const string PasskeyRegistrationExpired = "account.passkey_registration_expired";
+#endif
 
+#if (ExternalLogin)
     public const string ExternalLoginNotFound = "account.external_login_not_found";
+#endif
 
+#if (Passkey || ExternalLogin)
     public const string LastSignInMethod = "account.last_sign_in_method";
+#endif
 }

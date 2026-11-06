@@ -2,6 +2,7 @@ using CanAppTemplate.Application.Services.AuthService;
 
 namespace CanAppTemplate.Application.Features.Auth.Commands.Login;
 
+#if (TwoFactor)
 /// <summary>
 /// Giriş sonucu: ya oturum açıldı (<see cref="Session"/>) ya da ikinci adım isteniyor (<see cref="Challenge"/> +
 /// <see cref="Prompt"/>). İkinci adım bir hata değil, girişin olağan bir sonucudur; hatalar exception olarak fırlar.
@@ -12,3 +13,10 @@ public sealed record LoggedResponse(AuthResult? Session, TwoFactorChallenge? Cha
 
     public static LoggedResponse RequiresTwoFactor(TwoFactorChallenge challenge, TwoFactorPrompt prompt) => new(null, challenge, prompt);
 }
+#else
+/// <summary>Giriş sonucu: açılan oturum. Hatalar exception olarak fırlar.</summary>
+public sealed record LoggedResponse(AuthResult Session)
+{
+    public static LoggedResponse SignedIn(AuthResult session) => new(session);
+}
+#endif

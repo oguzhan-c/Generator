@@ -96,7 +96,9 @@ variant Full postgres --MultiTenancy true --ExternalLogin true --Redis true --Ev
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
 variant Tenant sqlserver --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true
 # Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
-variant My-Shop.Api none --IdKeyType int --Redis true --FileStorage true
+variant My-Shop.Api none --IdKeyType int --Redis true --FileStorage true --Otp false --Passkey false   # 2FA yalnızca e-posta
+# Kimlik özelliklerinin kalan bileşimi: yalnızca OTP + dış hesapla giriş (kapalı özelliklerin kodu üretilmez)
+variant OtpOnly none --EmailTwoFactor false --Passkey false --ExternalLogin true
 
 # ---------------------------------------------------------------- açılış
 # Derlenen uygulama gerçekten açılıyor mu (DI kayıtları, ayarların okunması, veritabanı hazırlığı)? SQLite'lı Minimal
@@ -292,6 +294,7 @@ standards() {
 standards Minimal
 standards Full
 standards Tenant
+standards OtpOnly
 standards My-Shop.Api
 
 [[ $failed == 0 ]] && step "HEPSİ TAMAM" || step "HATALAR VAR (ayrıntı yukarıda)"
