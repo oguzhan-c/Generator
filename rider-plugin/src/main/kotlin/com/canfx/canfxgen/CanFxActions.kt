@@ -292,10 +292,14 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
             "sms" to "SMS",
             "open-telemetry" to "OpenTelemetry",
             "postman" to "Postman sync (Development)",
+            "audit-trail" to "Audit trail (change history; adds tables)",
+            "settings" to "Settings (runtime settings in the database; adds tables)",
+            "reporting" to "Reporting (adds tables)",
         )
         val FEATURE_OPTION = mapOf(
             "redis" to "Redis", "search" to "Search", "event-bus" to "EventBus", "hangfire" to "Hangfire", "file-storage" to "FileStorage",
             "realtime" to "Realtime", "sms" to "Sms", "open-telemetry" to "OpenTelemetry", "postman" to "Postman",
+            "audit-trail" to "AuditTrail", "settings" to "Settings", "reporting" to "Reporting",
         )
     }
 }

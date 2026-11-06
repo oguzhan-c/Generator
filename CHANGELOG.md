@@ -17,6 +17,8 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
   uygulama konteynerinin bağlantısı, Development bağlantı dizesi ve DevServices satırı yorumdan açılır, diğer sağlayıcı
   yorumlanır (`--preview`). Paket eklenmez; eksikse `dotnet add package` komutu verilir. Elle ayarlanmış başka bir
   sağlayıcıya (SQLite, MySQL ...) dokunulmaz. Rider: CanFx → **Database...**
+- canfxgen / Rider Features: modüller (değişiklik geçmişi, ayarlar, raporlama) de sonradan eklenip çıkarılır. Tablo
+  ekleyen / kaldıran özelliklerde (event bus + outbox ve bu modüller) yeni migration eklenmesi hatırlatılır.
 - Rider: CanFx → **Migrations** → Add Migration / Update Database / Remove Last Migration.
 - Şablon: `.config/dotnet-tools.json` ile `dotnet-ef` EF Core sürümüne sabitlendi (`dotnet tool restore`); migration
   komutu (Persistence + WebAPI) README'de ve `appsettings.Development.json`'da tam haliyle.
@@ -25,6 +27,10 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 - Şablon: veritabanı sağlayıcısının paketleri (Npgsql, SqlServer, Pkcs) ve Hangfire depo paketleri sabit sürümle
   yorumda verilmez; kullanıcı güncel sürümü `dotnet add package` ile ekler (komutlar açıklamalarda ve README'de).
+
+### Düzeltildi
+
+- canfxgen: `new` (etkileşimli) özellik listesinde Postman eşitleme yoktu (Rider'ın yeni proje ekranında vardı).
 
 ## [0.6.0] - 2026-11-04
 

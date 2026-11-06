@@ -213,9 +213,13 @@ CS
   if [[ "$name" == "Minimal" ]]; then
     run_cangen add feature redis                              # şablon farkı projeye yama olarak
     run_cangen add feature search
+    run_cangen add feature audit-trail                        # modüller (tablo ekler)
+    run_cangen add feature settings
+    run_cangen add feature reporting
   fi
   if [[ "$name" == "Full" ]]; then
     run_cangen remove feature realtime
+    run_cangen remove feature reporting
   fi
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands

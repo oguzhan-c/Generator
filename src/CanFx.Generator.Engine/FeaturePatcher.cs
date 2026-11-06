@@ -13,10 +13,14 @@ namespace CanFx.Generator.Engine;
 public static partial class FeaturePatcher
 {
     /// <summary>Sonradan açılıp kapatılabilen özellikler (şablon seçenek adları).</summary>
-    public static readonly IReadOnlyList<string> Supported = ["Redis", "Search", "EventBus", "Hangfire", "FileStorage", "Realtime", "Sms", "OpenTelemetry", "Postman"];
+    public static readonly IReadOnlyList<string> Supported =
+        ["Redis", "Search", "EventBus", "Hangfire", "FileStorage", "Realtime", "Sms", "OpenTelemetry", "Postman", "AuditTrail", "Settings", "Reporting"];
+
+    /// <summary>Tablo ekleyen / çıkaran özellikler: migration kullanan projede sonrasında yeni bir migration gerekir.</summary>
+    public static readonly IReadOnlyList<string> ChangesSchema = ["EventBus", "AuditTrail", "Settings", "Reporting"];
 
     /// <summary>Şema ya da kimlik akışını değiştirdiği için sonradan eklenmeyenler.</summary>
-    public static readonly IReadOnlyList<string> Unsupported = ["MultiTenancy", "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "AuditTrail", "Settings", "Reporting", "IdKeyType"];
+    public static readonly IReadOnlyList<string> Unsupported = ["MultiTenancy", "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "IdKeyType"];
 
     /// <summary>Şablondan kaldırılmış seçenekler: eski projelerin canfx.json'unda olabilir, şablona verilmez.</summary>
     private static readonly IReadOnlyList<string> Removed = ["Database"];

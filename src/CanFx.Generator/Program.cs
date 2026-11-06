@@ -88,6 +88,7 @@ int New(Arguments a)
             ("Settings", "Modül: Ayarlar", false),
             ("Reporting", "Modül: Raporlama", false),
             ("OpenTelemetry", "Modül: OpenTelemetry", false),
+            ("Postman", "Geliştirme: Postman eşitleme (API koleksiyonu her açılışta güncellenir)", true),
         ];
         IReadOnlyList<string> chosen = MultiSelect($"Hangi {G("özellikler")}?", options.Select(o => (o.Label, o.Default)).ToList());
         foreach ((string symbol, string label, _) in options)
@@ -484,7 +485,7 @@ int Feature(Arguments a, bool enable)
     if (FeaturePatcher.Unsupported.Contains(feature))
     {
         throw new GeneratorException(
-            $"{feature} sonradan {(enable ? "eklenemez" : "çıkarılamaz")}: veritabanı şemasını ya da kimlik akışını değiştirir. " +
+            $"{feature} sonradan {(enable ? "eklenemez" : "çıkarılamaz")}: kimlik akışını ya da bütün tabloların yapısını değiştirir. " +
             "Yeni bir çözüm oluşturup (canfxgen new) kodu taşımak daha güvenli.");
     }
 
@@ -513,6 +514,9 @@ int Feature(Arguments a, bool enable)
 
         IReadOnlyList<ChangeResult> results = plan.Apply();
         warnings.Add("Derle ve dene: dotnet build. Yeni ayarlar appsettings.json'da; Development'ta servis gerekiyorsa docker'dan kendiliğinden başlatılır.");
+        if (FeaturePatcher.ChangesSchema.Contains(feature))
+            warnings.Add($"{feature} tablo {(enable ? "ekler" : "kaldırır")}: migration kullanıyorsan yeni bir migration ekle " +
+                $"(canfxgen migration add {(enable ? "Add" : "Remove")}{feature}; Rider: CanFx → Migrations). Database:StartupMode = Recreate ise açılışta kendiliğinden.");
         return Report(a, layout, results, title, warnings, new { Feature = feature, Enable = enable });
     }
     finally
@@ -780,7 +784,8 @@ static string Help() => """
         new [Ad]                  CanFx şablonuyla yeni çözüm (veritabanı ve özellikler sorulur)
         generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
         add / remove feature <Ad> Şablon özelliğini sonradan ekler / çıkarır: redis, search, event-bus, hangfire,
-                                  file-storage, realtime, sms, open-telemetry, postman (paket, kayıt, appsettings,
+                                  file-storage, realtime, sms, open-telemetry, postman, audit-trail, settings,
+                                  reporting (paket, kayıt, appsettings,
                                   docker-compose birlikte). --preview: değişiklikleri göster, yazma
         rate-limit <Politika> <Uç> Uca hız sınırı bağlar ([EnableRateLimiting]); politika appsettings'te yoksa eklenir.
                                   Uç: istek (CreateReportCommand), Controller.Action, controller ya da özellik.
