@@ -68,8 +68,12 @@ public static partial class MechanismEditor
                     continue;
                 }
 
-                if (mechanism == Mechanism.Transaction)
-                    TransactionWarning(request, enable, warnings);
+                // Transaction ve log yalnızca komutlarda anlamlı (sorgu veri değiştirmez); kapatırken her yerden kaldırılır.
+                if (enable && CommandsOnly(mechanism) && !request.IsCommand)
+                    continue;
+
+                if (mechanism == Mechanism.Transaction && request.IsCommand)
+                    HandlerSave(plan, request, enable, warnings);
 
                 RequestFile current = request;
                 plan.Edit(request.Path, $"{request.Name}: {Name(mechanism)} {(enable ? "açıldı" : "kapatıldı")}",
@@ -94,7 +98,9 @@ public static partial class MechanismEditor
         foreach (Mechanism mechanism in new[] { Mechanism.Caching, Mechanism.Logging, Mechanism.Transaction, Mechanism.Secured })
         {
             string[] names = Interfaces(mechanism);
-            List<RequestFile> applicable = mechanism == Mechanism.Caching ? requests.Where(r => !r.HasDynamicQuery).ToList() : requests;
+            List<RequestFile> applicable = mechanism == Mechanism.Caching ? requests.Where(r => !r.HasDynamicQuery).ToList()
+                : CommandsOnly(mechanism) ? requests.Where(r => r.IsCommand).ToList()
+                : requests;
             states.Add(new MechanismStatus(mechanism, applicable.Count(r => r.Interfaces.Any(names.Contains)), applicable.Count));
         }
 
@@ -107,6 +113,9 @@ public static partial class MechanismEditor
 
         return new MechanismReport(single ? requests[0].Name : feature ?? target, single, requests.Count, states);
     }
+
+    /// <summary>Yalnızca komutlara uygulanan mekanizmalar (sorgu veri değiştirmez).</summary>
+    private static bool CommandsOnly(Mechanism mechanism) => mechanism is Mechanism.Transaction or Mechanism.Logging;
 
     /// <summary>Komut satırındaki ad (<c>caching</c>, <c>dynamic-query</c> ...).</summary>
     public static string CliName(Mechanism mechanism) => mechanism switch
@@ -434,15 +443,139 @@ public static partial class MechanismEditor
         return BlankBeforeBrace().Replace(text, "\n$1}");
     }
 
-    private static void TransactionWarning(RequestFile request, bool enable, List<string> warnings)
+    /// <summary>
+    /// Transaction kapanınca kaydı handler yapar: kaydetmiyorsa <c>IUnitOfWork</c> enjekte edilip her <c>return</c>'den önce
+    /// <c>SaveChangesAsync</c> eklenir; yerleştirilemezse handler'a TODO yazılır. Açılınca handler'ın kendi kaydı gereksizdir
+    /// (zararsız; yalnızca bildirilir).
+    /// </summary>
+    private static void HandlerSave(GenerationPlan plan, RequestFile request, bool enable, List<string> warnings)
     {
         string handler = Path.Combine(Path.GetDirectoryName(request.Path)!, request.Name + "Handler.cs");
-        string source = File.Exists(handler) ? File.ReadAllText(handler) : File.ReadAllText(request.Path);
+        if (!File.Exists(handler))
+            handler = request.Path; // eski düzen: handler isteğin dosyasında
+        string source = File.ReadAllText(handler);
         bool saves = source.Contains("SaveChangesAsync", StringComparison.Ordinal);
-        if (!enable && request.IsCommand && !saves)
-            warnings.Add($"{request.Name}: transaction kapanınca değişiklikleri handler kaydetmeli; handler'a IUnitOfWork ekleyip sonunda 'await _unitOfWork.SaveChangesAsync(cancellationToken);' çağır.");
-        if (enable && saves)
-            warnings.Add($"{request.Name}: handler zaten kaydediyor (SaveChangesAsync); transaction açıkken bu satır gereksiz, silebilirsin.");
+
+        if (enable)
+        {
+            // Kapatırken (ya da üretirken) eklenen kayıt satırı geri alınır; kullanıcının kendi kaydı yalnızca bildirilir.
+            if (source.Contains(SaveMarker, StringComparison.Ordinal))
+                plan.Edit(handler, $"{request.Name}Handler: kayıt transaction'a bırakıldı", text => new InjectResult(Tidy(RemoveLines(text, SaveMarker, TransactionTodo)), null));
+            else if (saves)
+                warnings.Add($"{request.Name}: handler zaten kaydediyor (SaveChangesAsync); transaction açıkken bu satır gereksiz ama zararsız.");
+            return;
+        }
+
+        if (!saves)
+            plan.Edit(handler, $"{request.Name}Handler: değişiklikler handler'da kaydedilir", text => AddSave(text, request.Name + "Handler"));
+    }
+
+    private const string SaveMarker = "// transaction kapalı: handler kendisi kaydeder";
+    private const string TransactionTodo = "// TODO(canfxgen): transaction kapalı: handler değişiklikleri kendisi kaydetmeli (IUnitOfWork.SaveChangesAsync).";
+
+    private static InjectResult AddSave(string text, string handlerName)
+    {
+        const string Todo = TransactionTodo;
+        CompilationUnitSyntax root = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot();
+        ClassDeclarationSyntax? cls = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .FirstOrDefault(c => c.Identifier.Text == handlerName)
+            ?? root.DescendantNodes().OfType<ClassDeclarationSyntax>().FirstOrDefault(c => c.Members.OfType<MethodDeclarationSyntax>().Any(m => m.Identifier.Text == "Handle"));
+        MethodDeclarationSyntax? handle = cls?.Members.OfType<MethodDeclarationSyntax>().FirstOrDefault(m => m.Identifier.Text == "Handle");
+        if (cls is null || handle is null)
+            return new InjectResult(text, "handler'da Handle metodu bulunamadı; kaydı elle ekle");
+
+        string className = cls.Identifier.Text;
+        string Fallback() => AddTodoAbove(text, className, "Handle", Todo);
+
+        // Yerleştirilemeyen durumlar: ifade gövdeli ya da async olmayan Handle, birincil constructor'sız/çok constructor'lı sınıf.
+        if (handle.Body is null || !handle.Modifiers.Any(SyntaxKind.AsyncKeyword))
+            return new InjectResult(Fallback(), null);
+
+        var edits = new List<TextEdit>();
+        var usings = new List<string>();
+        string? unitOfWork = cls.Members.OfType<FieldDeclarationSyntax>()
+            .FirstOrDefault(f => f.Declaration.Type.ToString() == "IUnitOfWork")?.Declaration.Variables[0].Identifier.Text;
+
+        if (unitOfWork is null && cls.ParameterList is { } primary)
+        {
+            unitOfWork = primary.Parameters.FirstOrDefault(p => p.Type?.ToString() == "IUnitOfWork")?.Identifier.Text;
+            if (unitOfWork is null)
+            {
+                unitOfWork = "unitOfWork";
+                edits.Add(new TextEdit(primary.CloseParenToken.SpanStart, 0, (primary.Parameters.Count > 0 ? ", " : string.Empty) + "IUnitOfWork unitOfWork"));
+                usings.Add("CanFx.Persistence.Repositories");
+            }
+        }
+        else if (unitOfWork is null)
+        {
+            List<ConstructorDeclarationSyntax> constructors = cls.Members.OfType<ConstructorDeclarationSyntax>().Where(c => !c.Modifiers.Any(SyntaxKind.StaticKeyword)).ToList();
+            if (constructors.Count != 1 || constructors[0].Body is not { } body)
+                return new InjectResult(Fallback(), null);
+
+            ConstructorDeclarationSyntax ctor = constructors[0];
+            unitOfWork = "_unitOfWork";
+            SeparatedSyntaxList<ParameterSyntax> parameters = ctor.ParameterList.Parameters;
+            string separator = parameters.Count == 0 ? string.Empty
+                : text[parameters.Last().Span.End..ctor.ParameterList.CloseParenToken.SpanStart].Contains('\n') || ctor.ParameterList.ToString().Contains('\n')
+                    ? ",\n" + Indentation(text, parameters.Last().SpanStart)
+                    : ", ";
+            edits.Add(new TextEdit(parameters.Count == 0 ? ctor.ParameterList.CloseParenToken.SpanStart : parameters.Last().Span.End, 0, separator + "IUnitOfWork unitOfWork"));
+            string bodyIndent = body.Statements.Count > 0 ? Indentation(text, body.Statements.Last().SpanStart) : Indentation(text, body.OpenBraceToken.SpanStart) + "    ";
+            int afterLast = body.Statements.Count > 0 ? body.Statements.Last().Span.End : body.OpenBraceToken.Span.End;
+            edits.Add(new TextEdit(afterLast, 0, "\n" + bodyIndent + "_unitOfWork = unitOfWork;"));
+
+            FieldDeclarationSyntax? lastField = cls.Members.OfType<FieldDeclarationSyntax>().LastOrDefault();
+            if (lastField is not null)
+                edits.Add(new TextEdit(lastField.Span.End, 0, "\n" + Indentation(text, lastField.SpanStart) + "private readonly IUnitOfWork _unitOfWork;"));
+            else
+                edits.Add(new TextEdit(cls.OpenBraceToken.Span.End, 0, "\n" + Indentation(text, ctor.SpanStart) + "private readonly IUnitOfWork _unitOfWork;\n"));
+            usings.Add("CanFx.Persistence.Repositories");
+        }
+
+        string save = $"await {unitOfWork}.SaveChangesAsync(cancellationToken); {SaveMarker}";
+        List<ReturnStatementSyntax> returns = handle.Body.DescendantNodes(n => n is not (AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax))
+            .OfType<ReturnStatementSyntax>().ToList();
+        bool unplaced = returns.Any(r => r.Parent is not BlockSyntax);
+        foreach (ReturnStatementSyntax ret in returns.Where(r => r.Parent is BlockSyntax))
+            edits.Add(new TextEdit(ret.SpanStart, 0, save + "\n" + Indentation(text, ret.SpanStart)));
+        if (returns.Count == 0)
+        {
+            string indent = handle.Body.Statements.Count > 0 ? Indentation(text, handle.Body.Statements.Last().SpanStart) : Indentation(text, handle.Body.OpenBraceToken.SpanStart) + "    ";
+            int afterLast = handle.Body.Statements.Count > 0 ? handle.Body.Statements.Last().Span.End : handle.Body.OpenBraceToken.Span.End;
+            edits.Add(new TextEdit(afterLast, 0, "\n\n" + indent + save));
+        }
+
+        string result = Apply(text, edits);
+        foreach (string ns in usings)
+            result = AddUsing(result, ns);
+        if (unplaced)
+            result = AddTodoAbove(result, handlerName, "Handle", Todo + " Tek satırlık if/else içindeki return'lerden önce de kaydet.");
+        return new InjectResult(result, null);
+    }
+
+    private static string Indentation(string text, int position)
+    {
+        int line = text.LastIndexOf('\n', Math.Max(0, position - 1)) + 1;
+        int end = line;
+        while (end < text.Length && text[end] is ' ' or '\t')
+            end++;
+        return text[line..end];
+    }
+
+    /// <summary>Sınıftaki metodun üstüne (yorumlarıyla birlikte) TODO satırı.</summary>
+    private static string AddTodoAbove(string text, string className, string method, string todo)
+    {
+        if (text.Contains(todo, StringComparison.Ordinal))
+            return text;
+        MethodDeclarationSyntax? target = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .FirstOrDefault(c => c.Identifier.Text == className)?.Members.OfType<MethodDeclarationSyntax>().FirstOrDefault(m => m.Identifier.Text == method);
+        if (target is null)
+            return text;
+        // Metodun yorumlarının (yoksa kendisinin) satırına; aradaki boş satır korunur.
+        SyntaxTrivia comment = target.GetLeadingTrivia().FirstOrDefault(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia));
+        int position = comment.IsKind(SyntaxKind.None) ? target.SpanStart : comment.SpanStart;
+        int at = text.LastIndexOf('\n', Math.Max(0, position - 1)) + 1;
+        return text[..at] + Indentation(text, target.SpanStart) + todo + "\n" + text[at..];
     }
 
     // ------------------------------------------------------------------ dinamik sorgu

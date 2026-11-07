@@ -613,6 +613,10 @@ public sealed class CrudGeneratorTests
         string registration = solution.Read("src/Shop.Persistence/PersistenceServiceRegistration.cs");
         Assert.DoesNotContain("Veritabanı ayarlanmadı", registration);
         Assert.Contains("// options.UseSqlServer(", registration);
+        // Eksik paket koda da TODO olarak yazılır, sağlayıcı satırının hemen üstüne.
+        Assert.Matches(@"// TODO\(canfxgen\): veritabanı paketi: dotnet add src/Shop\.Persistence package Npgsql\.EntityFrameworkCore\.PostgreSQL[^\n]*\n[ \t]*options\.UseNpgsql\(", registration.ReplaceLineEndings("\n"));
+        IReadOnlyList<ChangeResult> again = DatabaseSelector.Plan(layout, DatabaseProvider.PostgreSql, []).Apply();
+        Assert.All(again, r => Assert.NotEqual(ChangeKind.Updated, r.Kind));
         string compose = solution.Read("docker-compose.yml").ReplaceLineEndings("\n");
         Assert.Contains("\n  postgres:\n    image: postgres:", compose);
         Assert.Contains("\n  # sqlserver:", compose);
@@ -626,9 +630,15 @@ public sealed class CrudGeneratorTests
         // SQL Server'a geçiş: PostgreSQL yorumlanır.
         string csproj = solution.Read("src/Shop.Persistence/Shop.Persistence.csproj");
         solution.Write("src/Shop.Persistence/Shop.Persistence.csproj", csproj.Replace("<ItemGroup>", "<ItemGroup>\n    <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" />", StringComparison.Ordinal));
+        solution.Write("src/Shop.Persistence/Migrations/20260101000000_Initial.cs", "// eski migration");
         var switching = new List<string>();
         DatabaseSelector.Plan(layout, DatabaseProvider.SqlServer, switching).Apply();
         Assert.Equal(DatabaseProvider.SqlServer, DatabaseSelector.Current(layout));
+        registration = solution.Read("src/Shop.Persistence/PersistenceServiceRegistration.cs");
+        Assert.DoesNotContain("veritabanı paketi: dotnet add src/Shop.Persistence package Npgsql", registration); // eski TODO kalktı
+        Assert.Contains("veritabanı paketi: dotnet add src/Shop.Persistence package Microsoft.EntityFrameworkCore.SqlServer", registration);
+        Assert.Contains("veritabanı paketi: dotnet add src/Shop.Persistence package System.Security.Cryptography.Pkcs", registration);
+        Assert.Contains("TODO(canfxgen): veritabanı değişti", registration);
         Assert.Contains(switching, w => w.Contains("dotnet remove src/Shop.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal));
         compose = solution.Read("docker-compose.yml").ReplaceLineEndings("\n");
         Assert.Contains("\n  # postgres:\n  #   image: postgres:", compose);
@@ -724,11 +734,33 @@ public sealed class CrudGeneratorTests
         MechanismEditor.Plan(layout, "GetByIdBrandQuery", [Mechanism.Secured], enable: true, []).Apply();
         Assert.Contains("public IReadOnlyCollection<string> Permissions => [BrandsOperationClaims.Admin, BrandsOperationClaims.Read];", solution.Read(getById));
 
-        // Transaction kapatılırken handler kaydetmiyorsa uyarı.
-        var transactionWarnings = new List<string>();
-        MechanismEditor.Plan(layout, "UpdateBrandCommand", [Mechanism.Transaction], enable: false, transactionWarnings).Apply();
+        // Transaction kapatılınca handler kendisi kaydeder: IUnitOfWork enjekte edilir, return'den önce SaveChangesAsync.
+        string updateHandler = Feature + "Commands/Update/UpdateBrandCommandHandler.cs";
+        Assert.DoesNotContain("SaveChangesAsync", solution.Read(updateHandler));
+        MechanismEditor.Plan(layout, "UpdateBrandCommand", [Mechanism.Transaction], enable: false, []).Apply();
         Assert.DoesNotContain("ITransactionalRequest", solution.Read(Feature + "Commands/Update/UpdateBrandCommand.cs"));
-        Assert.Contains(transactionWarnings, w => w.Contains("SaveChangesAsync", StringComparison.Ordinal));
+        string saving = solution.Read(updateHandler).ReplaceLineEndings("\n");
+        Assert.Contains("private readonly IUnitOfWork _unitOfWork;", saving);
+        Assert.Contains("IUnitOfWork unitOfWork)", saving);
+        Assert.Contains("_unitOfWork = unitOfWork;", saving);
+        Assert.Contains("using CanFx.Persistence.Repositories;", saving);
+        Assert.Matches(@"await _unitOfWork\.SaveChangesAsync\(cancellationToken\);[^\n]*\n\s*return ", saving);
+        IReadOnlyList<ChangeResult> saveAgain = MechanismEditor.Plan(layout, "UpdateBrandCommand", [Mechanism.Transaction], enable: false, []).Apply();
+        Assert.All(saveAgain, r => Assert.Equal(ChangeKind.Unchanged, r.Kind));
+
+        // Geri açılınca eklenen kayıt satırı kalkar.
+        MechanismEditor.Plan(layout, "UpdateBrandCommand", [Mechanism.Transaction], enable: true, []).Apply();
+        Assert.Contains("ITransactionalRequest", solution.Read(Feature + "Commands/Update/UpdateBrandCommand.cs"));
+        Assert.DoesNotContain("SaveChangesAsync", solution.Read(updateHandler));
+
+        // Transaction ve log sorgulara eklenmez; durum yalnızca komutları sayar.
+        MechanismEditor.Plan(layout, "Brand", [Mechanism.Transaction, Mechanism.Logging], enable: true, []).Apply();
+        Assert.DoesNotContain("ITransactionalRequest", solution.Read(getById));
+        Assert.DoesNotContain("ILoggableRequest", solution.Read(getById));
+        MechanismReport status = MechanismEditor.Status(layout, "Brand");
+        MechanismStatus transaction = status.Mechanisms.Single(m => m.Mechanism == Mechanism.Transaction);
+        Assert.Equal(transaction.Total, transaction.Enabled);
+        Assert.True(transaction.Total < status.Requests);
 
         // Dinamik sorguyu kapat: dosyalar, eşleme ve uçlar gider.
         IReadOnlyList<ChangeResult> dynamic = MechanismEditor.Plan(layout, "Brand", [Mechanism.DynamicQuery], enable: false, []).Apply();
@@ -741,6 +773,61 @@ public sealed class CrudGeneratorTests
         MechanismEditor.Plan(layout, "Brand", [Mechanism.DynamicQuery], enable: true, []).Apply();
         Assert.True(solution.Exists(Feature + "Queries/GetListByDynamic/GetListByDynamicBrandQuery.cs"));
         Assert.Contains("GetListByDynamic", solution.Read("src/Shop.WebAPI/Controllers/BrandsController.cs"));
+    }
+
+    [Fact]
+    public void Disabling_transaction_saves_in_handlers_it_cannot_rewrite_with_a_todo()
+    {
+        using var solution = new TestSolution();
+        const string Folder = "src/Shop.Application/Features/Orders/Commands/Ship/";
+        solution.Write(Folder + "ShipOrderCommand.cs", """
+            namespace Shop.Application.Features.Orders.Commands.Ship;
+
+            public sealed class ShipOrderCommand : IRequest<bool>, ITransactionalRequest
+            {
+                public Guid Id { get; init; }
+            }
+            """);
+        solution.Write(Folder + "ShipOrderCommandHandler.cs", """
+            namespace Shop.Application.Features.Orders.Commands.Ship;
+
+            public sealed class ShipOrderCommandHandler(IOrderRepository orders) : IRequestHandler<ShipOrderCommand, bool>
+            {
+                /// <summary>Siparişi kargolar.</summary>
+                public async Task<bool> Handle(ShipOrderCommand request, CancellationToken cancellationToken)
+                {
+                    Order? order = await orders.GetAsync(request.Id, cancellationToken);
+                    if (order is null)
+                        return false;
+
+                    order.Ship();
+                    return true;
+                }
+            }
+            """);
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+
+        MechanismEditor.Plan(layout, "ShipOrderCommand", [Mechanism.Transaction], enable: false, []).Apply();
+        string handler = solution.Read(Folder + "ShipOrderCommandHandler.cs").ReplaceLineEndings("\n");
+        Assert.Contains("(IOrderRepository orders, IUnitOfWork unitOfWork)", handler);
+        Assert.Contains("await unitOfWork.SaveChangesAsync(cancellationToken); // transaction kapalı: handler kendisi kaydeder\n        return true;", handler);
+        // Tek satırlık if içindeki return'e yerleştirilemez: TODO, metodun yorumunun üstünde.
+        Assert.Contains("    // TODO(canfxgen): transaction kapalı", handler);
+        Assert.True(handler.IndexOf("TODO(canfxgen)", StringComparison.Ordinal) < handler.IndexOf("/// <summary>Siparişi", StringComparison.Ordinal));
+
+        // Senkron Handle: yalnızca TODO.
+        solution.Write(Folder + "ShipOrderCommandHandler.cs", """
+            namespace Shop.Application.Features.Orders.Commands.Ship;
+
+            public sealed class ShipOrderCommandHandler : IRequestHandler<ShipOrderCommand, bool>
+            {
+                public Task<bool> Handle(ShipOrderCommand request, CancellationToken cancellationToken) => Task.FromResult(true);
+            }
+            """);
+        MechanismEditor.Plan(layout, "ShipOrderCommand", [Mechanism.Transaction], enable: false, []).Apply();
+        string sync = solution.Read(Folder + "ShipOrderCommandHandler.cs");
+        Assert.Contains("TODO(canfxgen): transaction kapalı", sync);
+        Assert.DoesNotContain("IUnitOfWork unitOfWork", sync);
     }
 
     [Fact]
@@ -854,11 +941,46 @@ public sealed class CrudGeneratorTests
             var manual = new List<string>();
             FeaturePatcher.Plan(layout, baseDir, targetDir, "Redis", enable: true, manual).Apply();
             Assert.Contains(manual, w => w.Contains("AddRedis", StringComparison.Ordinal));
+            Assert.StartsWith("// TODO(canfxgen): Redis eklenirken ", solution.Read("src/Shop.WebAPI/Program.cs"));
+
+            // Değiştirilmiş dosya özellik kapanınca silinmez; başına TODO yazılır.
+            solution.Write("src/Shop.Infrastructure/Caching/RedisServiceRegistration.cs", "// redis\n// benim eklediğim\n");
+            var kept = new List<string>();
+            FeaturePatcher.Plan(layout, targetDir, baseDir, "Redis", enable: false, kept).Apply();
+            Assert.Contains(kept, w => w.Contains("silinmedi", StringComparison.Ordinal));
+            Assert.StartsWith("// TODO(canfxgen): Redis kapatıldı; bu dosya değiştirilmiş", solution.Read("src/Shop.Infrastructure/Caching/RedisServiceRegistration.cs"));
+
+            Assert.Equal("<?xml version=\"1.0\"?>\n<!-- TODO(canfxgen): x -->\n<Project />", FeaturePatcher.AddHeaderTodo("<?xml version=\"1.0\"?>\n<Project />", "a.csproj", "TODO(canfxgen): x"));
+            Assert.Equal("{}", FeaturePatcher.AddHeaderTodo("{}", "a.json", "TODO(canfxgen): x"));
         }
         finally
         {
             Directory.Delete(temp, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Schema_feature_leaves_a_migration_todo_when_the_project_uses_migrations()
+    {
+        using var solution = new TestSolution();
+        solution.Write("src/Shop.Persistence/Contexts/BaseDbContext.cs", "namespace Shop.Persistence.Contexts;\n");
+        SolutionLayout layout = SolutionLayout.Find(solution.Root);
+        string empty = Path.Combine(Path.GetTempPath(), "canfxgen-test-" + Guid.NewGuid().ToString("N"));
+
+        // Migration yoksa (StartupMode ile kuruluyor) TODO gerekmez.
+        FeaturePatcher.Plan(layout, empty, empty, "AuditTrail", enable: true, []).Apply();
+        Assert.DoesNotContain("TODO", solution.Read("src/Shop.Persistence/Contexts/BaseDbContext.cs"));
+
+        solution.Write("src/Shop.Persistence/Migrations/20260101000000_Initial.cs", "// migration");
+        FeaturePatcher.Plan(layout, empty, empty, "AuditTrail", enable: true, []).Apply();
+        FeaturePatcher.Plan(layout, empty, empty, "AuditTrail", enable: true, []).Apply();
+        string context = solution.Read("src/Shop.Persistence/Contexts/BaseDbContext.cs");
+        Assert.StartsWith("// TODO(canfxgen): AuditTrail tablo ekledi: yeni bir migration ekle (canfxgen migration add AddAuditTrail)", context);
+        Assert.Single(context.Split("TODO(canfxgen)")[1..]);
+
+        // Redis şema değiştirmez.
+        FeaturePatcher.Plan(layout, empty, empty, "Redis", enable: true, []).Apply();
+        Assert.Single(solution.Read("src/Shop.Persistence/Contexts/BaseDbContext.cs").Split("TODO(canfxgen)")[1..]);
     }
 
     [Fact]

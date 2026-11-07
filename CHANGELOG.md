@@ -25,6 +25,13 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Değişti
 
+- canfxgen mekanizmalar: transaction ve log yalnızca komutlara eklenir (sorgu veri değiştirmez); durum da yalnızca
+  komutları sayar. Transaction kapatılınca handler kendisi kaydeder: `IUnitOfWork` enjekte edilir ve her `return`'den önce
+  `SaveChangesAsync` eklenir (yerleştirilemezse handler'a TODO yazılır); geri açılınca eklenen satır kalkar.
+- canfxgen: önizlemede çıkan, elle yapılması gereken uyarılar koda da `TODO(canfxgen)` olarak yazılır: eksik veritabanı
+  paketi (`dotnet add` komutu, sağlayıcı satırının üstünde), veritabanı değişince eski migration'lar, tablo ekleyen /
+  kaldıran özellikte yeni migration (BaseDbContext), yerleştirilemeyen yama parçaları ve kapanan özellikte silinmeyen
+  değiştirilmiş dosyalar (dosyanın başında).
 - Şablon: veritabanı sağlayıcısının paketleri (Npgsql, SqlServer, Pkcs) ve Hangfire depo paketleri sabit sürümle
   yorumda verilmez; kullanıcı güncel sürümü `dotnet add package` ile ekler (komutlar açıklamalarda ve README'de).
 

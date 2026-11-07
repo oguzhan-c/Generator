@@ -140,7 +140,11 @@ public static partial class FeaturePatcher
                 if (Same(File.ReadAllText(project), File.ReadAllText(Path.Combine(baseDirectory, relative))))
                     plan.Delete(project);
                 else
+                {
                     warnings.Add($"{relative} değiştirilmiş olduğu için silinmedi; özellik kapandığından artık gerekmiyorsa sil.");
+                    string todo = $"TODO(canfxgen): {feature} kapatıldı; bu dosya değiştirilmiş olduğu için silinmedi. Artık gerekmiyorsa sil.";
+                    plan.Edit(project, $"{feature}: silinmedi (TODO)", text => new InjectResult(AddHeaderTodo(text, relative, todo), null));
+                }
             }
             else
             {
@@ -161,9 +165,22 @@ public static partial class FeaturePatcher
                     (string patched, List<string> failed) = ApplyHunks(text, hunks, Lines(before).Length);
                     foreach (string failure in failed)
                         warnings.Add($"{relative}: elle yap → {failure}");
-                    return new InjectResult(patched, failed.Count > 0 && patched == text ? $"{failed.Count} değişiklik yerleştirilemedi" : null);
+                    string? note = failed.Count > 0 && patched == text ? $"{failed.Count} değişiklik yerleştirilemedi" : null;
+                    if (failed.Count > 0)
+                        patched = AddHeaderTodo(patched, relative, $"TODO(canfxgen): {feature} {(enable ? "eklenirken" : "çıkarılırken")} {failed.Count} değişiklik bu dosyaya yerleştirilemedi " +
+                            "(dosya değiştirilmiş); canfxgen çıktısındaki 'elle yap' maddelerini uygula, sonra bu satırı sil.");
+                    return new InjectResult(patched, note);
                 });
             }
+        }
+
+        // Tablo ekleyen / çıkaran özellik ve migration kullanan proje: yeni migration gerekir.
+        string context = Path.Combine(layout.Persistence, "Contexts", "BaseDbContext.cs");
+        if (ChangesSchema.Contains(feature) && Directory.Exists(Path.Combine(layout.Persistence, "Migrations")) && File.Exists(context))
+        {
+            string todo = $"TODO(canfxgen): {feature} tablo {(enable ? "ekledi" : "kaldırdı")}: yeni bir migration ekle " +
+                $"(canfxgen migration add {(enable ? "Add" : "Remove")}{feature}), sonra bu satırı sil.";
+            plan.Edit(context, $"{feature}: migration (TODO)", text => new InjectResult(AddHeaderTodo(text, "BaseDbContext.cs", todo), null));
         }
 
         string options = Path.Combine(layout.Root, OptionsFile);
@@ -178,6 +195,37 @@ public static partial class FeaturePatcher
         }
 
         return plan;
+    }
+
+    /// <summary>
+    /// Dosyanın başına (XML bildiriminden sonra) dosya türünün yorumuyla TODO satırı; zaten varsa ya da türün yorumu
+    /// yoksa (JSON ...) dosya değişmez, uyarı yeter.
+    /// </summary>
+    internal static string AddHeaderTodo(string text, string relative, string todo)
+    {
+        string extension = Path.GetExtension(relative).ToLowerInvariant();
+        string? line = extension switch
+        {
+            ".cs" or ".ts" or ".tsx" or ".js" => "// " + todo,
+            ".csproj" or ".props" or ".targets" or ".xml" or ".md" or ".html" or ".razor" => $"<!-- {todo} -->",
+            ".yml" or ".yaml" or ".sh" or ".http" or ".env" or ".dockerignore" or ".gitignore" => "# " + todo,
+            _ when Path.GetFileName(relative) is "Dockerfile" => "# " + todo,
+            _ => null,
+        };
+        if (line is null || text.Contains(todo, StringComparison.Ordinal))
+            return text;
+
+        string newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        int at = 0;
+        if (text.StartsWith("#!", StringComparison.Ordinal) || text.StartsWith("<?xml", StringComparison.Ordinal))
+        {
+            int end = text.IndexOf('\n', StringComparison.Ordinal);
+            at = end < 0 ? text.Length : end + 1;
+            if (end < 0)
+                line = newline + line;
+        }
+
+        return text[..at] + line + newline + text[at..];
     }
 
     private static HashSet<string> Files(string root) =>
