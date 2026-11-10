@@ -25,6 +25,7 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Değişti
 
+- CanFx paketleri 0.4.1: DevServices profilli servisleri (Redis, RabbitMQ, Elasticsearch ...) de başlatır.
 - canfxgen mekanizmalar: transaction ve log yalnızca komutlara eklenir (sorgu veri değiştirmez); durum da yalnızca
   komutları sayar. Transaction kapatılınca handler kendisi kaydeder: `IUnitOfWork` enjekte edilir ve her `return`'den önce
   `SaveChangesAsync` eklenir (yerleştirilemezse handler'a TODO yazılır); geri açılınca eklenen satır kalkar.
