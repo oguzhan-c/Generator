@@ -22,6 +22,9 @@ using CanAppTemplate.Infrastructure.Search;
 #if (Sms)
 using CanAppTemplate.Infrastructure.Sms;
 #endif
+#if (Resilience)
+using CanAppTemplate.Infrastructure.Resilience;
+#endif
 
 namespace CanAppTemplate.Infrastructure;
 
@@ -42,6 +45,9 @@ public static class InfrastructureServiceRegistration
     /// </summary>
     public static InfrastructureStatus AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
+#if (Resilience)
+        services.AddResilience(config);   // önce: sonraki kayıtların HttpClient'ları da dayanıklı olur
+#endif
 #if (Redis)
         string? redis = services.AddRedis(config);
 #else

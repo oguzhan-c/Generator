@@ -23,6 +23,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
     private readonly AuthBusinessRules _authBusinessRules;
+    private readonly LoginGuard _loginGuard;
 
     public LoginCommandHandler(
         IRepository<AppUser, IdentityKey> users,
@@ -35,7 +36,8 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
         ISecurityEvents events,
         IUnitOfWork unitOfWork,
         TimeProvider timeProvider,
-        AuthBusinessRules authBusinessRules)
+        AuthBusinessRules authBusinessRules,
+        LoginGuard loginGuard)
     {
         _users = users;
         _passwordHasher = passwordHasher;
@@ -48,11 +50,21 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
         _unitOfWork = unitOfWork;
         _timeProvider = timeProvider;
         _authBusinessRules = authBusinessRules;
+        _loginGuard = loginGuard;
     }
 
     public async Task<LoggedResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         string normalizedEmail = request.Email.Trim().ToUpperInvariant();
+
+        // Bu IP bu e-posta için engelliyse şifreye hiç bakılmaz (hesabın sahibi başka IP'den girebilir). Kayıtlı olmayan
+        // e-postalarda da aynı: yanıttan e-postanın kayıtlı olup olmadığı anlaşılmaz.
+        bool ipBlocked = await _loginGuard.IsBlockedAsync(normalizedEmail, request.Client, cancellationToken);
+        if (ipBlocked)
+            await _events.PublishAsync(new SecurityEvent(SecurityEventTypes.LoginFailed) { Reason = "ip_locked_out" }, cancellationToken);
+
+        _authBusinessRules.IpShouldNotBeLockedOut(ipBlocked);
+
         AppUser? user = await _users.GetAsync(
             u => u.NormalizedEmail == normalizedEmail,
             include: q => q.WithRolesAndPermissions(),
@@ -64,6 +76,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
         {
             // Kullanıcı yokken de aynı süreyi harca: yanıt süresinden e-postanın kayıtlı olup olmadığı anlaşılmasın.
             _ = _passwordHasher.Hash(request.Password);
+            await _loginGuard.RegisterFailureAsync(normalizedEmail, request.Client, cancellationToken);
             await _events.PublishAsync(new SecurityEvent(SecurityEventTypes.LoginFailed, user?.Id.ToString()) { Reason = user is null ? "unknown_user" : "no_password" }, cancellationToken);
         }
 
@@ -77,8 +90,10 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
         PasswordVerificationResult verification = _passwordHasher.Verify(request.Password, user.PasswordHash);
         if (verification == PasswordVerificationResult.Failed)
         {
-            // Sayaç ve olay, exception'dan ÖNCE kalıcı olur (kaba kuvvete karşı kilitleme).
-            user.RegisterFailedAccess(now);
+            // Sayaç ve olay, exception'dan ÖNCE kalıcı olur (kaba kuvvete karşı kilitleme). IP sayacı bu IP'yi, hesap
+            // sayacı (daha yüksek sınır) çok IP'li saldırıda hesabı herkes için kilitler.
+            (int accountMaxAttempts, TimeSpan lockoutDuration) = await _loginGuard.RegisterFailureAsync(normalizedEmail, request.Client, cancellationToken);
+            user.RegisterFailedAccess(now, accountMaxAttempts, lockoutDuration);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await AuthEvents.FailedAsync(_events, user, now, "invalid_password", cancellationToken);
         }
@@ -90,6 +105,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, LoggedRe
             user.UpgradePasswordHash(_passwordHasher.Hash(request.Password));
 
         user.ResetAccessFailed();
+        await _loginGuard.ResetAsync(normalizedEmail, request.Client, cancellationToken);
 
         // Şifre doğrulandıktan SONRA: aksi hâlde e-postanın kayıtlı olup olmadığı anlaşılırdı.
         if (!user.EmailConfirmed)

@@ -66,18 +66,22 @@ variant() {
     step "HATA: $name üretilemedi"; failed=1; return
   fi
   [[ -n "${CANFX_FEED:-}" ]] && add_local_feed "$OUT/$name/nuget.config"
-  # Kullanıcının yapacağı gibi: paketi dotnet add package (güncel sürüm), gerisi kurulu canfxgen'in "database" komutu
-  # (Rider: CanFx → Database); sqlite yalnızca açılış testi için (choose-database.py).
+  # Kullanıcının yapacağı gibi: paketi dotnet add package (canfxgen'in verdiği komut: Microsoft paketleri EF Core sürümüyle
+  # aynı, .config/dotnet-tools.json → dotnet-ef), gerisi kurulu canfxgen'in "database" komutu (Rider: CanFx → Database);
+  # sqlite yalnızca açılış testi için (choose-database.py).
   if [[ "$database" != "none" ]]; then
+    local ef
+    ef=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tools"]["dotnet-ef"]["version"])' "$OUT/$name/.config/dotnet-tools.json")
+    local version=(--version "$ef")
     local package chooser=("$HOME/.dotnet/tools/canfxgen" database "$database")
     case "$database" in
-      postgres) package=Npgsql.EntityFrameworkCore.PostgreSQL ;;
+      postgres) package=Npgsql.EntityFrameworkCore.PostgreSQL; version=() ;;   # kendi sürüm numarası; güncel 10.x
       sqlserver) package=Microsoft.EntityFrameworkCore.SqlServer ;;   # + Pkcs (aşağıda; README'deki adım)
       sqlite) package=Microsoft.EntityFrameworkCore.Sqlite; chooser=(python3 "$ROOT/templates/choose-database.py" "$OUT/$name" sqlite) ;;
     esac
     local project="src/$(code_name "$name").Persistence"
-    if ! (cd "$OUT/$name" && dotnet add "$project" package "$package" \
-          && { [[ "$database" != "sqlserver" ]] || dotnet add "$project" package System.Security.Cryptography.Pkcs; } \
+    if ! (cd "$OUT/$name" && dotnet add "$project" package "$package" ${version[@]+"${version[@]}"} \
+          && { [[ "$database" != "sqlserver" ]] || dotnet add "$project" package System.Security.Cryptography.Pkcs --version "$ef"; } \
           && "${chooser[@]}") >>"$LOG" 2>&1; then
       step "HATA: $name veritabanı seçilemedi ($database)"; failed=1; return
     fi
@@ -94,11 +98,12 @@ variant() {
 variant Minimal sqlite --IdKeyType int --Otp false --EmailTwoFactor false --Passkey false --AuditTrail false --Postman false
 variant Full postgres --MultiTenancy true --ExternalLogin true --Redis true --EventBus true --Hangfire true \
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
-variant Tenant sqlserver --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true
+variant Tenant sqlserver --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true \
+  --EventBus true --EventBusTransport kafka --Resilience true
 # Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
 variant My-Shop.Api none --IdKeyType int --Redis true --FileStorage true --Otp false --Passkey false   # 2FA yalnızca e-posta
 # Kimlik özelliklerinin kalan bileşimi: yalnızca OTP + dış hesapla giriş (kapalı özelliklerin kodu üretilmez)
-variant OtpOnly none --EmailTwoFactor false --Passkey false --ExternalLogin true
+variant OtpOnly none --EmailTwoFactor false --Passkey false --ExternalLogin true --EventBus true --EventBusTransport azureservicebus
 
 # ---------------------------------------------------------------- açılış
 # Derlenen uygulama gerçekten açılıyor mu (DI kayıtları, ayarların okunması, veritabanı hazırlığı)? SQLite'lı Minimal
@@ -218,10 +223,25 @@ CS
     run_cangen add feature audit-trail                        # modüller (tablo ekler)
     run_cangen add feature settings
     run_cangen add feature reporting
+    run_cangen add feature otp                                # kimlik özellikleri sonradan (tabloları zaten var)
+    run_cangen add feature passkey
+    run_cangen add feature external-login
+    run_cangen add feature multi-tenancy                      # sütun ekler; veri taşıma kullanıcıda
+    run_cangen add feature resilience
+    run_cangen add feature kafka                              # event bus'ı da açar (outbox tabloları)
   fi
   if [[ "$name" == "Full" ]]; then
     run_cangen remove feature realtime
     run_cangen remove feature reporting
+    run_cangen remove feature email-two-factor
+    run_cangen remove feature external-login
+    run_cangen add feature azure-service-bus                  # RabbitMQ → Azure Service Bus
+  fi
+  if [[ "$name" == "My-Shop.Api" ]]; then
+    run_cangen add feature otp                                # yalnızca e-posta 2FA → ikisi birden
+    run_cangen remove feature email-two-factor                # → yalnızca OTP
+    run_cangen add feature kafka                              # event bus kapalıyken: açar + Kafka
+    run_cangen remove feature kafka                           # → RabbitMQ
   fi
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands

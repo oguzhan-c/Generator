@@ -43,21 +43,21 @@
     "MultiTenancy": {
       "type": "parameter",
       "displayName": "Tenancy: Multi-tenancy",
-      "description": "Çoklu kiracılık: tenant token'da (cookie), veriler TenantId ile ya da tenant başına veritabanıyla ayrılır.",
+      "description": "Çoklu kiracılık: tenant token'da (cookie), veriler TenantId ile ya da tenant başına veritabanıyla ayrılır. Sonradan da eklenebilir (canfxgen add feature multi-tenancy), ama mevcut verinin tenant'lara atanması gerekir; baştan seçmek daha kolay.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Otp": {
       "type": "parameter",
       "displayName": "Security: OTP (authenticator uygulaması)",
-      "description": "TOTP ile iki adımlı doğrulama (Google/Microsoft Authenticator).",
+      "description": "TOTP ile iki adımlı doğrulama (Google/Microsoft Authenticator). Sonradan da eklenip çıkarılabilir (canfxgen add feature otp; Rider: CanFx → Features).",
       "datatype": "bool",
       "defaultValue": "true"
     },
     "EmailTwoFactor": {
       "type": "parameter",
       "displayName": "Security: 2FA (e-posta kodu)",
-      "description": "Girişte e-postaya gönderilen kod ile iki adımlı doğrulama.",
+      "description": "Girişte e-postaya gönderilen kod ile iki adımlı doğrulama. Sonradan da eklenip çıkarılabilir (canfxgen add feature email-two-factor).",
       "datatype": "bool",
       "defaultValue": "true"
     },
@@ -68,14 +68,14 @@
     "Passkey": {
       "type": "parameter",
       "displayName": "Security: Passkey (WebAuthn)",
-      "description": "Şifresiz giriş: parmak izi / yüz tanıma / güvenlik anahtarı.",
+      "description": "Şifresiz giriş: parmak izi / yüz tanıma / güvenlik anahtarı. Sonradan da eklenip çıkarılabilir (canfxgen add feature passkey).",
       "datatype": "bool",
       "defaultValue": "true"
     },
     "ExternalLogin": {
       "type": "parameter",
       "displayName": "Security: Dış hesapla giriş",
-      "description": "Google / Microsoft / GitHub ile giriş ve hesap bağlama.",
+      "description": "Google / Microsoft / GitHub ile giriş ve hesap bağlama. Sonradan da eklenip çıkarılabilir (canfxgen add feature external-login).",
       "datatype": "bool",
       "defaultValue": "false"
     },
@@ -89,7 +89,39 @@
     "EventBus": {
       "type": "parameter",
       "displayName": "Altyapı: Event bus + outbox",
-      "description": "Outbox/inbox tabloları; süreç içi taşıyıcı, ayarla RabbitMQ.",
+      "description": "Outbox/inbox tabloları; bağlantı ayarı boşken süreç içi taşıyıcı, doluysa seçilen broker (taşıyıcı seçimi aşağıda).",
+      "datatype": "bool",
+      "defaultValue": "false"
+    },
+    "EventBusTransport": {
+      "type": "parameter",
+      "displayName": "Altyapı: Event bus taşıyıcısı",
+      "description": "Event bus açıksa servisler arası taşıyıcı. Sonradan değiştirilebilir (canfxgen add feature kafka | azure-service-bus | rabbitmq).",
+      "datatype": "choice",
+      "defaultValue": "rabbitmq",
+      "choices": [
+        { "choice": "rabbitmq", "description": "RabbitMQ (Development'ta docker'dan başlatılır)" },
+        { "choice": "kafka", "description": "Apache Kafka (Development'ta docker'dan başlatılır)" },
+        { "choice": "azureservicebus", "description": "Azure Service Bus (yerel karşılığı yok: bağlantı dizesi boşken süreç içi taşıyıcı)" }
+      ],
+      "replaces": "CANFX_OPT_EVENTBUS_TRANSPORT"
+    },
+    "RabbitMq": {
+      "type": "computed",
+      "value": "(EventBus && EventBusTransport == \"rabbitmq\")"
+    },
+    "Kafka": {
+      "type": "computed",
+      "value": "(EventBus && EventBusTransport == \"kafka\")"
+    },
+    "AzureServiceBus": {
+      "type": "computed",
+      "value": "(EventBus && EventBusTransport == \"azureservicebus\")"
+    },
+    "Resilience": {
+      "type": "parameter",
+      "displayName": "Altyapı: Dayanıklılık (yeniden deneme, devre kesici)",
+      "description": "Uygulamanın tüm HttpClient'larına standart dayanıklılık (zaman aşımı, üstel yeniden deneme, devre kesici) ve kod için adlı bir pipeline. Sonradan da eklenebilir (canfxgen add feature resilience).",
       "datatype": "bool",
       "defaultValue": "false"
     },
@@ -166,7 +198,7 @@
     "IdKeyType": {
       "type": "parameter",
       "displayName": "Kimlik anahtar tipi",
-      "description": "Kullanıcı, rol, yetki, oturum gibi kimlik tablolarının Id tipi. Sonradan Directory.Build.props'taki tek satırdan değiştirilebilir.",
+      "description": "Kullanıcı, rol, yetki, oturum gibi kimlik tablolarının Id tipi. Proje açılırken seçilir: veri oluştuktan sonra değiştirmek tüm kimlik tablolarını ve ilişkileri etkiler (canfxgen ile sonradan değiştirilemez).",
       "datatype": "choice",
       "defaultValue": "guid",
       "choices": [
@@ -338,6 +370,12 @@
           "condition": "(!EventBus)",
           "exclude": [
             "src/CanAppTemplate.Infrastructure/Messaging/EventBusServiceRegistration.cs"
+          ]
+        },
+        {
+          "condition": "(!Resilience)",
+          "exclude": [
+            "src/CanAppTemplate.Infrastructure/Resilience/**"
           ]
         },
         {

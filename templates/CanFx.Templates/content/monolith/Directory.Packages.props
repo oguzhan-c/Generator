@@ -29,7 +29,19 @@
 <!--#endif-->
 <!--#if (EventBus)-->
     <PackageVersion Include="CanFx.EventBus" Version="$(CanFxVersion)" />
+<!--#endif-->
+<!--#if (RabbitMq)-->
     <PackageVersion Include="CanFx.EventBus.RabbitMQ" Version="$(CanFxVersion)" />
+<!--#endif-->
+<!--#if (Kafka)-->
+    <PackageVersion Include="CanFx.EventBus.Kafka" Version="$(CanFxVersion)" />
+<!--#endif-->
+<!--#if (AzureServiceBus)-->
+    <PackageVersion Include="CanFx.EventBus.AzureServiceBus" Version="$(CanFxVersion)" />
+<!--#endif-->
+<!--#if (Resilience)-->
+    <PackageVersion Include="CanFx.Resilience" Version="$(CanFxVersion)" />
+    <PackageVersion Include="CanFx.Resilience.Http" Version="$(CanFxVersion)" />
 <!--#endif-->
 <!--#if (Sms)-->
     <PackageVersion Include="CanFx.Sms" Version="$(CanFxVersion)" />
@@ -69,10 +81,11 @@
 <!--#endif-->
 
     <!--
-      Veritabanı sağlayıcısının paketi burada yok: sürümünü sen seç (güncel sürüm için). Çözüm klasöründe:
+      Veritabanı sağlayıcısının paketi burada yok: sen eklersin. Sürüm EF Core'un ana sürümüyle (dotnet-ef: 10) aynı
+      olmalı; sürüm vermezsen EF Core 11 gelir ve .NET 10'a kurulamaz (NU1202). Çözüm klasöründe:
         PostgreSQL : dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL
-        SQL Server : dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer
-                     dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs
+        SQL Server : dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer (sürüm: 10.0.13)
+                     dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs (sürüm: 10.0.13)
       (SQL Server paketi güvenlik açığı olan eski bir Pkcs getiriyor; güncelini eklemezsen NU1903 derlemeyi durdurur.)
       Komut sürümü bu dosyaya (PackageVersion), paketi Persistence projesine ekler. Sürümü EF Core'unkiyle
       (Microsoft.EntityFrameworkCore.Design) uyumlu tut.

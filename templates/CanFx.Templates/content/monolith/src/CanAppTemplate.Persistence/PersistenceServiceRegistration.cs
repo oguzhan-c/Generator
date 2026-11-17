@@ -81,10 +81,10 @@ public static class PersistenceServiceRegistration
                 // ======================================================================================== Veritabanı
                 // Sağlayıcını seç (4 adım). PostgreSQL / SQL Server için 2–4: Rider → CanFx → Database... ya da
                 // 'canfxgen database postgres' hepsini birden yapar. Başka bir veritabanı (SQLite, MySQL ...) elle.
-                //   1) sağlayıcı paketi (sürümünü sen seçersin), çözüm klasöründe:
-                //        dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL     (PostgreSQL)
-                //        dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer   (SQL Server,
-                //        dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs        + bu: NU1903)
+                //   1) sağlayıcı paketi (sürüm EF Core'un ana sürümüyle aynı: 10), çözüm klasöründe:
+                //        dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL                     (PostgreSQL)
+                //        dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer --version 10.0.13 (SQL Server,
+                //        dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs --version 10.0.13      + bu: NU1903)
                 //      Başka veritabanları (SQLite, MySQL, Oracle ...): paketleri README → "İlk çalıştırma".
                 //   2) aşağıdaki satırlardan biri ve "throw" satırının silinmesi
                 //   3) docker-compose.yml'deki servisi (postgres / sqlserver) ve volume'u

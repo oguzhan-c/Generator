@@ -15,8 +15,10 @@
       <li><b>Rate Limit</b> (request or controller action): bind a rate limit policy; missing policies are added to appsettings.</li>
       <li><b>Database</b> (anywhere in the solution): PostgreSQL or SQL Server is enabled from the ready comments at once (you add the NuGet package with the version you want); another database can still be set up by hand.</li>
       <li><b>Migrations</b> (anywhere in the solution): add a migration, update the database or remove the last migration; the Persistence and WebAPI projects are passed automatically.</li>
-      <li><b>Features</b> (anywhere in the solution): add or remove Redis, search, event bus, Hangfire, file storage,
-          SignalR, SMS, OpenTelemetry, Postman sync.</li>
+      <li><b>Features</b> (anywhere in the solution): add or remove every option of the New Solution screen later:
+          Redis, search, event bus, Hangfire, file storage, SignalR, SMS, OpenTelemetry, Postman sync, the modules
+          (audit trail, settings, reporting), the security features (OTP, email 2FA, passkey, external login),
+          multi-tenancy, resilience (retry and circuit breaker) and the event bus transport (RabbitMQ, Kafka, Azure Service Bus).</li>
     </ul>
     <p>Every change to existing files is shown as a diff before it is applied. Places that need your input are marked
     with <code>TODO(canfxgen)</code>.</p>

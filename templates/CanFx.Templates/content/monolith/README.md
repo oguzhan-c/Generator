@@ -24,18 +24,23 @@ ve ProblemDetails yanıtına çevrilir.
 
 1. CanFx paketleri nuget.org'dan gelir; ek ayar gerekmez (yerel / özel kaynak için `nuget.config`'teki nota bak).
 2. Veritabanını seç:
-   1. Sağlayıcının paketini ekle; sürümünü sen seçersin (şablon sabit bir sürüm vermez). Çözüm klasöründe:
+   1. Sağlayıcının paketini ekle. Sürüm EF Core'un ana sürümüyle (`.config/dotnet-tools.json` → `dotnet-ef`, şu an 10)
+      aynı olmalı: sürüm vermezsen en yenisi gelir ve EF Core 11 paketleri .NET 10 projesine kurulamaz (NU1202). Çözüm
+      klasöründe:
 
       ```bash
-      dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL     # PostgreSQL
-      dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer   # SQL Server
-      dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs         # SQL Server ile (*)
+      dotnet add src/CanAppTemplate.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL                    # PostgreSQL (10.x)
+      dotnet add src/CanAppTemplate.Persistence package Microsoft.EntityFrameworkCore.SqlServer --version 10.0.13 # SQL Server
+      dotnet add src/CanAppTemplate.Persistence package System.Security.Cryptography.Pkcs --version 10.0.13       # SQL Server ile (*)
       ```
+
+      Npgsql'in kendi sürüm numarası var; sürüm vermeden en yeni 10.x gelir (Npgsql 11 çıkınca `--version 10.0.x` ver).
 
       (*) SQL Server paketi güvenlik açığı olan eski bir `System.Security.Cryptography.Pkcs` getiriyor; güncelini
       eklemezsen derleme NU1903 ile durur.
 
-      Sürüm `Directory.Packages.props`'a, paket Persistence projesine yazılır. EF Core sürümüyle uyumlu olsun.
+      Sürüm `Directory.Packages.props`'a, paket Persistence projesine yazılır. EF Core'u yükseltirken (dotnet-ef ile
+      birlikte) bu paketleri de aynı sürüme al.
       Başka bir veritabanı seçersen paketini ve `options.UseXxx(...)` satırını sen eklersin, ör.:
 
       | Veritabanı | NuGet paketi | Sağlayıcı satırı |
@@ -54,7 +59,7 @@ ve ProblemDetails yanıtına çevrilir.
       - `docker-compose.yml`: `postgres` / `sqlserver` servisi ve volume'u
       - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi ve `DevServices` → `"Database"` satırı
 
-   Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch / RabbitMQ) bilgisayarında
+   Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch / RabbitMQ / Kafka) bilgisayarında
    çalışıyorsa onu kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı).
    Ayar: `appsettings.Development.json` → `DevServices`: servisin docker-compose'daki adı (`Compose`), adresinin okunduğu
    ayar (`AddressFrom`) ve modu (`Auto` / `Docker` / `Local` / `Off`). Kod gerekmez; yalnızca Development'ta çalışır.
@@ -93,8 +98,19 @@ canfxgen add feature redis
 canfxgen remove feature search
 ```
 
-Sonradan eklenebilenler: `redis`, `search`, `event-bus`, `hangfire`, `file-storage`, `realtime`, `sms`,
-`open-telemetry`, `postman`. Paket, servis kaydı, appsettings bölümü ve docker-compose servisi birlikte eklenir / çıkarılır.
+Yeni proje ekranındaki tüm özellikler sonradan eklenip çıkarılabilir (Rider: CanFx → Features):
+
+- Altyapı: `redis`, `search`, `event-bus`, `hangfire`, `file-storage`, `realtime`, `sms`, `open-telemetry`, `postman`,
+  `resilience` (HttpClient'lara yeniden deneme + devre kesici)
+- Event bus taşıyıcısı: `rabbitmq` (varsayılan), `kafka`, `azure-service-bus`. Taşıyıcı eklemek event bus'ı da açar;
+  `remove feature kafka` RabbitMQ'ya döner, event bus'ı tamamen kapatmak için `remove feature event-bus`.
+- Modüller (tablo ekler; migration kullanıyorsan yeni migration): `audit-trail`, `settings`, `reporting`
+- Kimlik (tabloları her projede var, migration gerekmez): `otp`, `email-two-factor`, `passkey`, `external-login`
+- `multi-tenancy`: kod eklenir ama mevcut verinin tenant'lara atanması sende; çıkarılırsa tüm tenant'ların verisi
+  herkese görünür olur. Veriyle ilgili sonuçlar önizlemede uyarı olarak gösterilir.
+
+Yalnızca kimlik anahtar tipi (`IdKeyType`) proje açılırken seçilir. Paket, servis kaydı, appsettings bölümü ve
+docker-compose servisi birlikte eklenir / çıkarılır.
 canfxgen şablonu projenin seçenekleriyle (`canfx.json`) özellik kapalı ve açık olarak üretip farkı projeye uygular;
 projede değiştirdiğin yerlerde yerleştiremediği parçayı elle yapman için raporlar.
 

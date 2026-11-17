@@ -37,6 +37,7 @@ public static class ApplicationServiceRegistration
 
         // Kimlik
         services.AddScoped<AuthTokenIssuer>();
+        services.AddScoped<LoginGuard>();
         services.AddScoped<EmailVerification>();
 #if (TwoFactor)
         services.AddScoped<TwoFactorCodeVerifier>();

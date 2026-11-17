@@ -80,12 +80,20 @@ services:
       ES_JAVA_OPTS: -Xms512m -Xmx512m
     volumes: ["es-data:/usr/share/elasticsearch/data"]
 #endif
-#if (EventBus)
+#if (RabbitMq)
 
   rabbitmq:
     profiles: [broker, all]
     image: rabbitmq:4-management
     ports: ["5672:5672", "15672:15672"]
+#endif
+#if (Kafka)
+
+  # Tek düğümlü Kafka (KRaft). İstemcilere localhost:9092 adresini bildirir: 9092 doluysa önce onu boşalt.
+  kafka:
+    profiles: [broker, all]
+    image: apache/kafka:4.3.0
+    ports: ["9092:9092"]
 #endif
 #if (FileStorage)
 

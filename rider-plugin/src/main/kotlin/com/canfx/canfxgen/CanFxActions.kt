@@ -273,7 +273,7 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
         }
         for ((key, label) in FEATURES) {
             // Mevcut durum canfx.json'dan; bilinmiyorsa (eski proje) Off sayılır.
-            val on = current[FEATURE_OPTION.getValue(key)] == true
+            val on = isOn(current, key)
             choices[key] = if (on) MechanismState.ON else MechanismState.OFF
             row("$label:") {
                 comboBox(listOf(MechanismState.ON, MechanismState.OFF)).bindItem({ choices[key] }, { choices[key] = it ?: choices.getValue(key) })
@@ -295,12 +295,33 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
             "audit-trail" to "Audit trail (change history; adds tables)",
             "settings" to "Settings (runtime settings in the database; adds tables)",
             "reporting" to "Reporting (adds tables)",
+            "otp" to "Security: OTP (authenticator app)",
+            "email-two-factor" to "Security: 2FA (email code)",
+            "passkey" to "Security: Passkey (WebAuthn)",
+            "external-login" to "Security: External login (Google ...)",
+            "multi-tenancy" to "Tenancy: Multi-tenancy (existing data must be assigned to tenants)",
+            "resilience" to "Resilience (retry, circuit breaker for HttpClients)",
+            "kafka" to "Event bus transport: Kafka (turns event bus on; Off = back to RabbitMQ)",
+            "azure-service-bus" to "Event bus transport: Azure Service Bus (turns event bus on; Off = back to RabbitMQ)",
         )
         val FEATURE_OPTION = mapOf(
             "redis" to "Redis", "search" to "Search", "event-bus" to "EventBus", "hangfire" to "Hangfire", "file-storage" to "FileStorage",
             "realtime" to "Realtime", "sms" to "Sms", "open-telemetry" to "OpenTelemetry", "postman" to "Postman",
             "audit-trail" to "AuditTrail", "settings" to "Settings", "reporting" to "Reporting",
+            "otp" to "Otp", "email-two-factor" to "EmailTwoFactor", "passkey" to "Passkey", "external-login" to "ExternalLogin",
+            "multi-tenancy" to "MultiTenancy", "resilience" to "Resilience",
+            "kafka" to "EventBusTransport", "azure-service-bus" to "EventBusTransport",
         )
+
+        /** Taşıyıcılar bool değil: event bus açık ve seçili taşıyıcı bu mu. */
+        private val TRANSPORT_VALUE = mapOf("kafka" to "kafka", "azure-service-bus" to "azureservicebus")
+
+        fun isOn(current: Map<String, Any?>, key: String): Boolean {
+            val transport = TRANSPORT_VALUE[key]
+            if (transport != null)
+                return current["EventBus"] == true && (current["EventBusTransport"] as? String)?.lowercase() == transport
+            return current[FEATURE_OPTION.getValue(key)] == true
+        }
     }
 }
 
@@ -319,7 +340,7 @@ class FeaturesAction : CanFxAction() {
 
         // Yalnızca değiştirilen satırlar.
         val steps = choices.filter { (feature, choice) ->
-            (choice == MechanismState.ON) != (current[FeaturesDialog.FEATURE_OPTION.getValue(feature)] == true)
+            (choice == MechanismState.ON) != FeaturesDialog.isOn(current, feature)
         }.map { (feature, choice) -> listOf(if (choice == MechanismState.ON) "add" else "remove", "feature", feature) }
         if (steps.isEmpty()) {
             CanFxFlow.notify(project, "Features", "Nothing changed.", NotificationType.INFORMATION)

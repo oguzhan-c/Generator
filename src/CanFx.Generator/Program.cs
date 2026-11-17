@@ -84,6 +84,7 @@ int New(Arguments a)
             ("Search", "Altyapı: Arama", false),
             ("Realtime", "Altyapı: SignalR", false),
             ("Sms", "Altyapı: SMS", false),
+            ("Resilience", "Altyapı: Dayanıklılık (yeniden deneme, devre kesici)", false),
             ("AuditTrail", "Modül: Değişiklik geçmişi", true),
             ("Settings", "Modül: Ayarlar", false),
             ("Reporting", "Modül: Raporlama", false),
@@ -93,6 +94,11 @@ int New(Arguments a)
         IReadOnlyList<string> chosen = MultiSelect($"Hangi {G("özellikler")}?", options.Select(o => (o.Label, o.Default)).ToList());
         foreach ((string symbol, string label, _) in options)
             templateArgs.AddRange([$"--{symbol}", chosen.Contains(label) ? "true" : "false"]);
+        if (chosen.Contains("Altyapı: Event bus + outbox"))
+        {
+            string transport = Select($"Event bus {G("taşıyıcısı")}?", ["rabbitmq", "kafka", "azureservicebus"]);
+            templateArgs.AddRange(["--EventBusTransport", transport]);
+        }
     }
 
     templateArgs.AddRange(a.PassThrough);
@@ -485,15 +491,18 @@ int Feature(Arguments a, bool enable)
     if (FeaturePatcher.Unsupported.Contains(feature))
     {
         throw new GeneratorException(
-            $"{feature} sonradan {(enable ? "eklenemez" : "çıkarılamaz")}: kimlik akışını ya da bütün tabloların yapısını değiştirir. " +
+            $"{feature} sonradan değiştirilemez: kimlik tablolarının anahtar tipini (mevcut veri ve tüm ilişkiler) değiştirir. " +
             "Yeni bir çözüm oluşturup (canfxgen new) kodu taşımak daha güvenli.");
     }
 
     var warnings = new List<string>();
     Dictionary<string, string> options = FeaturePatcher.ReadOptions(layout, warnings);
-    bool current = options.TryGetValue(feature, out string? value) && value == "true";
-    if (current == enable)
+    if (FeaturePatcher.IsEnabled(options, feature) == enable)
         throw new GeneratorException($"{feature} zaten {(enable ? "açık" : "kapalı")}.");
+    // Yalnızca gerçekten değişen seçenekler (ör. event bus zaten açıksa Kafka eklemek yalnızca taşıyıcıyı değiştirir).
+    IReadOnlyDictionary<string, string> changes = FeaturePatcher.OptionChanges(feature, enable)
+        .Where(c => options.GetValueOrDefault(c.Key) != c.Value)
+        .ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
 
     string temp = Path.Combine(Path.GetTempPath(), "canfxgen-" + Guid.NewGuid().ToString("N")[..8]);
     try
@@ -504,17 +513,23 @@ int Feature(Arguments a, bool enable)
         if (!a.Json)
             Console.WriteLine(Dim("Şablon karşılaştırma için üretiliyor ..."));
         RunTemplate(layout.RootNamespace, baseDirectory, options);
-        var target = new Dictionary<string, string>(options, StringComparer.Ordinal) { [feature] = enable ? "true" : "false" };
+        var target = new Dictionary<string, string>(options, StringComparer.Ordinal);
+        foreach ((string key, string value) in changes)
+            target[key] = value;
         RunTemplate(layout.RootNamespace, targetDirectory, target);
 
-        GenerationPlan plan = FeaturePatcher.Plan(layout, baseDirectory, targetDirectory, feature, enable, warnings);
+        // Veriyle ilgili sonuçlar önizlemede de görünür (uygulamadan önce bilinsin).
+        if (FeaturePatcher.DataWarning(feature, enable) is { } dataWarning)
+            warnings.Add(dataWarning);
+
+        GenerationPlan plan = FeaturePatcher.Plan(layout, baseDirectory, targetDirectory, feature, enable, warnings, changes);
         string title = $"{feature} {(enable ? "eklendi" : "çıkarıldı")}";
         if (a.Flag("preview") || a.Flag("dry-run"))
             return PrintPreview(a, layout, plan, title, warnings);
 
         IReadOnlyList<ChangeResult> results = plan.Apply();
         warnings.Add("Derle ve dene: dotnet build. Yeni ayarlar appsettings.json'da; Development'ta servis gerekiyorsa docker'dan kendiliğinden başlatılır.");
-        if (FeaturePatcher.ChangesSchema.Contains(feature))
+        if (FeaturePatcher.ChangesSchemaFor(feature, changes))
             warnings.Add($"{feature} tablo {(enable ? "ekler" : "kaldırır")}: migration kullanıyorsan yeni bir migration ekle " +
                 $"(canfxgen migration add {(enable ? "Add" : "Remove")}{feature}; Rider: CanFx → Migrations). Database:StartupMode = Recreate ise açılışta kendiliğinden.");
         return Report(a, layout, results, title, warnings, new { Feature = feature, Enable = enable });
@@ -785,8 +800,10 @@ static string Help() => """
         generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
         add / remove feature <Ad> Şablon özelliğini sonradan ekler / çıkarır: redis, search, event-bus, hangfire,
                                   file-storage, realtime, sms, open-telemetry, postman, audit-trail, settings,
-                                  reporting (paket, kayıt, appsettings,
-                                  docker-compose birlikte). --preview: değişiklikleri göster, yazma
+                                  reporting, otp, email-two-factor, passkey, external-login, multi-tenancy, resilience;
+                                  event bus taşıyıcısı: rabbitmq, kafka, azure-service-bus (eklemek event bus'ı açar,
+                                  çıkarmak RabbitMQ'ya döner) (paket, kayıt, appsettings, docker-compose birlikte).
+                                  --preview: değişiklikleri göster, yazma
         rate-limit <Politika> <Uç> Uca hız sınırı bağlar ([EnableRateLimiting]); politika appsettings'te yoksa eklenir.
                                   Uç: istek (CreateReportCommand), Controller.Action, controller ya da özellik.
                                   --permit 60 --window 00:01:00 --partition-by UserOrIp|Ip|Tenant, --remove, --preview

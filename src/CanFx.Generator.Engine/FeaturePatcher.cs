@@ -12,15 +12,100 @@ namespace CanFx.Generator.Engine;
 /// </summary>
 public static partial class FeaturePatcher
 {
-    /// <summary>Sonradan açılıp kapatılabilen özellikler (şablon seçenek adları).</summary>
+    /// <summary>
+    /// Sonradan açılıp kapatılabilen özellikler (şablon seçenek adları): yeni proje ekranındaki tüm kutular. Kimlik
+    /// özelliklerinin (OTP, e-posta 2FA, passkey, dış giriş) tabloları her projede vardır; migration gerektirmezler.
+    /// </summary>
     public static readonly IReadOnlyList<string> Supported =
-        ["Redis", "Search", "EventBus", "Hangfire", "FileStorage", "Realtime", "Sms", "OpenTelemetry", "Postman", "AuditTrail", "Settings", "Reporting"];
+    [
+        "Redis", "Search", "EventBus", "Hangfire", "FileStorage", "Realtime", "Sms", "OpenTelemetry", "Postman", "AuditTrail", "Settings", "Reporting",
+        "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "MultiTenancy", "Resilience",
+        "RabbitMq", "Kafka", "AzureServiceBus",
+    ];
 
-    /// <summary>Tablo ekleyen / çıkaran özellikler: migration kullanan projede sonrasında yeni bir migration gerekir.</summary>
-    public static readonly IReadOnlyList<string> ChangesSchema = ["EventBus", "AuditTrail", "Settings", "Reporting"];
+    /// <summary>Event bus taşıyıcısının şablon seçeneği ve taşıyıcı özelliği → seçenek değeri.</summary>
+    public const string TransportOption = "EventBusTransport";
 
-    /// <summary>Şema ya da kimlik akışını değiştirdiği için sonradan eklenmeyenler.</summary>
-    public static readonly IReadOnlyList<string> Unsupported = ["MultiTenancy", "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "IdKeyType"];
+    private const string DefaultTransport = "rabbitmq";
+
+    private static readonly Dictionary<string, string> Transports = new(StringComparer.Ordinal)
+    {
+        ["RabbitMq"] = "rabbitmq",
+        ["Kafka"] = "kafka",
+        ["AzureServiceBus"] = "azureservicebus",
+    };
+
+    /// <summary>
+    /// Değişiklik tablo ekliyor / çıkarıyor mu: özelliğin kendisi ya da beraberinde açılan özellik (ör. Kafka eklemek
+    /// event bus'ı da açar → outbox tabloları).
+    /// </summary>
+    public static bool ChangesSchemaFor(string feature, IReadOnlyDictionary<string, string>? optionChanges) =>
+        ChangesSchema.Contains(feature) || (optionChanges?.Keys.Any(ChangesSchema.Contains) ?? false);
+
+    /// <summary>Özellik bir event bus taşıyıcısı mı (RabbitMQ, Kafka, Azure Service Bus).</summary>
+    public static bool IsTransport(string feature) => Transports.ContainsKey(feature);
+
+    /// <summary>Özellik projede açık mı (taşıyıcılar: event bus açık ve o taşıyıcı seçili).</summary>
+    public static bool IsEnabled(IReadOnlyDictionary<string, string> options, string feature)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (Transports.TryGetValue(feature, out string? transport))
+            return options.GetValueOrDefault("EventBus") == "true" && (options.GetValueOrDefault(TransportOption) ?? DefaultTransport) == transport;
+        return options.GetValueOrDefault(feature) == "true";
+    }
+
+    /// <summary>
+    /// Özelliği açmak / kapatmak için değişen şablon seçenekleri. Taşıyıcı eklemek event bus'ı da açar ve taşıyıcıyı seçer;
+    /// taşıyıcıyı çıkarmak varsayılan taşıyıcıya (RabbitMQ) döner. Event bus'ın kendisi <c>event-bus</c> ile kapatılır.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> OptionChanges(string feature, bool enable)
+    {
+        if (!Transports.TryGetValue(feature, out string? transport))
+            return new Dictionary<string, string>(StringComparer.Ordinal) { [feature] = enable ? "true" : "false" };
+
+        if (enable)
+            return new Dictionary<string, string>(StringComparer.Ordinal) { ["EventBus"] = "true", [TransportOption] = transport };
+        if (transport == DefaultTransport)
+            throw new GeneratorException("RabbitMQ varsayılan taşıyıcı: çıkarmak yerine başka bir taşıyıcı ekle (add feature kafka | azure-service-bus) ya da event bus'ı kapat (remove feature event-bus).");
+        return new Dictionary<string, string>(StringComparer.Ordinal) { [TransportOption] = DefaultTransport };
+    }
+
+    /// <summary>Tablo / sütun ekleyen ya da çıkaran özellikler: migration kullanan projede sonrasında yeni bir migration gerekir.</summary>
+    public static readonly IReadOnlyList<string> ChangesSchema = ["EventBus", "AuditTrail", "Settings", "Reporting", "MultiTenancy"];
+
+    /// <summary>Sonradan değiştirilemeyenler: kimlik tablolarının anahtar tipi mevcut veriyi ve tüm ilişkileri değiştirir.</summary>
+    public static readonly IReadOnlyList<string> Unsupported = ["IdKeyType"];
+
+    /// <summary>
+    /// Özelliği sonradan açıp kapatmanın veriyle ilgili sonuçları (kod yaması bunları çözemez): kullanıcı uygulamadan
+    /// önce görür, uyguladıktan sonra elle tamamlar.
+    /// </summary>
+    public static string? DataWarning(string feature, bool enable) => (feature, enable) switch
+    {
+        ("MultiTenancy", true) =>
+            "Çoklu kiracılık sonradan açılıyor: (1) mevcut kullanıcıların TenantId'si boş kalır (host kullanıcısı sayılırlar); kullanıcıları " +
+            "tenant'lara ata. (2) Daha önce üretilen entity'ler tenant'a göre süzülmez: tenant'a ait olanlara IMultiTenant<Guid> ekle, " +
+            "mevcut kayıtların TenantId'sini doldur (boş kalan kayıtlar hiçbir tenant'a görünmez). (3) appsettings → MultiTenancy:Tenants listesini yaz.",
+        ("MultiTenancy", false) =>
+            "Çoklu kiracılık kapatılıyor: tenant filtresi kalkar, TÜM tenant'ların verisi herkese görünür olur. Verileri ayırmadan canlıda uygulama.",
+        ("Otp", false) or ("EmailTwoFactor", false) =>
+            "Bu doğrulama yöntemini kullanan kullanıcılar için ikinci adım kalkar; diğer 2FA yöntemi de kapalıysa hesaplar yalnızca şifreyle korunur. " +
+            "Kullanıcıların AuthenticatorType değerini None yap (yoksa giriş ikinci adımı bekler).",
+        ("Passkey", false) =>
+            "Yalnızca passkey ile giren (şifresi olmayan) kullanıcılar giremez: önce şifre belirlemelerini sağla (şifre sıfırlama).",
+        ("ExternalLogin", false) =>
+            "Yalnızca dış hesapla (Google ...) giren kullanıcılar giremez: önce şifre belirlemelerini sağla (şifre sıfırlama).",
+        ("AzureServiceBus", true) =>
+            "Azure Service Bus'ın yerel karşılığı (docker) yok: bağlantı dizesi boşken süreç içi taşıyıcı çalışır. Gerçek bir ad alanı için " +
+            "user-secrets: EventBus:AzureServiceBus:ConnectionString. Önceki taşıyıcının appsettings ayarları kaldırıldı.",
+        ("Kafka", true) or ("RabbitMq", true) =>
+            "Taşıyıcı değişti: önceki taşıyıcıda bekleyen mesajlar yeni taşıyıcıya geçmez (outbox'taki yayınlanmamış mesajlar yeni taşıyıcıyla gider).",
+        ("Kafka", false) or ("AzureServiceBus", false) =>
+            "Event bus RabbitMQ'ya döndü; event bus'ı tamamen kapatmak için: canfxgen remove feature event-bus.",
+        ("Otp", true) or ("EmailTwoFactor", true) or ("Passkey", true) or ("ExternalLogin", true) =>
+            "Kimlik uçları eklendi; AuthController / AccountController'ı elle değiştirdiysen yerleştirilemeyen parçalar dosyanın başında TODO olarak yazıldı.",
+        _ => null,
+    };
 
     /// <summary>Şablondan kaldırılmış seçenekler: eski projelerin canfx.json'unda olabilir, şablona verilmez.</summary>
     private static readonly IReadOnlyList<string> Removed = ["Database"];
@@ -41,6 +126,14 @@ public static partial class FeaturePatcher
             "rabbitmq" or "bus" => "EventBus",
             "storage" or "files" or "s3" => "FileStorage",
             "otel" or "telemetry" => "OpenTelemetry",
+            "totp" or "authenticator" or "2fa" => "Otp",
+            "email2fa" or "2faemail" or "emailotp" or "emailcode" => "EmailTwoFactor",
+            "webauthn" or "passkeys" => "Passkey",
+            "external" or "oauth" or "social" or "sociallogin" => "ExternalLogin",
+            "tenancy" or "tenant" or "tenants" or "multitenant" => "MultiTenancy",
+            "rabbit" or "amqp" => "RabbitMq",
+            "asb" or "servicebus" or "azurebus" => "AzureServiceBus",
+            "retry" or "polly" or "circuitbreaker" => "Resilience",
             _ => throw new GeneratorException($"Bilinmeyen özellik: '{feature}'. Desteklenenler: {string.Join(", ", Supported.Select(s => s.ToLowerInvariant()))}."),
         };
     }
@@ -96,6 +189,8 @@ public static partial class FeaturePatcher
             ["Reporting"] = Flag(Package("CanFx.Reporting")),
             ["OpenTelemetry"] = Flag(Package("CanFx.Observability.OpenTelemetry")),
             ["Postman"] = Flag(Package("CanFx.WebApi.Postman")),
+            ["EventBusTransport"] = Package("CanFx.EventBus.Kafka") ? "kafka" : Package("CanFx.EventBus.AzureServiceBus") ? "azureservicebus" : "rabbitmq",
+            ["Resilience"] = Flag(Package("CanFx.Resilience.Http")),
         };
     }
 
@@ -111,7 +206,8 @@ public static partial class FeaturePatcher
     /// <param name="feature">Şablon seçenek adı.</param>
     /// <param name="enable">Açılıyor mu.</param>
     /// <param name="warnings">Elle yapılması gerekenler.</param>
-    public static GenerationPlan Plan(SolutionLayout layout, string baseDirectory, string targetDirectory, string feature, bool enable, List<string> warnings)
+    /// <param name="optionChanges">canfx.json'da değişecek seçenekler; verilmezse <c>{feature: enable}</c>.</param>
+    public static GenerationPlan Plan(SolutionLayout layout, string baseDirectory, string targetDirectory, string feature, bool enable, List<string> warnings, IReadOnlyDictionary<string, string>? optionChanges = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(warnings);
@@ -176,7 +272,7 @@ public static partial class FeaturePatcher
 
         // Tablo ekleyen / çıkaran özellik ve migration kullanan proje: yeni migration gerekir.
         string context = Path.Combine(layout.Persistence, "Contexts", "BaseDbContext.cs");
-        if (ChangesSchema.Contains(feature) && Directory.Exists(Path.Combine(layout.Persistence, "Migrations")) && File.Exists(context))
+        if (ChangesSchemaFor(feature, optionChanges) && Directory.Exists(Path.Combine(layout.Persistence, "Migrations")) && File.Exists(context))
         {
             string todo = $"TODO(canfxgen): {feature} tablo {(enable ? "ekledi" : "kaldırdı")}: yeni bir migration ekle " +
                 $"(canfxgen migration add {(enable ? "Add" : "Remove")}{feature}), sonra bu satırı sil.";
@@ -186,8 +282,9 @@ public static partial class FeaturePatcher
         string options = Path.Combine(layout.Root, OptionsFile);
         if (File.Exists(options))
         {
-            plan.Edit(options, $"{feature}: {(enable ? "true" : "false")}", text =>
-                new InjectResult(Regex.Replace(text, $"(\"{feature}\"\\s*:\\s*)(true|false)", $"${{1}}{(enable ? "true" : "false")}"), null));
+            IReadOnlyDictionary<string, string> changes = optionChanges ?? new Dictionary<string, string>(StringComparer.Ordinal) { [feature] = enable ? "true" : "false" };
+            plan.Edit(options, string.Join(", ", changes.Select(c => $"{c.Key}: {c.Value}")), text =>
+                new InjectResult(changes.Aggregate(text, (current, change) => SetOption(current, change.Key, change.Value)), null));
         }
         else if (File.Exists(Path.Combine(targetDirectory, OptionsFile)))
         {
@@ -195,6 +292,24 @@ public static partial class FeaturePatcher
         }
 
         return plan;
+    }
+
+    /// <summary>
+    /// canfx.json'da bir seçeneğin değerini yazar (<c>true</c> / <c>false</c> tırnaksız, diğerleri metin); seçenek yoksa
+    /// (eski proje) <c>"options"</c> bölümünün başına eklenir.
+    /// </summary>
+    internal static string SetOption(string text, string key, string value)
+    {
+        string literal = value is "true" or "false" ? value : JsonSerializer.Serialize(value);
+        var existing = new Regex($"(\"{Regex.Escape(key)}\"\\s*:\\s*)(true|false|\"[^\"]*\")");
+        if (existing.IsMatch(text))
+            return existing.Replace(text, m => m.Groups[1].Value + literal, 1);
+
+        Match options = Regex.Match(text, "\"options\"\\s*:\\s*\\{[ \\t]*\\r?\\n");
+        if (!options.Success)
+            return text;
+        string newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        return text[..(options.Index + options.Length)] + $"    \"{key}\": {literal},{newline}" + text[(options.Index + options.Length)..];
     }
 
     /// <summary>

@@ -25,6 +25,20 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Değişti
 
+- CanFx paketleri 0.5.1 (SignalR Redis ve Cbor güvenlik düzeltmeleri dahil). Şablon: giriş `LoginGuard` üzerinden hesap + IP başına hatalı deneme sınırı uygular (saldırgan
+  yalnızca kendi IP'sini engeller); hesap genelindeki kilit daha yüksek sınırla (20) ikinci hattır. Settings modülü
+  varsa sınırlar yönetim ekranından değişir (`CanSettingKeys.Login`). Redis varsa sayaçlar Redis'te
+  (`UseForLoginThrottle`).
+- Şablon / canfxgen / Rider: event bus taşıyıcısı seçilebilir: RabbitMQ (varsayılan), Kafka (Development'ta docker'dan
+  başlatılır) ya da Azure Service Bus (`EventBusTransport`). Sonradan `canfxgen add feature kafka | azure-service-bus |
+  rabbitmq` ile değişir; taşıyıcı eklemek event bus'ı da açar, çıkarmak RabbitMQ'ya döner.
+- Şablon / canfxgen / Rider: `Resilience` (dayanıklılık): tüm HttpClient'lara zaman aşımı, üstel yeniden deneme ve devre
+  kesici (`CanFx.Resilience.Http`), kod için adlı pipeline (`default`); ayarlar appsettings → `Resilience`. Sonradan
+  `canfxgen add feature resilience`.
+- canfxgen / Rider Features: yeni proje ekranındaki TÜM özellikler sonradan eklenip çıkarılır: OTP, e-posta 2FA, passkey,
+  dış hesapla giriş (tabloları her projede var; migration gerekmez) ve çoklu kiracılık (sütun ekler; mevcut verinin
+  tenant'lara atanması kullanıcıdadır). Veriyle ilgili sonuçlar önizlemede uyarı olarak gösterilir. Yalnızca kimlik
+  anahtar tipi (IdKeyType) proje açılırken seçilir.
 - CanFx paketleri 0.4.1: DevServices profilli servisleri (Redis, RabbitMQ, Elasticsearch ...) de başlatır.
 - canfxgen mekanizmalar: transaction ve log yalnızca komutlara eklenir (sorgu veri değiştirmez); durum da yalnızca
   komutları sayar. Transaction kapatılınca handler kendisi kaydeder: `IUnitOfWork` enjekte edilir ve her `return`'den önce
@@ -38,6 +52,9 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Düzeltildi
 
+- Veritabanı paketi komutları (canfxgen database uyarıları ve TODO'ları, README, şablon açıklamaları) Microsoft paketleri için
+  EF Core sürümünü verir (`--version`, `.config/dotnet-tools.json` → dotnet-ef): sürümsüz komut EF Core 11'i getiriyor ve
+  .NET 10 projesine kurulamıyordu (NU1202).
 - Şablon: seçilmeyen kimlik özelliklerinin (OTP, e-posta 2FA, passkey, dış hesapla giriş) kodu artık üretilmez:
   komutlar, servisler (TwoFactorCookie, TwoFactorCodeVerifier, RecoveryCodeIssuer ...), iş kuralları, hata kodları,
   DTO'lar ve controller'lardaki istek tipleri. Hesap güvenliği yanıtı (`/api/auth/account/security`) yalnızca açık

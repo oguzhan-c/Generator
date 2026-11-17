@@ -23,8 +23,17 @@
 <!--#if (Search)-->
     <PackageReference Include="CanFx.Search.Elasticsearch" />
 <!--#endif-->
-<!--#if (EventBus)-->
+<!--#if (RabbitMq)-->
     <PackageReference Include="CanFx.EventBus.RabbitMQ" />
+<!--#endif-->
+<!--#if (Kafka)-->
+    <PackageReference Include="CanFx.EventBus.Kafka" />
+<!--#endif-->
+<!--#if (AzureServiceBus)-->
+    <PackageReference Include="CanFx.EventBus.AzureServiceBus" />
+<!--#endif-->
+<!--#if (Resilience)-->
+    <PackageReference Include="CanFx.Resilience.Http" />
 <!--#endif-->
 <!--#if (FileStorage)-->
     <PackageReference Include="CanFx.FileStorage.S3" />

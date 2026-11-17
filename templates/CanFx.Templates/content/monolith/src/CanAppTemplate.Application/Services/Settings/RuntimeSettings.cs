@@ -24,5 +24,15 @@ public static class RuntimeSettings
         IsVisibleToClients = true,
     };
 
-    public static SettingDefinition[] All => [SupportEmail /* canfxgen:settings */];
+    /// <summary>
+    /// Uygulamanın ayarları + CanFx'in hazır ayarları (giriş güvenliği: IP ve hesap başına hatalı deneme, kilit süresi;
+    /// <c>LoginGuard</c> okur).
+    /// </summary>
+    public static SettingDefinition[] All =>
+    [
+        SupportEmail, /* canfxgen:settings */
+        CanSettingKeys.Login.MaxAttemptsPerIp,
+        CanSettingKeys.Login.AccountMaxAttempts,
+        CanSettingKeys.Login.LockoutMinutes,
+    ];
 }

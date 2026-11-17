@@ -84,6 +84,13 @@ public sealed class AuthBusinessRules : BaseBusinessRules
         throw new UnauthorizedException(AuthBusinessMessages.InvalidCredentials) { Code = AuthBusinessMessages.InvalidCredentials };
     }
 
+    /// <summary>Aynı IP'den bu hesaba çok fazla hatalı deneme yapıldıysa (LoginGuard) o IP bir süre giremez.</summary>
+    public void IpShouldNotBeLockedOut([DoesNotReturnIf(true)] bool blocked)
+    {
+        if (blocked)
+            throw LockedOutError();
+    }
+
     public void UserShouldNotBeLockedOut(AppUser user, DateTimeOffset now)
     {
         if (user.IsLockedOut(now))

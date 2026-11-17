@@ -631,13 +631,15 @@ public sealed class CrudGeneratorTests
         string csproj = solution.Read("src/Shop.Persistence/Shop.Persistence.csproj");
         solution.Write("src/Shop.Persistence/Shop.Persistence.csproj", csproj.Replace("<ItemGroup>", "<ItemGroup>\n    <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" />", StringComparison.Ordinal));
         solution.Write("src/Shop.Persistence/Migrations/20260101000000_Initial.cs", "// eski migration");
+        Copy(".config/dotnet-tools.json", ".config/dotnet-tools.json");
         var switching = new List<string>();
         DatabaseSelector.Plan(layout, DatabaseProvider.SqlServer, switching).Apply();
         Assert.Equal(DatabaseProvider.SqlServer, DatabaseSelector.Current(layout));
         registration = solution.Read("src/Shop.Persistence/PersistenceServiceRegistration.cs");
         Assert.DoesNotContain("veritabanı paketi: dotnet add src/Shop.Persistence package Npgsql", registration); // eski TODO kalktı
-        Assert.Contains("veritabanı paketi: dotnet add src/Shop.Persistence package Microsoft.EntityFrameworkCore.SqlServer", registration);
-        Assert.Contains("veritabanı paketi: dotnet add src/Shop.Persistence package System.Security.Cryptography.Pkcs", registration);
+        // Microsoft paketleri EF Core sürümüyle (dotnet-ef aracı): sürüm verilmezse EF Core 11 gelir (NU1202).
+        Assert.Contains("veritabanı paketi: dotnet add src/Shop.Persistence package Microsoft.EntityFrameworkCore.SqlServer --version 10.0.13 ", registration);
+        Assert.Contains("veritabanı paketi: dotnet add src/Shop.Persistence package System.Security.Cryptography.Pkcs --version 10.0.13 ", registration);
         Assert.Contains("TODO(canfxgen): veritabanı değişti", registration);
         Assert.Contains(switching, w => w.Contains("dotnet remove src/Shop.Persistence package Npgsql.EntityFrameworkCore.PostgreSQL", StringComparison.Ordinal));
         compose = solution.Read("docker-compose.yml").ReplaceLineEndings("\n");
@@ -984,12 +986,42 @@ public sealed class CrudGeneratorTests
     }
 
     [Fact]
+    public void Event_bus_transport_is_a_feature_and_options_are_written_to_canfx_json()
+    {
+        Assert.Equal("Kafka", FeaturePatcher.Normalize("kafka"));
+        Assert.Equal("AzureServiceBus", FeaturePatcher.Normalize("azure-service-bus"));
+        Assert.Equal("RabbitMq", FeaturePatcher.Normalize("rabbitmq"));
+        Assert.Equal("Resilience", FeaturePatcher.Normalize("resilience"));
+
+        var rabbit = new Dictionary<string, string> { ["EventBus"] = "true" };            // eski canfx.json: taşıyıcı yazılmamış
+        Assert.True(FeaturePatcher.IsEnabled(rabbit, "RabbitMq"));
+        Assert.False(FeaturePatcher.IsEnabled(rabbit, "Kafka"));
+        Assert.False(FeaturePatcher.IsEnabled(new Dictionary<string, string> { ["EventBus"] = "false", ["EventBusTransport"] = "kafka" }, "Kafka"));
+
+        // Taşıyıcı eklemek event bus'ı da açar; çıkarmak RabbitMQ'ya döner; RabbitMQ çıkarılamaz.
+        Assert.Equal(new Dictionary<string, string> { ["EventBus"] = "true", ["EventBusTransport"] = "kafka" }, FeaturePatcher.OptionChanges("Kafka", enable: true));
+        Assert.Equal(new Dictionary<string, string> { ["EventBusTransport"] = "rabbitmq" }, FeaturePatcher.OptionChanges("AzureServiceBus", enable: false));
+        Assert.Throws<GeneratorException>(() => FeaturePatcher.OptionChanges("RabbitMq", enable: false));
+        Assert.True(FeaturePatcher.ChangesSchemaFor("Kafka", new Dictionary<string, string> { ["EventBus"] = "true" }));
+        Assert.False(FeaturePatcher.ChangesSchemaFor("Kafka", new Dictionary<string, string> { ["EventBusTransport"] = "kafka" }));
+
+        string json = "{\n  \"options\": {\n    \"EventBus\": false,\n    \"Redis\": true\n  }\n}\n";
+        json = FeaturePatcher.SetOption(json, "EventBus", "true");
+        json = FeaturePatcher.SetOption(json, "EventBusTransport", "kafka");             // yoksa eklenir
+        json = FeaturePatcher.SetOption(json, "EventBusTransport", "azureservicebus");   // varsa değişir
+        Assert.Contains("\"EventBus\": true", json);
+        Assert.Contains("\"EventBusTransport\": \"azureservicebus\",", json);
+        Assert.Single(json.Split("EventBusTransport")[1..]);
+        Assert.Contains("\"Redis\": true", json);
+    }
+
+    [Fact]
     public void Feature_names_are_normalized_and_options_inferred_for_old_projects()
     {
         Assert.Equal("EventBus", FeaturePatcher.Normalize("event-bus"));
         Assert.Equal("Search", FeaturePatcher.Normalize("elasticsearch"));
         Assert.Equal("Redis", FeaturePatcher.Normalize("REDIS"));
-        Assert.Throws<GeneratorException>(() => FeaturePatcher.Normalize("kafka"));
+        Assert.Throws<GeneratorException>(() => FeaturePatcher.Normalize("mongodb"));
 
         using var solution = new TestSolution();
         solution.Write("Directory.Packages.props", "<PackageVersion Include=\"CanFx.Caching.Redis\" />");

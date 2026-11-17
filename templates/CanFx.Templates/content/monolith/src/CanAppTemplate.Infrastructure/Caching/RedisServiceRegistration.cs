@@ -32,6 +32,7 @@ public static class RedisServiceRegistration
             })
             .PersistDataProtectionKeys()
             .UseForRateLimiting()
+            .UseForLoginThrottle()
             .UseForDistributedLocks()
             .UseForOutputCache();
 

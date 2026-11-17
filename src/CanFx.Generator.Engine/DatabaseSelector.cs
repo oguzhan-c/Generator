@@ -80,17 +80,23 @@ public static partial class DatabaseSelector
         string references = File.Exists(csproj) ? File.ReadAllText(csproj) : string.Empty;
         // Yapılması gerekenler sağlayıcı satırının üstüne TODO olarak da yazılır (her çalıştırmada yeniden hesaplanır).
         var todos = new List<string>();
+        // Sürüm vermeden en yenisi gelir: EF Core'un yeni ana sürümü (11) .NET 10 projesine kurulamaz (NU1202). Microsoft
+        // paketleri EF Core sürümüyle (dotnet-ef aracı) aynı; Npgsql'in kendi numarası var, en yeni 10.x gelir.
+        string? ef = EfVersion(layout);
+        string Versioned(string package) => ef is not null && (package.StartsWith("Microsoft.", StringComparison.Ordinal) || package == SqlServerPkcs)
+            ? $"dotnet add {project} package {package} --version {ef}"
+            : $"dotnet add {project} package {package}";
         if (!References(references, chosen.Package))
         {
-            warnings.Add($"{name} paketini ekle (sürümünü sen seçersin): dotnet add {project} package {chosen.Package}");
-            todos.Add($"{PackageTodo} dotnet add {project} package {chosen.Package} (ekledikten sonra bu satırı sil)");
+            warnings.Add($"{name} paketini ekle: {Versioned(chosen.Package)}");
+            todos.Add($"{PackageTodo} {Versioned(chosen.Package)} (ekledikten sonra bu satırı sil)");
         }
 
         // SqlServer paketi eski bir Pkcs getiriyor (NU1902/NU1903; TreatWarningsAsErrors ile derleme durur).
         if (provider == DatabaseProvider.SqlServer && !References(references, SqlServerPkcs))
         {
-            warnings.Add($"SQL Server paketinin getirdiği eski System.Security.Cryptography.Pkcs'teki güvenlik açığı için güncelini de ekle: dotnet add {project} package {SqlServerPkcs}");
-            todos.Add($"{PackageTodo} dotnet add {project} package {SqlServerPkcs} (SQL Server paketinin getirdiği eski sürümdeki güvenlik açığı için; ekledikten sonra bu satırı sil)");
+            warnings.Add($"SQL Server paketinin getirdiği eski System.Security.Cryptography.Pkcs'teki güvenlik açığı için güncelini de ekle: {Versioned(SqlServerPkcs)}");
+            todos.Add($"{PackageTodo} {Versioned(SqlServerPkcs)} (SQL Server paketinin getirdiği eski sürümdeki güvenlik açığı için; ekledikten sonra bu satırı sil)");
         }
 
         // Sağlayıcı değişti ve migration'lar var: onlar eski veritabanına göre üretildi.
@@ -109,6 +115,23 @@ public static partial class DatabaseSelector
         plan.Edit(Path.Combine(layout.Root, "docker-compose.yml"), $"{chosen.Compose} servisi", t => Compose(t, chosen, other));
         plan.Edit(Path.Combine(layout.WebApi, "appsettings.Development.json"), "bağlantı dizesi ve DevServices", t => DevelopmentSettings(t, chosen, other));
         return plan;
+    }
+
+    /// <summary>Projenin EF Core sürümü: <c>.config/dotnet-tools.json</c> → <c>dotnet-ef</c> (yoksa <see langword="null"/>).</summary>
+    private static string? EfVersion(SolutionLayout layout)
+    {
+        string file = Path.Combine(layout.Root, ".config", "dotnet-tools.json");
+        if (!File.Exists(file))
+            return null;
+        try
+        {
+            System.Text.Json.Nodes.JsonNode? node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(file));
+            return node?["tools"]?["dotnet-ef"]?["version"]?.GetValue<string>();
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private static string Registration(SolutionLayout layout) => Path.Combine(layout.Persistence, "PersistenceServiceRegistration.cs");

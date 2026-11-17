@@ -71,6 +71,22 @@
       "persistenceScope": "templateGroup"
     },
     {
+      "id": "EventBusTransport",
+      "name": {
+        "text": "Altyapı: Event bus taşıyıcısı"
+      },
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    },
+    {
+      "id": "Resilience",
+      "name": {
+        "text": "Altyapı: Dayanıklılık (yeniden deneme, devre kesici)"
+      },
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    },
+    {
       "id": "Hangfire",
       "name": {
         "text": "Altyapı: Hangfire"
