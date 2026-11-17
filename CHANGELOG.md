@@ -9,6 +9,8 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-17
+
 ### Eklendi
 
 - canfxgen: `migration add <Ad> | remove | list | update`: `dotnet ef`'i Persistence (migration'lar) ve WebAPI (ayarlar)
