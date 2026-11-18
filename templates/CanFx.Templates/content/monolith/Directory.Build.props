@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1900: güvenlik açığı verisi alınamadı (ağ yok / nuget.org'a ulaşılamadı). Açık bulunduğu anlamına gelmez:
+         derlemeyi durdurmaz, uyarı olarak kalır. Bulunan açıklar (NU1901 ile NU1904) yine hata verir. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900</WarningsNotAsErrors>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

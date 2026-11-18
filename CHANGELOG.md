@@ -9,6 +9,23 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ## [Unreleased]
 
+### Değişti
+
+- Şablon / canfxgen / Rider: event bus broker seçimi kaldırıldı. Event bus + outbox seçildiğinde outbox, inbox ve süreç
+  içi taşıyıcı kurulur; Kafka, RabbitMQ ya da Azure Service Bus'ı geliştirici elle ekler. Adımlar oluşturulan kodda
+  TODO olarak: `Infrastructure/Messaging/EventBusServiceRegistration.cs` (kayıt kodu), `Directory.Packages.props` ve
+  Infrastructure .csproj (paket), `appsettings.json` (ayar örnekleri), `appsettings.Development.json` ve
+  `docker-compose.yml` (yerel servis). `canfxgen add feature kafka | rabbitmq | azure-service-bus` ve Rider'daki
+  karşılıkları kaldırıldı; bu adlar artık TODO'yu gösteren bir hata verir. Yeni proje ekranında yalnızca özellikler ve
+  kimlik anahtar tipi kalır.
+
+### Düzeltildi
+
+- Şablon: nuget.org'a ulaşılamadığında (ağ yok) NU1900 "güvenlik açığı verisi alınamadı" uyarısı derlemeyi durdurmaz;
+  bulunan açıklar (NU1901 ile NU1904) yine hata verir.
+- Şablon: proje adının bir bölümü rakamla başlıyorsa (CanFx.Generator.Scenario.1) ad alanı ve using'ler geçersiz
+  oluyordu; o bölümün başına alt çizgi eklenir (CanFx.Generator.Scenario._1). Klasör ve proje adları da aynı.
+
 ## [0.7.0] - 2026-11-17
 
 ### Eklendi

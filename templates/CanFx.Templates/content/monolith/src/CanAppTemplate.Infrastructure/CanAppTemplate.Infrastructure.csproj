@@ -23,14 +23,12 @@
 <!--#if (Search)-->
     <PackageReference Include="CanFx.Search.Elasticsearch" />
 <!--#endif-->
-<!--#if (RabbitMq)-->
-    <PackageReference Include="CanFx.EventBus.RabbitMQ" />
-<!--#endif-->
-<!--#if (Kafka)-->
+<!--#if (EventBus)-->
+    <!-- TODO(canfxgen): Broker paketi (birini aç; sürümü Directory.Packages.props'ta):
     <PackageReference Include="CanFx.EventBus.Kafka" />
-<!--#endif-->
-<!--#if (AzureServiceBus)-->
+    <PackageReference Include="CanFx.EventBus.RabbitMQ" />
     <PackageReference Include="CanFx.EventBus.AzureServiceBus" />
+    -->
 <!--#endif-->
 <!--#if (Resilience)-->
     <PackageReference Include="CanFx.Resilience.Http" />

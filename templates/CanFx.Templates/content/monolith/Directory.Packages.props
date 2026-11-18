@@ -29,15 +29,11 @@
 <!--#endif-->
 <!--#if (EventBus)-->
     <PackageVersion Include="CanFx.EventBus" Version="$(CanFxVersion)" />
-<!--#endif-->
-<!--#if (RabbitMq)-->
-    <PackageVersion Include="CanFx.EventBus.RabbitMQ" Version="$(CanFxVersion)" />
-<!--#endif-->
-<!--#if (Kafka)-->
+    <!-- TODO(canfxgen): Event bus broker'sız (süreç içi). Broker eklerken birini aç (Infrastructure .csproj'a da ekle):
     <PackageVersion Include="CanFx.EventBus.Kafka" Version="$(CanFxVersion)" />
-<!--#endif-->
-<!--#if (AzureServiceBus)-->
+    <PackageVersion Include="CanFx.EventBus.RabbitMQ" Version="$(CanFxVersion)" />
     <PackageVersion Include="CanFx.EventBus.AzureServiceBus" Version="$(CanFxVersion)" />
+    Ayrıntı: Infrastructure/Messaging/EventBusServiceRegistration.cs -->
 <!--#endif-->
 <!--#if (Resilience)-->
     <PackageVersion Include="CanFx.Resilience" Version="$(CanFxVersion)" />

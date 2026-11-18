@@ -285,7 +285,7 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
         val FEATURES = linkedMapOf(
             "redis" to "Redis (distributed cache, shared keys, rate limit counters)",
             "search" to "Search (in-memory / Elasticsearch)",
-            "event-bus" to "Event bus + outbox (RabbitMQ)",
+            "event-bus" to "Event bus + outbox (in-process; add Kafka / RabbitMQ / Azure Service Bus by hand: see the TODO)",
             "hangfire" to "Hangfire (persistent jobs, cron, dashboard)",
             "file-storage" to "File storage (local / S3 / Azure Blob)",
             "realtime" to "Realtime notifications (SignalR)",
@@ -301,8 +301,6 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
             "external-login" to "Security: External login (Google ...)",
             "multi-tenancy" to "Tenancy: Multi-tenancy (existing data must be assigned to tenants)",
             "resilience" to "Resilience (retry, circuit breaker for HttpClients)",
-            "kafka" to "Event bus transport: Kafka (turns event bus on; Off = back to RabbitMQ)",
-            "azure-service-bus" to "Event bus transport: Azure Service Bus (turns event bus on; Off = back to RabbitMQ)",
         )
         val FEATURE_OPTION = mapOf(
             "redis" to "Redis", "search" to "Search", "event-bus" to "EventBus", "hangfire" to "Hangfire", "file-storage" to "FileStorage",
@@ -310,16 +308,9 @@ class FeaturesDialog(project: Project, private val current: Map<String, Any?>, v
             "audit-trail" to "AuditTrail", "settings" to "Settings", "reporting" to "Reporting",
             "otp" to "Otp", "email-two-factor" to "EmailTwoFactor", "passkey" to "Passkey", "external-login" to "ExternalLogin",
             "multi-tenancy" to "MultiTenancy", "resilience" to "Resilience",
-            "kafka" to "EventBusTransport", "azure-service-bus" to "EventBusTransport",
         )
 
-        /** Taşıyıcılar bool değil: event bus açık ve seçili taşıyıcı bu mu. */
-        private val TRANSPORT_VALUE = mapOf("kafka" to "kafka", "azure-service-bus" to "azureservicebus")
-
         fun isOn(current: Map<String, Any?>, key: String): Boolean {
-            val transport = TRANSPORT_VALUE[key]
-            if (transport != null)
-                return current["EventBus"] == true && (current["EventBusTransport"] as? String)?.lowercase() == transport
             return current[FEATURE_OPTION.getValue(key)] == true
         }
     }

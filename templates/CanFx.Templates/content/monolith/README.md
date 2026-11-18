@@ -59,7 +59,7 @@ ve ProblemDetails yanıtına çevrilir.
       - `docker-compose.yml`: `postgres` / `sqlserver` servisi ve volume'u
       - `src/CanAppTemplate.WebAPI/appsettings.Development.json`: yerel bağlantı dizesi ve `DevServices` → `"Database"` satırı
 
-   Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch / RabbitMQ / Kafka) bilgisayarında
+   Uygulama Development'ta açılırken veritabanı (ve seçtiğin Redis / Elasticsearch, eklediğin broker) bilgisayarında
    çalışıyorsa onu kullanır, çalışmıyorsa `docker-compose.yml`'den başlatır (Docker Desktop açık olmalı).
    Ayar: `appsettings.Development.json` → `DevServices`: servisin docker-compose'daki adı (`Compose`), adresinin okunduğu
    ayar (`AddressFrom`) ve modu (`Auto` / `Docker` / `Local` / `Off`). Kod gerekmez; yalnızca Development'ta çalışır.
@@ -102,8 +102,9 @@ Yeni proje ekranındaki tüm özellikler sonradan eklenip çıkarılabilir (Ride
 
 - Altyapı: `redis`, `search`, `event-bus`, `hangfire`, `file-storage`, `realtime`, `sms`, `open-telemetry`, `postman`,
   `resilience` (HttpClient'lara yeniden deneme + devre kesici)
-- Event bus taşıyıcısı: `rabbitmq` (varsayılan), `kafka`, `azure-service-bus`. Taşıyıcı eklemek event bus'ı da açar;
-  `remove feature kafka` RabbitMQ'ya döner, event bus'ı tamamen kapatmak için `remove feature event-bus`.
+- Event bus broker'ı (Kafka, RabbitMQ, Azure Service Bus) canfxgen ile eklenmez: event bus süreç içi taşıyıcıyla (outbox
+  ile) kurulur, broker'ı sen eklersin. Adımlar `Infrastructure/Messaging/EventBusServiceRegistration.cs` içindeki
+  TODO'da; paket, appsettings ve docker-compose satırları ilgili dosyalarda TODO olarak hazır.
 - Modüller (tablo ekler; migration kullanıyorsan yeni migration): `audit-trail`, `settings`, `reporting`
 - Kimlik (tabloları her projede var, migration gerekmez): `otp`, `email-two-factor`, `passkey`, `external-login`
 - `multi-tenancy`: kod eklenir ama mevcut verinin tenant'lara atanması sende; çıkarılırsa tüm tenant'ların verisi

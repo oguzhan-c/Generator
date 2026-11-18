@@ -20,55 +20,22 @@ public static partial class FeaturePatcher
     [
         "Redis", "Search", "EventBus", "Hangfire", "FileStorage", "Realtime", "Sms", "OpenTelemetry", "Postman", "AuditTrail", "Settings", "Reporting",
         "Otp", "EmailTwoFactor", "Passkey", "ExternalLogin", "MultiTenancy", "Resilience",
-        "RabbitMq", "Kafka", "AzureServiceBus",
     ];
 
-    /// <summary>Event bus taşıyıcısının şablon seçeneği ve taşıyıcı özelliği → seçenek değeri.</summary>
-    public const string TransportOption = "EventBusTransport";
-
-    private const string DefaultTransport = "rabbitmq";
-
-    private static readonly Dictionary<string, string> Transports = new(StringComparer.Ordinal)
-    {
-        ["RabbitMq"] = "rabbitmq",
-        ["Kafka"] = "kafka",
-        ["AzureServiceBus"] = "azureservicebus",
-    };
-
-    /// <summary>
-    /// Değişiklik tablo ekliyor / çıkarıyor mu: özelliğin kendisi ya da beraberinde açılan özellik (ör. Kafka eklemek
-    /// event bus'ı da açar → outbox tabloları).
-    /// </summary>
+    /// <summary>Değişiklik tablo ekliyor / çıkarıyor mu.</summary>
     public static bool ChangesSchemaFor(string feature, IReadOnlyDictionary<string, string>? optionChanges) =>
         ChangesSchema.Contains(feature) || (optionChanges?.Keys.Any(ChangesSchema.Contains) ?? false);
 
-    /// <summary>Özellik bir event bus taşıyıcısı mı (RabbitMQ, Kafka, Azure Service Bus).</summary>
-    public static bool IsTransport(string feature) => Transports.ContainsKey(feature);
-
-    /// <summary>Özellik projede açık mı (taşıyıcılar: event bus açık ve o taşıyıcı seçili).</summary>
+    /// <summary>Özellik projede açık mı.</summary>
     public static bool IsEnabled(IReadOnlyDictionary<string, string> options, string feature)
     {
         ArgumentNullException.ThrowIfNull(options);
-        if (Transports.TryGetValue(feature, out string? transport))
-            return options.GetValueOrDefault("EventBus") == "true" && (options.GetValueOrDefault(TransportOption) ?? DefaultTransport) == transport;
         return options.GetValueOrDefault(feature) == "true";
     }
 
-    /// <summary>
-    /// Özelliği açmak / kapatmak için değişen şablon seçenekleri. Taşıyıcı eklemek event bus'ı da açar ve taşıyıcıyı seçer;
-    /// taşıyıcıyı çıkarmak varsayılan taşıyıcıya (RabbitMQ) döner. Event bus'ın kendisi <c>event-bus</c> ile kapatılır.
-    /// </summary>
-    public static IReadOnlyDictionary<string, string> OptionChanges(string feature, bool enable)
-    {
-        if (!Transports.TryGetValue(feature, out string? transport))
-            return new Dictionary<string, string>(StringComparer.Ordinal) { [feature] = enable ? "true" : "false" };
-
-        if (enable)
-            return new Dictionary<string, string>(StringComparer.Ordinal) { ["EventBus"] = "true", [TransportOption] = transport };
-        if (transport == DefaultTransport)
-            throw new GeneratorException("RabbitMQ varsayılan taşıyıcı: çıkarmak yerine başka bir taşıyıcı ekle (add feature kafka | azure-service-bus) ya da event bus'ı kapat (remove feature event-bus).");
-        return new Dictionary<string, string>(StringComparer.Ordinal) { [TransportOption] = DefaultTransport };
-    }
+    /// <summary>Özelliği açmak / kapatmak için değişen şablon seçenekleri.</summary>
+    public static IReadOnlyDictionary<string, string> OptionChanges(string feature, bool enable) =>
+        new Dictionary<string, string>(StringComparer.Ordinal) { [feature] = enable ? "true" : "false" };
 
     /// <summary>Tablo / sütun ekleyen ya da çıkaran özellikler: migration kullanan projede sonrasında yeni bir migration gerekir.</summary>
     public static readonly IReadOnlyList<string> ChangesSchema = ["EventBus", "AuditTrail", "Settings", "Reporting", "MultiTenancy"];
@@ -95,20 +62,19 @@ public static partial class FeaturePatcher
             "Yalnızca passkey ile giren (şifresi olmayan) kullanıcılar giremez: önce şifre belirlemelerini sağla (şifre sıfırlama).",
         ("ExternalLogin", false) =>
             "Yalnızca dış hesapla (Google ...) giren kullanıcılar giremez: önce şifre belirlemelerini sağla (şifre sıfırlama).",
-        ("AzureServiceBus", true) =>
-            "Azure Service Bus'ın yerel karşılığı (docker) yok: bağlantı dizesi boşken süreç içi taşıyıcı çalışır. Gerçek bir ad alanı için " +
-            "user-secrets: EventBus:AzureServiceBus:ConnectionString. Önceki taşıyıcının appsettings ayarları kaldırıldı.",
-        ("Kafka", true) or ("RabbitMq", true) =>
-            "Taşıyıcı değişti: önceki taşıyıcıda bekleyen mesajlar yeni taşıyıcıya geçmez (outbox'taki yayınlanmamış mesajlar yeni taşıyıcıyla gider).",
-        ("Kafka", false) or ("AzureServiceBus", false) =>
-            "Event bus RabbitMQ'ya döndü; event bus'ı tamamen kapatmak için: canfxgen remove feature event-bus.",
+        ("EventBus", true) =>
+            "Event bus broker'sız (süreç içi taşıyıcı) eklendi. Kafka / RabbitMQ / Azure Service Bus'ı sen eklersin: adımlar " +
+            "Infrastructure/Messaging/EventBusServiceRegistration.cs içindeki TODO'da.",
+        ("EventBus", false) =>
+            "Event bus kaldırılıyor: elle eklediğin broker (paket, kayıt, appsettings, docker-compose) satırları yerleştirilemezse TODO " +
+            "olarak işaretlenir; onları da kaldır. Outbox'ta yayınlanmamış mesajlar varsa önce yayınlanmasını bekle.",
         ("Otp", true) or ("EmailTwoFactor", true) or ("Passkey", true) or ("ExternalLogin", true) =>
             "Kimlik uçları eklendi; AuthController / AccountController'ı elle değiştirdiysen yerleştirilemeyen parçalar dosyanın başında TODO olarak yazıldı.",
         _ => null,
     };
 
     /// <summary>Şablondan kaldırılmış seçenekler: eski projelerin canfx.json'unda olabilir, şablona verilmez.</summary>
-    private static readonly IReadOnlyList<string> Removed = ["Database"];
+    private static readonly IReadOnlyList<string> Removed = ["Database", "EventBusTransport"];
 
     private const string OptionsFile = "canfx.json";
     private const int Context = 3;
@@ -123,7 +89,10 @@ public static partial class FeaturePatcher
             _ when match is not null => match,
             "signalr" => "Realtime",
             "elasticsearch" or "elastic" => "Search",
-            "rabbitmq" or "bus" => "EventBus",
+            "bus" or "outbox" => "EventBus",
+            "kafka" or "rabbitmq" or "rabbit" or "amqp" or "azureservicebus" or "asb" or "servicebus" or "azurebus" =>
+                throw new GeneratorException($"'{feature}' canfxgen ile eklenmez: event bus broker'sız kurulur, broker'ı sen eklersin " +
+                    "(adımlar Infrastructure/Messaging/EventBusServiceRegistration.cs içindeki TODO'da). Event bus yoksa önce: canfxgen add feature event-bus."),
             "storage" or "files" or "s3" => "FileStorage",
             "otel" or "telemetry" => "OpenTelemetry",
             "totp" or "authenticator" or "2fa" => "Otp",
@@ -131,8 +100,6 @@ public static partial class FeaturePatcher
             "webauthn" or "passkeys" => "Passkey",
             "external" or "oauth" or "social" or "sociallogin" => "ExternalLogin",
             "tenancy" or "tenant" or "tenants" or "multitenant" => "MultiTenancy",
-            "rabbit" or "amqp" => "RabbitMq",
-            "asb" or "servicebus" or "azurebus" => "AzureServiceBus",
             "retry" or "polly" or "circuitbreaker" => "Resilience",
             _ => throw new GeneratorException($"Bilinmeyen özellik: '{feature}'. Desteklenenler: {string.Join(", ", Supported.Select(s => s.ToLowerInvariant()))}."),
         };
@@ -189,7 +156,6 @@ public static partial class FeaturePatcher
             ["Reporting"] = Flag(Package("CanFx.Reporting")),
             ["OpenTelemetry"] = Flag(Package("CanFx.Observability.OpenTelemetry")),
             ["Postman"] = Flag(Package("CanFx.WebApi.Postman")),
-            ["EventBusTransport"] = Package("CanFx.EventBus.Kafka") ? "kafka" : Package("CanFx.EventBus.AzureServiceBus") ? "azureservicebus" : "rabbitmq",
             ["Resilience"] = Flag(Package("CanFx.Resilience.Http")),
         };
     }

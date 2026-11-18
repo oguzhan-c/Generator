@@ -80,20 +80,23 @@ services:
       ES_JAVA_OPTS: -Xms512m -Xmx512m
     volumes: ["es-data:/usr/share/elasticsearch/data"]
 #endif
-#if (RabbitMq)
+#if (EventBus)
 
-  rabbitmq:
-    profiles: [broker, all]
-    image: rabbitmq:4-management
-    ports: ["5672:5672", "15672:15672"]
-#endif
-#if (Kafka)
-
-  # Tek düğümlü Kafka (KRaft). İstemcilere localhost:9092 adresini bildirir: 9092 doluysa önce onu boşalt.
-  kafka:
-    profiles: [broker, all]
-    image: apache/kafka:4.3.0
-    ports: ["9092:9092"]
+  # TODO(canfxgen): Event bus broker'ı (Infrastructure/Messaging/EventBusServiceRegistration.cs). Seçtiğin broker'ın
+  # satırlarını aç; appsettings.Development.json → DevServices'teki EventBus satırını da aç (açılışta başlatılır).
+  # Azure Service Bus'ın docker karşılığı yok.
+  #
+  # Tek düğümlü Kafka (KRaft). İstemcilere localhost:9092 adresini bildirir.
+  # kafka:
+  #   profiles: [broker, all]
+  #   image: apache/kafka:4.3.0
+  #   ports: ["9092:9092"]
+  #
+  # RabbitMQ (arayüz: http://localhost:15672, guest / guest).
+  # rabbitmq:
+  #   profiles: [broker, all]
+  #   image: rabbitmq:4-management
+  #   ports: ["5672:5672", "15672:15672"]
 #endif
 #if (FileStorage)
 

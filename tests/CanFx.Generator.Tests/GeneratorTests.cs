@@ -986,32 +986,27 @@ public sealed class CrudGeneratorTests
     }
 
     [Fact]
-    public void Event_bus_transport_is_a_feature_and_options_are_written_to_canfx_json()
+    public void Event_bus_brokers_are_not_features_and_options_are_written_to_canfx_json()
     {
-        Assert.Equal("Kafka", FeaturePatcher.Normalize("kafka"));
-        Assert.Equal("AzureServiceBus", FeaturePatcher.Normalize("azure-service-bus"));
-        Assert.Equal("RabbitMq", FeaturePatcher.Normalize("rabbitmq"));
         Assert.Equal("Resilience", FeaturePatcher.Normalize("resilience"));
+        Assert.Equal("EventBus", FeaturePatcher.Normalize("event-bus"));
+        // Broker'ı geliştirici elle ekler (oluşturulan koddaki TODO): canfxgen özellik olarak kabul etmez, yolu gösterir.
+        foreach (string broker in new[] { "kafka", "rabbitmq", "azure-service-bus" })
+            Assert.Contains("TODO", Assert.Throws<GeneratorException>(() => FeaturePatcher.Normalize(broker)).Message);
+        Assert.DoesNotContain("Kafka", FeaturePatcher.Supported);
 
-        var rabbit = new Dictionary<string, string> { ["EventBus"] = "true" };            // eski canfx.json: taşıyıcı yazılmamış
-        Assert.True(FeaturePatcher.IsEnabled(rabbit, "RabbitMq"));
-        Assert.False(FeaturePatcher.IsEnabled(rabbit, "Kafka"));
-        Assert.False(FeaturePatcher.IsEnabled(new Dictionary<string, string> { ["EventBus"] = "false", ["EventBusTransport"] = "kafka" }, "Kafka"));
-
-        // Taşıyıcı eklemek event bus'ı da açar; çıkarmak RabbitMQ'ya döner; RabbitMQ çıkarılamaz.
-        Assert.Equal(new Dictionary<string, string> { ["EventBus"] = "true", ["EventBusTransport"] = "kafka" }, FeaturePatcher.OptionChanges("Kafka", enable: true));
-        Assert.Equal(new Dictionary<string, string> { ["EventBusTransport"] = "rabbitmq" }, FeaturePatcher.OptionChanges("AzureServiceBus", enable: false));
-        Assert.Throws<GeneratorException>(() => FeaturePatcher.OptionChanges("RabbitMq", enable: false));
-        Assert.True(FeaturePatcher.ChangesSchemaFor("Kafka", new Dictionary<string, string> { ["EventBus"] = "true" }));
-        Assert.False(FeaturePatcher.ChangesSchemaFor("Kafka", new Dictionary<string, string> { ["EventBusTransport"] = "kafka" }));
+        Assert.Equal(new Dictionary<string, string> { ["EventBus"] = "true" }, FeaturePatcher.OptionChanges("EventBus", enable: true));
+        Assert.True(FeaturePatcher.ChangesSchemaFor("EventBus", null));
+        Assert.NotNull(FeaturePatcher.DataWarning("EventBus", enable: true));
+        Assert.NotNull(FeaturePatcher.DataWarning("EventBus", enable: false));
+        Assert.Equal(new[] { "--EventBus", "true" }, FeaturePatcher.TemplateArguments(new Dictionary<string, string> { ["EventBus"] = "true" }));
 
         string json = "{\n  \"options\": {\n    \"EventBus\": false,\n    \"Redis\": true\n  }\n}\n";
-        json = FeaturePatcher.SetOption(json, "EventBus", "true");
-        json = FeaturePatcher.SetOption(json, "EventBusTransport", "kafka");             // yoksa eklenir
-        json = FeaturePatcher.SetOption(json, "EventBusTransport", "azureservicebus");   // varsa değişir
+        json = FeaturePatcher.SetOption(json, "EventBus", "true");               // varsa değişir
+        json = FeaturePatcher.SetOption(json, "Resilience", "true");             // yoksa eklenir
         Assert.Contains("\"EventBus\": true", json);
-        Assert.Contains("\"EventBusTransport\": \"azureservicebus\",", json);
-        Assert.Single(json.Split("EventBusTransport")[1..]);
+        Assert.Contains("\"Resilience\": true", json);
+        Assert.Single(json.Split("\"Resilience\"")[1..]);
         Assert.Contains("\"Redis\": true", json);
     }
 

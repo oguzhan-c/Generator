@@ -94,11 +94,6 @@ int New(Arguments a)
         IReadOnlyList<string> chosen = MultiSelect($"Hangi {G("özellikler")}?", options.Select(o => (o.Label, o.Default)).ToList());
         foreach ((string symbol, string label, _) in options)
             templateArgs.AddRange([$"--{symbol}", chosen.Contains(label) ? "true" : "false"]);
-        if (chosen.Contains("Altyapı: Event bus + outbox"))
-        {
-            string transport = Select($"Event bus {G("taşıyıcısı")}?", ["rabbitmq", "kafka", "azureservicebus"]);
-            templateArgs.AddRange(["--EventBusTransport", transport]);
-        }
     }
 
     templateArgs.AddRange(a.PassThrough);
@@ -499,7 +494,7 @@ int Feature(Arguments a, bool enable)
     Dictionary<string, string> options = FeaturePatcher.ReadOptions(layout, warnings);
     if (FeaturePatcher.IsEnabled(options, feature) == enable)
         throw new GeneratorException($"{feature} zaten {(enable ? "açık" : "kapalı")}.");
-    // Yalnızca gerçekten değişen seçenekler (ör. event bus zaten açıksa Kafka eklemek yalnızca taşıyıcıyı değiştirir).
+    // Yalnızca gerçekten değişen seçenekler.
     IReadOnlyDictionary<string, string> changes = FeaturePatcher.OptionChanges(feature, enable)
         .Where(c => options.GetValueOrDefault(c.Key) != c.Value)
         .ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
@@ -800,9 +795,9 @@ static string Help() => """
         generate (g)              Kod üret: crud, command, query, dynamic-query (canfxgen generate --help)
         add / remove feature <Ad> Şablon özelliğini sonradan ekler / çıkarır: redis, search, event-bus, hangfire,
                                   file-storage, realtime, sms, open-telemetry, postman, audit-trail, settings,
-                                  reporting, otp, email-two-factor, passkey, external-login, multi-tenancy, resilience;
-                                  event bus taşıyıcısı: rabbitmq, kafka, azure-service-bus (eklemek event bus'ı açar,
-                                  çıkarmak RabbitMQ'ya döner) (paket, kayıt, appsettings, docker-compose birlikte).
+                                  reporting, otp, email-two-factor, passkey, external-login, multi-tenancy, resilience
+                                  (paket, kayıt, appsettings, docker-compose birlikte). Event bus broker'sız kurulur:
+                                  Kafka / RabbitMQ / Azure Service Bus'ı elle eklersin (EventBusServiceRegistration.cs TODO).
                                   --preview: değişiklikleri göster, yazma
         rate-limit <Politika> <Uç> Uca hız sınırı bağlar ([EnableRateLimiting]); politika appsettings'te yoksa eklenir.
                                   Uç: istek (CreateReportCommand), Controller.Action, controller ya da özellik.

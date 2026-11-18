@@ -39,7 +39,6 @@
 //#else
     "EventBus": false,
 //#endif
-    "EventBusTransport": "CANFX_OPT_EVENTBUS_TRANSPORT",
 //#if (Resilience)
     "Resilience": true,
 //#else

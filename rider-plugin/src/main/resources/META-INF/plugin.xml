@@ -18,7 +18,7 @@
       <li><b>Features</b> (anywhere in the solution): add or remove every option of the New Solution screen later:
           Redis, search, event bus, Hangfire, file storage, SignalR, SMS, OpenTelemetry, Postman sync, the modules
           (audit trail, settings, reporting), the security features (OTP, email 2FA, passkey, external login),
-          multi-tenancy, resilience (retry and circuit breaker) and the event bus transport (RabbitMQ, Kafka, Azure Service Bus).</li>
+          multi-tenancy, resilience (retry and circuit breaker) and the event bus (in-process; the broker is added by hand following the generated TODO).</li>
     </ul>
     <p>Every change to existing files is shown as a diff before it is applied. Places that need your input are marked
     with <code>TODO(canfxgen)</code>.</p>

@@ -53,8 +53,9 @@ open(path, "w", encoding="utf-8").write(text)
 PY
 }
 
-# Şablonun kod adı kuralı (AppCodeName): harf, rakam, nokta ve alt çizgi dışı → "_" (My-Shop → My_Shop).
-code_name() { printf '%s' "${1//[^A-Za-z0-9_.]/_}"; }
+# Şablonun kod adı kuralı (AppCodeName): harf, rakam, nokta ve alt çizgi dışı → "_" (My-Shop → My_Shop); rakamla başlayan
+# bölüme alt çizgi eklenir (Shop.2 → Shop._2), C# ad alanı rakamla başlayamaz.
+code_name() { printf '%s' "${1//[^A-Za-z0-9_.]/_}" | sed -E 's/(^|\.)([0-9])/\1_\2/g'; }
 
 # variant <ad> <veritabanı: postgres | sqlserver | sqlite | none> <şablon seçenekleri...>
 # Şablon veritabanı seçmez (sağlayıcılar yorum satırı olarak hazır, paket yok); kullanıcının seçimi taklit edilir:
@@ -99,11 +100,12 @@ variant Minimal sqlite --IdKeyType int --Otp false --EmailTwoFactor false --Pass
 variant Full postgres --MultiTenancy true --ExternalLogin true --Redis true --EventBus true --Hangfire true \
   --FileStorage true --Search true --Realtime true --Sms true --Settings true --Reporting true --OpenTelemetry true
 variant Tenant sqlserver --IdKeyType long --ExternalLogin true --MultiTenancy true --Settings true --Hangfire true \
-  --EventBus true --EventBusTransport kafka --Resilience true
+  --EventBus true --Resilience true
 # Tire ve nokta içeren ad: proje referansları, namespace'ler ve docker/bucket adları tutarlı olmalı
 variant My-Shop.Api none --IdKeyType int --Redis true --FileStorage true --Otp false --Passkey false   # 2FA yalnızca e-posta
-# Kimlik özelliklerinin kalan bileşimi: yalnızca OTP + dış hesapla giriş (kapalı özelliklerin kodu üretilmez)
-variant OtpOnly none --EmailTwoFactor false --Passkey false --ExternalLogin true --EventBus true --EventBusTransport azureservicebus
+# Kimlik özelliklerinin kalan bileşimi: yalnızca OTP + dış hesapla giriş (kapalı özelliklerin kodu üretilmez); adın son
+# bölümü rakamla başlar (Otp.Only.2 → Otp.Only._2): ad alanı geçerli olmalı
+variant Otp.Only.2 none --EmailTwoFactor false --Passkey false --ExternalLogin true --EventBus true
 
 # ---------------------------------------------------------------- açılış
 # Derlenen uygulama gerçekten açılıyor mu (DI kayıtları, ayarların okunması, veritabanı hazırlığı)? SQLite'lı Minimal
@@ -228,20 +230,19 @@ CS
     run_cangen add feature external-login
     run_cangen add feature multi-tenancy                      # sütun ekler; veri taşıma kullanıcıda
     run_cangen add feature resilience
-    run_cangen add feature kafka                              # event bus'ı da açar (outbox tabloları)
+    run_cangen add feature event-bus                          # outbox tabloları; broker yok (TODO)
   fi
   if [[ "$name" == "Full" ]]; then
     run_cangen remove feature realtime
     run_cangen remove feature reporting
     run_cangen remove feature email-two-factor
     run_cangen remove feature external-login
-    run_cangen add feature azure-service-bus                  # RabbitMQ → Azure Service Bus
+    run_cangen remove feature event-bus                       # outbox tabloları kalkar
   fi
   if [[ "$name" == "My-Shop.Api" ]]; then
     run_cangen add feature otp                                # yalnızca e-posta 2FA → ikisi birden
     run_cangen remove feature email-two-factor                # → yalnızca OTP
-    run_cangen add feature kafka                              # event bus kapalıyken: açar + Kafka
-    run_cangen remove feature kafka                           # → RabbitMQ
+    run_cangen add feature event-bus                          # broker'sız (süreç içi, TODO ile)
   fi
   run_cangen generate command SyncBrand Brands -e Put
   run_cangen generate query GetBrandByName Brands
@@ -314,7 +315,7 @@ standards() {
 standards Minimal
 standards Full
 standards Tenant
-standards OtpOnly
+standards Otp.Only.2
 standards My-Shop.Api
 
 [[ $failed == 0 ]] && step "HEPSİ TAMAM" || step "HATALAR VAR (ayrıntı yukarıda)"

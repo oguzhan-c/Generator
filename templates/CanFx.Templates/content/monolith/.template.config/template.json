@@ -18,10 +18,22 @@
   },
   "preferNameDirectory": true,
   "forms": {
-    "codeName": {
+    "codeChars": {
       "identifier": "replace",
       "pattern": "[^A-Za-z0-9_.]",
       "replacement": "_"
+    },
+    "codeSegments": {
+      "identifier": "replace",
+      "pattern": "(^|\\.)([0-9])",
+      "replacement": "${1}_${2}"
+    },
+    "codeName": {
+      "identifier": "chain",
+      "steps": [
+        "codeChars",
+        "codeSegments"
+      ]
     },
     "lowerName": {
       "identifier": "lowerCaseInvariant"
@@ -89,34 +101,9 @@
     "EventBus": {
       "type": "parameter",
       "displayName": "Altyapı: Event bus + outbox",
-      "description": "Outbox/inbox tabloları; bağlantı ayarı boşken süreç içi taşıyıcı, doluysa seçilen broker (taşıyıcı seçimi aşağıda).",
+      "description": "Outbox/inbox tabloları ve süreç içi taşıyıcı (broker yok). Kafka / RabbitMQ / Azure Service Bus'ı sonradan sen eklersin: adımlar Infrastructure/Messaging/EventBusServiceRegistration.cs içindeki TODO'da.",
       "datatype": "bool",
       "defaultValue": "false"
-    },
-    "EventBusTransport": {
-      "type": "parameter",
-      "displayName": "Altyapı: Event bus taşıyıcısı",
-      "description": "Event bus açıksa servisler arası taşıyıcı. Sonradan değiştirilebilir (canfxgen add feature kafka | azure-service-bus | rabbitmq).",
-      "datatype": "choice",
-      "defaultValue": "rabbitmq",
-      "choices": [
-        { "choice": "rabbitmq", "description": "RabbitMQ (Development'ta docker'dan başlatılır)" },
-        { "choice": "kafka", "description": "Apache Kafka (Development'ta docker'dan başlatılır)" },
-        { "choice": "azureservicebus", "description": "Azure Service Bus (yerel karşılığı yok: bağlantı dizesi boşken süreç içi taşıyıcı)" }
-      ],
-      "replaces": "CANFX_OPT_EVENTBUS_TRANSPORT"
-    },
-    "RabbitMq": {
-      "type": "computed",
-      "value": "(EventBus && EventBusTransport == \"rabbitmq\")"
-    },
-    "Kafka": {
-      "type": "computed",
-      "value": "(EventBus && EventBusTransport == \"kafka\")"
-    },
-    "AzureServiceBus": {
-      "type": "computed",
-      "value": "(EventBus && EventBusTransport == \"azureservicebus\")"
     },
     "Resilience": {
       "type": "parameter",
@@ -254,7 +241,7 @@
       "valueTransform": "codeName",
       "replaces": "CanAppTemplate",
       "fileRename": "CanAppTemplate",
-      "description": "Kod, proje ve klasör adlarında kullanılan ad: harf, rakam, nokta ve alt çizgi (CanFx.Shop-Api → CanFx.Shop_Api)."
+      "description": "Kod, proje ve klasör adlarında kullanılan ad: harf, rakam, nokta ve alt çizgi; rakamla başlayan bölüme alt çizgi eklenir (CanFx.Shop-Api → CanFx.Shop_Api, Shop.1 → Shop._1)."
     },
     "AppSlug": {
       "type": "derived",
