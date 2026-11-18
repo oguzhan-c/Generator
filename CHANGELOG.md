@@ -11,6 +11,9 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Değişti
 
+- Şablon / canfxgen: yeni proje ekranındaki seçenek adları ve açıklamaları, şablonun kendi açıklaması İngilizce
+  (Infrastructure, Module, Security, Tenancy, Development; Identity key type). OpenTelemetry artık Infrastructure
+  grubunda.
 - Şablon / canfxgen / Rider: event bus broker seçimi kaldırıldı. Event bus + outbox seçildiğinde outbox, inbox ve süreç
   içi taşıyıcı kurulur; Kafka, RabbitMQ ya da Azure Service Bus'ı geliştirici elle ekler. Adımlar oluşturulan kodda
   TODO olarak: `Infrastructure/Messaging/EventBusServiceRegistration.cs` (kayıt kodu), `Directory.Packages.props` ve
@@ -21,6 +24,9 @@ Yayın: `## [Unreleased]` altındakileri `## [x.y.z] - YYYY-AA-GG` başlığına
 
 ### Düzeltildi
 
+- Şablon: gizli değerlerin (JWT anahtarı, Seed:AdminPassword, Postman, SMTP, S3 ...) user-secrets'a ya da
+  appsettings.json'a yazılabileceği açıklandı; ikisi de okunur, sıra appsettings.json < appsettings.{Ortam}.json <
+  user-secrets < ortam değişkeni. Önceki açıklamalar ve seed uyarısı yalnızca user-secrets diyordu.
 - Şablon: nuget.org'a ulaşılamadığında (ağ yok) NU1900 "güvenlik açığı verisi alınamadı" uyarısı derlemeyi durdurmaz;
   bulunan açıklar (NU1901 ile NU1904) yine hata verir.
 - Şablon: proje adının bir bölümü rakamla başlıyorsa (CanFx.Generator.Scenario.1) ad alanı ve using'ler geçersiz

@@ -11,7 +11,7 @@
   "groupIdentity": "CanFx.Templates.Monolith",
   "name": "CanFx Monolith",
   "shortName": "canfx-monolith",
-  "description": "CanFx paketleriyle nArchitecture düzeninde monolith Web API: Domain / Application (CQRS) / Persistence / Infrastructure / WebAPI (Controllers). Kimlik (JWT HttpOnly cookie), 2FA, passkey, çoklu kiracılık ve dış servisler seçmeli.",
+  "description": "ASP.NET Core monolith Web API built on CanFx packages in the nArchitecture layout: Domain / Application (CQRS) / Persistence / Infrastructure / WebAPI (Controllers). Identity (JWT in HttpOnly cookies), 2FA, passkeys, multi-tenancy and external services are optional.",
   "tags": {
     "language": "C#",
     "type": "solution"
@@ -55,21 +55,21 @@
     "MultiTenancy": {
       "type": "parameter",
       "displayName": "Tenancy: Multi-tenancy",
-      "description": "Çoklu kiracılık: tenant token'da (cookie), veriler TenantId ile ya da tenant başına veritabanıyla ayrılır. Sonradan da eklenebilir (canfxgen add feature multi-tenancy), ama mevcut verinin tenant'lara atanması gerekir; baştan seçmek daha kolay.",
+      "description": "Multi-tenancy: the tenant travels in the token (cookie); data is separated by TenantId or by a database per tenant. Can be added later (canfxgen add feature multi-tenancy), but existing data must then be assigned to tenants; choosing it up front is easier.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Otp": {
       "type": "parameter",
-      "displayName": "Security: OTP (authenticator uygulaması)",
-      "description": "TOTP ile iki adımlı doğrulama (Google/Microsoft Authenticator). Sonradan da eklenip çıkarılabilir (canfxgen add feature otp; Rider: CanFx → Features).",
+      "displayName": "Security: OTP (authenticator app)",
+      "description": "Two-step verification with TOTP (Google / Microsoft Authenticator). Can be added or removed later (canfxgen add feature otp; Rider: CanFx → Features).",
       "datatype": "bool",
       "defaultValue": "true"
     },
     "EmailTwoFactor": {
       "type": "parameter",
-      "displayName": "Security: 2FA (e-posta kodu)",
-      "description": "Girişte e-postaya gönderilen kod ile iki adımlı doğrulama. Sonradan da eklenip çıkarılabilir (canfxgen add feature email-two-factor).",
+      "displayName": "Security: 2FA (email code)",
+      "description": "Two-step verification with a code sent by email at sign-in. Can be added or removed later (canfxgen add feature email-two-factor).",
       "datatype": "bool",
       "defaultValue": "true"
     },
@@ -80,126 +80,126 @@
     "Passkey": {
       "type": "parameter",
       "displayName": "Security: Passkey (WebAuthn)",
-      "description": "Şifresiz giriş: parmak izi / yüz tanıma / güvenlik anahtarı. Sonradan da eklenip çıkarılabilir (canfxgen add feature passkey).",
+      "description": "Passwordless sign-in: fingerprint / face recognition / security key. Can be added or removed later (canfxgen add feature passkey).",
       "datatype": "bool",
       "defaultValue": "true"
     },
     "ExternalLogin": {
       "type": "parameter",
-      "displayName": "Security: Dış hesapla giriş",
-      "description": "Google / Microsoft / GitHub ile giriş ve hesap bağlama. Sonradan da eklenip çıkarılabilir (canfxgen add feature external-login).",
+      "displayName": "Security: External login (Google, Microsoft, GitHub)",
+      "description": "Sign in and link accounts with Google / Microsoft / GitHub. Can be added or removed later (canfxgen add feature external-login).",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Redis": {
       "type": "parameter",
-      "displayName": "Altyapı: Redis",
-      "description": "Dağıtık önbellek, Data Protection anahtarları, hız sınırı, kilit (çok sunucu).",
+      "displayName": "Infrastructure: Redis",
+      "description": "Distributed cache, Data Protection keys, rate limiting and locks (multiple servers).",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "EventBus": {
       "type": "parameter",
-      "displayName": "Altyapı: Event bus + outbox",
-      "description": "Outbox/inbox tabloları ve süreç içi taşıyıcı (broker yok). Kafka / RabbitMQ / Azure Service Bus'ı sonradan sen eklersin: adımlar Infrastructure/Messaging/EventBusServiceRegistration.cs içindeki TODO'da.",
+      "displayName": "Infrastructure: Event bus + outbox",
+      "description": "Outbox / inbox tables and an in-process transport (no broker). You add Kafka / RabbitMQ / Azure Service Bus later yourself: the steps are in the TODO in Infrastructure/Messaging/EventBusServiceRegistration.cs.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Resilience": {
       "type": "parameter",
-      "displayName": "Altyapı: Dayanıklılık (yeniden deneme, devre kesici)",
-      "description": "Uygulamanın tüm HttpClient'larına standart dayanıklılık (zaman aşımı, üstel yeniden deneme, devre kesici) ve kod için adlı bir pipeline. Sonradan da eklenebilir (canfxgen add feature resilience).",
+      "displayName": "Infrastructure: Resilience (retry, circuit breaker)",
+      "description": "Standard resilience for all of the app's HttpClients (timeout, exponential retry, circuit breaker) and a named pipeline for your own code. Can be added later (canfxgen add feature resilience).",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Hangfire": {
       "type": "parameter",
-      "displayName": "Altyapı: Hangfire",
-      "description": "Kalıcı iş kuyruğu, cron ve /hangfire paneli (kapalıysa bellek içi iş zamanlayıcı).",
+      "displayName": "Infrastructure: Hangfire",
+      "description": "Persistent job queue, cron jobs and the /hangfire dashboard (when off: in-memory job scheduler).",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "FileStorage": {
       "type": "parameter",
-      "displayName": "Altyapı: Dosya depolama",
-      "description": "Yerel disk / S3 / Azure Blob.",
+      "displayName": "Infrastructure: File storage",
+      "description": "Local disk / S3 / Azure Blob.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Search": {
       "type": "parameter",
-      "displayName": "Altyapı: Arama",
-      "description": "Bellek içi arama ya da Elasticsearch.",
+      "displayName": "Infrastructure: Search",
+      "description": "In-memory search or Elasticsearch.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Realtime": {
       "type": "parameter",
-      "displayName": "Altyapı: Anlık bildirim (SignalR)",
-      "description": "Kullanıcıya/gruba anlık bildirim; Redis varsa backplane.",
+      "displayName": "Infrastructure: Realtime notifications (SignalR)",
+      "description": "Realtime notifications to a user or group; uses Redis as backplane when Redis is selected.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Sms": {
       "type": "parameter",
-      "displayName": "Altyapı: SMS",
-      "description": "SMS gönderimi (geliştirmede klasöre yazar).",
+      "displayName": "Infrastructure: SMS",
+      "description": "Sending SMS (writes to a folder in Development).",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "AuditTrail": {
       "type": "parameter",
-      "displayName": "Modül: Değişiklik geçmişi (audit)",
-      "description": "[Audited] entity'lerin değişikliklerini tabloya yazar.",
+      "displayName": "Module: Audit trail",
+      "description": "Writes changes of [Audited] entities to a table.",
       "datatype": "bool",
       "defaultValue": "true"
     },
     "Settings": {
       "type": "parameter",
-      "displayName": "Modül: Ayarlar",
-      "description": "Veritabanında saklanan, yönetim uçlarından değiştirilen uygulama ayarları.",
+      "displayName": "Module: Settings",
+      "description": "Application settings stored in the database and changed through admin endpoints.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Reporting": {
       "type": "parameter",
-      "displayName": "Modül: Raporlama",
-      "description": "Rapor kaynakları, kayıtlı raporlar, CSV/Excel/PDF dışa aktarma.",
+      "displayName": "Module: Reporting",
+      "description": "Report sources, saved reports, CSV / Excel / PDF export.",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "OpenTelemetry": {
       "type": "parameter",
-      "displayName": "Modül: OpenTelemetry",
-      "description": "İz ve metrikleri OTLP ile dışa aktarır (Aspire dashboard).",
+      "displayName": "Infrastructure: OpenTelemetry",
+      "description": "Exports traces and metrics over OTLP (Aspire dashboard).",
       "datatype": "bool",
       "defaultValue": "false"
     },
     "Postman": {
       "type": "parameter",
-      "displayName": "Geliştirme: Postman eşitleme",
-      "description": "Development'ta API'yi Postman koleksiyonuna aktarır ve her açılışta günceller. Anahtar user-secrets'ta (Postman:ApiKey); yoksa hiçbir şey yapmaz.",
+      "displayName": "Development: Postman sync",
+      "description": "In Development, imports the API into a Postman collection and updates it on every start. Needs an API key (Postman:ApiKey in user-secrets or appsettings); without it nothing happens.",
       "datatype": "bool",
       "defaultValue": "true"
     },
     "IdKeyType": {
       "type": "parameter",
-      "displayName": "Kimlik anahtar tipi",
-      "description": "Kullanıcı, rol, yetki, oturum gibi kimlik tablolarının Id tipi. Proje açılırken seçilir: veri oluştuktan sonra değiştirmek tüm kimlik tablolarını ve ilişkileri etkiler (canfxgen ile sonradan değiştirilemez).",
+      "displayName": "Identity key type",
+      "description": "Id type of the identity tables (users, roles, permissions, sessions ...). Chosen when the project is created: changing it after data exists affects every identity table and relation (canfxgen cannot change it later).",
       "datatype": "choice",
       "defaultValue": "guid",
       "choices": [
         {
           "choice": "guid",
-          "description": "Guid v7 (kodda üretilir, zamana göre sıralı)"
+          "description": "Guid v7 (generated in code, time ordered)"
         },
         {
           "choice": "int",
-          "description": "int (veritabanı üretir)"
+          "description": "int (generated by the database)"
         },
         {
           "choice": "long",
-          "description": "long (veritabanı üretir)"
+          "description": "long (generated by the database)"
         }
       ],
       "replaces": "CANFX_OPT_IDKEY"
@@ -241,14 +241,14 @@
       "valueTransform": "codeName",
       "replaces": "CanAppTemplate",
       "fileRename": "CanAppTemplate",
-      "description": "Kod, proje ve klasör adlarında kullanılan ad: harf, rakam, nokta ve alt çizgi; rakamla başlayan bölüme alt çizgi eklenir (CanFx.Shop-Api → CanFx.Shop_Api, Shop.1 → Shop._1)."
+      "description": "Name used in code, project and folder names: letters, digits, dots and underscores; a segment that starts with a digit gets an underscore prefix (CanFx.Shop-Api → CanFx.Shop_Api, Shop.1 → Shop._1)."
     },
     "AppSlug": {
       "type": "derived",
       "valueSource": "name",
       "valueTransform": "slug",
       "replaces": "canapptemplate",
-      "description": "Docker, veritabanı, bucket ve e-posta alan adlarında kullanılan ad: küçük harf, rakam ve tire (canfx-shop-api)."
+      "description": "Name used for Docker, database, bucket and email domain names: lowercase letters, digits and hyphens (canfx-shop-api)."
     }
   },
   "sources": [

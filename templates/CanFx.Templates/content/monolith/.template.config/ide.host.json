@@ -9,7 +9,7 @@
     {
       "id": "IdKeyType",
       "name": {
-        "text": "Kimlik anahtar tipi (kullanıcı, rol, yetki)"
+        "text": "Identity key type"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -25,7 +25,7 @@
     {
       "id": "Otp",
       "name": {
-        "text": "Security: OTP (authenticator)"
+        "text": "Security: OTP (authenticator app)"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -33,7 +33,7 @@
     {
       "id": "EmailTwoFactor",
       "name": {
-        "text": "Security: 2FA (e-posta kodu)"
+        "text": "Security: 2FA (email code)"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -41,7 +41,7 @@
     {
       "id": "Passkey",
       "name": {
-        "text": "Security: Passkey"
+        "text": "Security: Passkey (WebAuthn)"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -49,7 +49,7 @@
     {
       "id": "ExternalLogin",
       "name": {
-        "text": "Security: Dış hesapla giriş"
+        "text": "Security: External login (Google, Microsoft, GitHub)"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -57,7 +57,7 @@
     {
       "id": "Redis",
       "name": {
-        "text": "Altyapı: Redis"
+        "text": "Infrastructure: Redis"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -65,7 +65,7 @@
     {
       "id": "EventBus",
       "name": {
-        "text": "Altyapı: Event bus + outbox"
+        "text": "Infrastructure: Event bus + outbox"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -73,7 +73,7 @@
     {
       "id": "Resilience",
       "name": {
-        "text": "Altyapı: Dayanıklılık (yeniden deneme, devre kesici)"
+        "text": "Infrastructure: Resilience (retry, circuit breaker)"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -81,7 +81,7 @@
     {
       "id": "Hangfire",
       "name": {
-        "text": "Altyapı: Hangfire"
+        "text": "Infrastructure: Hangfire"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -89,7 +89,7 @@
     {
       "id": "FileStorage",
       "name": {
-        "text": "Altyapı: Dosya depolama"
+        "text": "Infrastructure: File storage"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -97,7 +97,7 @@
     {
       "id": "Search",
       "name": {
-        "text": "Altyapı: Arama"
+        "text": "Infrastructure: Search"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -105,7 +105,7 @@
     {
       "id": "Realtime",
       "name": {
-        "text": "Altyapı: SignalR"
+        "text": "Infrastructure: Realtime notifications (SignalR)"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -113,7 +113,7 @@
     {
       "id": "Sms",
       "name": {
-        "text": "Altyapı: SMS"
+        "text": "Infrastructure: SMS"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -121,7 +121,7 @@
     {
       "id": "AuditTrail",
       "name": {
-        "text": "Modül: Değişiklik geçmişi"
+        "text": "Module: Audit trail"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -129,7 +129,7 @@
     {
       "id": "Settings",
       "name": {
-        "text": "Modül: Ayarlar"
+        "text": "Module: Settings"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -137,7 +137,7 @@
     {
       "id": "Reporting",
       "name": {
-        "text": "Modül: Raporlama"
+        "text": "Module: Reporting"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"
@@ -145,7 +145,7 @@
     {
       "id": "OpenTelemetry",
       "name": {
-        "text": "Modül: OpenTelemetry"
+        "text": "Infrastructure: OpenTelemetry"
       },
       "isVisible": true,
       "persistenceScope": "templateGroup"

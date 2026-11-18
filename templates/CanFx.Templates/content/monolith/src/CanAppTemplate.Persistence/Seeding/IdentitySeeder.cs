@@ -110,6 +110,6 @@ internal sealed partial class IdentitySeeder : IDataSeeder
         return user;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Seed: Seed:AdminPassword verilmediği için {Email} yönetici hesabı oluşturulmadı. dotnet user-secrets set \"Seed:AdminPassword\" \"...\" ile ekleyip uygulamayı yeniden başlat.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Seed: Seed:AdminPassword verilmediği için {Email} yönetici hesabı oluşturulmadı. dotnet user-secrets set \"Seed:AdminPassword\" \"...\" ile (ya da appsettings.json → Seed:AdminPassword) ekleyip uygulamayı yeniden başlat.")]
     private partial void LogAdminPasswordMissing(string email);
 }
